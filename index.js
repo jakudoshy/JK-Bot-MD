@@ -8,7 +8,7 @@ let sock
 let lastPairingCode = null
 let connectionStatus = "INICIANDO SISTEMA..."
 
-const BOT_NAME = "ᴊᴋ_ʙᴏᴛꫂꤪꤨᴼᶠᶜ"
+const BOT_NAME = "ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ"
 const BOT_BY = "ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ"
 
 async function startBot() {
