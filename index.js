@@ -1,40 +1,218 @@
-const express = require('express');
-const app = express();
-const P = require('pino');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys')
+const P = require('pino')
+const express = require('express')
+const fs = require('fs')
 
-app.get('/', (req, res) => res.send('ᴊᴋ-ʙᴏᴛ-ᴍᴅ ᴀᴄᴛɪᴠᴏ 💀 ʙʏ ᴊᴀᴋᴜᴅᴏsʜʏ'));
-app.listen(process.env.PORT || 3000, () => console.log('ᴡᴇʙ ᴏᴋ'));
+const app = express()
+const PORT = process.env.PORT || 3000
+let sock
+let lastPairingCode = null
+let connectionStatus = "INICIANDO SISTEMA..."
+let qr = null
 
 async function startBot() {
-  const { state, saveCreds } = await useMultiFileAuthState('./session');
-  const sock = makeWASocket({
-    auth: state,
-    logger: P({ level: 'silent' }),
-    browser: ["Ubuntu", "Chrome", "20.0.04"],
-    printQRInTerminal: false
-  });
+    const { state, saveCreds } = await useMultiFileAuthState('./auth_info')
+    const { version } = await fetchLatestBaileysVersion()
 
-  sock.ev.on('creds.update', saveCreds);
+    sock = makeWASocket({
+        version,
+        logger: P({ level: 'silent' }),
+        printQRInTerminal: false,
+        auth: state,
+        browser: ["JK-BOT-MD HACKER", "Chrome", "1.0"]
+    })
 
-  sock.ev.on('connection.update', async (u) => {
-    const { connection, lastDisconnect } = u;
-    if (connection === 'close') {
-      const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-      if (shouldReconnect) startBot();
-    } else if (connection === 'open') {
-      console.log('✅ ᴊᴋ-ʙᴏᴛ-ᴍᴅ ᴄᴏɴᴇᴄᴛᴀᴅᴏ');
-    }
-  });
+    sock.ev.on('creds.update', saveCreds)
 
-  if (!sock.authState.creds.registered) {
-    const num = (process.env.PHONE_NUMBER || '').replace(/[^0-9]/g, '');
-    if (!num) return console.log('❌ Pon en Variables: PHONE_NUMBER = 535xxxxxxx');
-    await new Promise(r => setTimeout(r, 3000));
-    try {
-      const code = await sock.requestPairingCode(num);
-      console.log(`\n🔥 ᴛᴜ ᴄᴏᴅɪɢᴏ ᴇs: ${code} 🔥\nPonlo en WhatsApp > Dispositivos vinculados > Vincular con numero`);
-    } catch (e) { console.log('Error pidiendo codigo:', e.message) }
-  }
+    sock.ev.on('connection.update', async (update) => {
+        const { connection, lastDisconnect } = update
+        if (connection === 'close') {
+            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
+            connectionStatus = "DESCONECTADO - RECONECTANDO..."
+            if (shouldReconnect) startBot()
+        } else if (connection === 'open') {
+            connectionStatus = "CONECTADO - SISTEMA ACTIVO ✓"
+            console.log('BOT CONECTADO')
+
+            // MENSAJE DE BIENVENIDA A TU MISMO NUMERO
+            const myId = sock.user.id
+            const welcome = `╭━〔 🟢 𝐉𝐊-𝐁𝐎𝐓-𝐌𝐃 𝐇𝐀𝐂𝐊𝐄𝐑 𝐒𝐘𝐒𝐓𝐄𝐌 〕━╮
+┃
+┃ 👁️‍🗨️ *ACCESO CONCEDIDO*
+┃ 🧠 *Usuario:* ${myId.split('@')[0]}
+┃ 💀 *By:* JAKUDOSHY
+┃
+┃ *SISTEMA INICIADO CORRECTAMENTE*
+┃
+┃ Escribe los siguientes comandos:
+┃
+┃ ➤ *.menu* - Menú principal hacker
+┃ ➤ *.ping* - Velocidad del sistema
+┃ ➤ *.owner* - Info del creador
+┃ ➤ *.estado* - Estado del bot
+┃
+╰━━━━━━━━━━━━━━━━━━━━━━━╯
+
+[√] Root access: GRANTED
+[√] Encrypting session... DONE`
+
+            await sock.sendMessage(myId, { text: welcome })
+        }
+    })
+
+    // COMANDOS
+    sock.ev.on('messages.upsert', async ({ messages }) => {
+        const m = messages[0]
+        if (!m.message || m.key.fromMe) return
+        const text = m.message.conversation || m.message.extendedTextMessage?.text || ""
+        const from = m.key.remoteJid
+
+        if (text.toLowerCase() === '.menu' || text.toLowerCase() === 'menu') {
+            const menu = `
+╭━〔 ☠️ 𝐉𝐊-𝐁𝐎𝐓-𝐌𝐃 - 𝐇𝐀𝐂𝐊𝐄𝐑 𝐌𝐄𝐍𝐔 〕━┈
+│
+│  *» SISTEMA PRINCIPAL*
+│  ➤ .ping
+│  ➤ .estado
+│  ➤ .owner
+│  ➤ .sc
+│
+│  *» HACKER TOOLS*
+│  ➤ .ip <ip>
+│  ➤ .hackmenu
+│
+│  *» EXOTIC*
+│  ➤ .attp <texto>
+│
+│  ╰  Power by JAKUDOSHY v2.0
+╰━━━━━━━━━━━━━━━━━━━━━
+`
+            await sock.sendMessage(from, { text: menu })
+        }
+        if (text.toLowerCase() === '.ping') {
+            await sock.sendMessage(from, { text: `*PONG!* 🏴‍☠️\nVelocidad: ${Date.now() % 100}ms\n*JK-BOT ACTIVO*` })
+        }
+    })
 }
-startBot();
+
+// API PARA GENERAR CODIGO DESDE LA WEB
+app.use(express.json())
+
+app.get('/pair', async (req, res) => {
+    try {
+        const number = req.query.number?.replace(/[^0-9]/g, '')
+        if (!number || number.length < 8) return res.json({ error: "Pon tu numero con codigo pais. Ej: 51912345678" })
+        if (!sock) return res.json({ error: "El bot aun no inicia, espera 10 seg" })
+        
+        const code = await sock.requestPairingCode(number)
+        lastPairingCode = code
+        connectionStatus = `CODIGO GENERADO PARA ${number}: ${code}`
+        res.json({ code: code })
+    } catch (e) {
+        res.json({ error: e.message })
+    }
+})
+
+app.get('/status', (req, res) => {
+    res.json({ status: connectionStatus, code: lastPairingCode })
+})
+
+// PAGINA HACKER
+app.get('/', (req, res) => {
+    res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JK-BOT-MD HACKER SYSTEM</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+body{margin:0;background:#000;color:#00ff00;font-family:'Share Tech Mono',monospace;overflow:hidden}
+canvas{position:fixed;top:0;left:0;z-index:0}
+.box{position:relative;z-index:2;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+.panel{width:100%;max-width:420px;background:rgba(0,15,0,0.85);border:1px solid #00ff00;box-shadow:0 0 20px #00ff00, inset 0 0 15px rgba(0,255,0,0.2);padding:25px;border-radius:12px;backdrop-filter:blur(5px)}
+h1{margin:0;text-align:center;font-size:28px;text-shadow:0 0 10px #00ff00;letter-spacing:3px}
+.sub{text-align:center;color:#8f8;font-size:12px;margin:5px 0 20px}
+.term{background:#000;border:1px solid #0f0;padding:12px;font-size:12px;height:85px;overflow:hidden;margin-bottom:15px;color:#0f0}
+input{width:100%;background:#000;border:1px solid #0f0;color:#0f0;padding:14px;border-radius:6px;outline:none;font-family:inherit;font-size:16px;box-sizing:border-box}
+input:focus{box-shadow:0 0 10px #0f0}
+button{width:100%;margin-top:12px;background:#00ff00;color:#000;border:none;padding:14px;font-weight:bold;font-family:inherit;letter-spacing:2px;cursor:pointer;border-radius:6px;transition:0.2s}
+button:hover{background:#fff;box-shadow:0 0 20px #0f0}
+.codebox{margin-top:18px;background:#001100;border:1px dashed #0f0;padding:15px;text-align:center;display:none}
+.code{font-size:32px;letter-spacing:8px;font-weight:bold;text-shadow:0 0 15px #0f0}
+.status{margin-top:12px;font-size:11px;color:#8f8;text-align:center}
+.glitch{animation:glitch 0.3s infinite}
+@keyframes glitch{0%{transform:translate(0)}20%{transform:translate(-1px,1px)}40%{transform:translate(1px,0)}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="box">
+<div class="panel">
+<h1>JK-BOT-MD</h1>
+<div class="sub">[ ROOT ACCESS v2.0 ] BY JAKUDOSHY</div>
+
+<div class="term" id="term">
+> Initializing hacker system...<br>
+> Bypassing WhatsApp encryption...<br>
+> Loading modules... OK<br>
+> <span style="color:#fff">Esperando numero...</span>
+</div>
+
+<input id="num" placeholder="51912345678 (con codigo pais)">
+<button onclick="getCode()">[ GENERAR CODIGO DE 8 DIGITOS ]</button>
+
+<div class="codebox" id="codebox">
+<div style="font-size:12px">TU CODIGO ES:</div>
+<div class="code" id="code">--------</div>
+<div style="font-size:11px;margin-top:8px;color:#fff">Ve a WhatsApp > Dispositivos vinculados > Vincular con numero</div>
+</div>
+
+<div class="status" id="status">STATUS: INICIANDO...</div>
+
+<div style="margin-top:20px;font-size:10px;text-align:center;opacity:0.6">☠️ Este sistema es privado | Si cierras la pagina el bot sigue activo en Railway</div>
+</div>
+</div>
+
+<script>
+const c=document.getElementById('c'),ctx=c.getContext('2d');
+c.width=window.innerWidth;c.height=window.innerHeight;
+const letters="010101JK-BOT-MD HACKER01";
+const font=14,cols=Math.floor(c.width/font),drops=Array(cols).fill(1);
+function draw(){
+ctx.fillStyle="rgba(0,0,0,0.05)";ctx.fillRect(0,0,c.width,c.height);
+ctx.fillStyle="#0f0";ctx.font=font+"px monospace";
+drops.forEach((y,i)=>{
+const text=letters[Math.floor(Math.random()*letters.length)];
+ctx.fillText(text,i*font,y*font);
+if(y*font>c.height && Math.random()>0.975) drops[i]=0;
+drops[i]++
+})
+}
+setInterval(draw,35);
+
+async function getCode(){
+const num=document.getElementById('num').value;
+if(!num) return alert('Pon tu numero!');
+document.getElementById('term').innerHTML += "<br>> Solicitando codigo para "+num+"...<br>> Conectando a API de WhatsApp...";
+const res=await fetch('/pair?number='+num).then(r=>r.json());
+if(res.error){alert(res.error); return}
+document.getElementById('codebox').style.display='block';
+document.getElementById('code').innerText=res.code;
+document.getElementById('term').innerHTML += "<br><span style='color:#fff'>> CODIGO: "+res.code+" GENERADO!</span>";
+}
+setInterval(async()=>{
+const s=await fetch('/status').then(r=>r.json());
+document.getElementById('status').innerText="STATUS: "+s.status;
+},3000);
+</script>
+</body>
+</html>
+    `)
+})
+
+app.listen(PORT, () => {
+    console.log(`Web en puerto ${PORT}`)
+})
+
+startBot()
