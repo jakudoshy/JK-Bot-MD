@@ -175,7 +175,7 @@ input{flex:1;background:transparent;border:none;color:#fff;outline:none;padding:
 </div>
 
 <script>
-const logs=["Iniciando sistema...","Cargando modulos...","Verificando device JK Bot","Anti crash activo","Motor de pairing listo","Sistema listo"];
+const logs=["Iniciando sistemas...","Cargando modulos...","Verificando device JK Bot","Anti crash activo","Motor de pairing listo","Sistema listo"];
 const logEl=document.getElementById('log'),fill=document.getElementById('fill'),perc=document.getElementById('perc');let i=0;
 function load(){
  if(i<logs.length){
