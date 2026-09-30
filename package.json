@@ -1,17 +1,14 @@
 {
-  "name": "jk-bot-md",
-  "version": "1.0.0",
+  "name": "jk-bot-ofc",
+  "version": "2.0.0",
+  "description": "ᴊᴋ_ʙᴏᴛꫂꤪꤨᴼᶠᶜ - ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ",
   "main": "index.js",
-  "engines": {
-    "node": "20.x"
-  },
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.8",
     "express": "^4.18.2",
-    "@whiskeysockets/baileys": "^6.7.5",
-    "pino": "^8.16.0",
-    "qrcode-terminal": "^0.12.0"
+    "pino": "^8.17.2"
   }
 }
