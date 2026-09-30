@@ -13,6 +13,26 @@ let lastCodeTime = 0
 const BOT_NAME = "ᴊᴋ ʙᴏᴛ"
 const OWNER = "JAKUDOSHY"
 
+// API GRATIS QUE TE CONSEGUI - NO NECESITA KEY
+async function IA_GRATIS(texto){
+    try{
+        // Pollinations - IA gratis ilimitada
+        const prompt = encodeURIComponent(texto)
+        const { data } = await axios.get(`https://text.pollinations.ai/${prompt}?model=openai&system=Eres ${BOT_NAME} creado por ${OWNER}, responde corto, útil y en español`, {
+            timeout: 20000
+        })
+        return data
+    }catch(e){
+        // Respaldo 2 - DuckDuckGo AI gratis
+        try{
+            const { data } = await axios.get(`https://api.duckduckgo.com/?q=${encodeURIComponent(texto)}&format=json`)
+            return data.AbstractText || "No entendí, intenta de nuevo"
+        }catch{
+            return "❌ La IA gratis está ocupada, intenta en 5 seg"
+        }
+    }
+}
+
 async function startBot(){
     const { state, saveCreds } = await useMultiFileAuthState('./auth_info')
     const { version } = await fetchLatestBaileysVersion()
@@ -21,34 +41,13 @@ async function startBot(){
         logger: P({ level: 'silent' }),
         printQRInTerminal: false,
         auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, P({ level: 'silent' })) },
-        browser: ["Debian", "Chrome", "11.0"], // SOLO AQUI SE QUEDA, AFUERA NO SE VE
+        browser: ["Debian", "Chrome", "11.0"],
         getMessage: async()=>undefined
     })
     sock.ev.on('creds.update', saveCreds)
     sock.ev.on('connection.update', async (u)=>{
-        const { connection, lastDisconnect } = u
-        if(connection === 'close'){
-            const r = lastDisconnect?.error?.output?.statusCode
-            if(r!==DisconnectReason.loggedOut) setTimeout(()=>startBot(),2000)
-            else { try{fs.rmSync('./auth_info',{recursive:true,force:true})}catch{}; lastCode=null; setTimeout(()=>startBot(),1500) }
-        }
-        if(connection === 'open'){
-            lastCode=null; lastCodeTime=0
-            try{
-                const id = sock.user.id
-                await sock.sendMessage(id, {
-                    text: `╭━━━〔 ${BOT_NAME} 〕━━━┈⊷
-┃ ✓ Vinculado correctamente
-┃ Owner: ${OWNER}
-┃ Bot activo
-╰━━━━━━━━━━━━━━━━┈⊷
-
-Comando:
-.downlink + link
-
-Descarga TikTok, Instagram, FB, YT`
-                })
-            }catch{}
+        if(u.connection === 'close' && u.lastDisconnect?.error?.output?.statusCode!== DisconnectReason.loggedOut){
+            setTimeout(()=>startBot(),2000)
         }
     })
 
@@ -58,33 +57,51 @@ Descarga TikTok, Instagram, FB, YT`
         const from = m.key.remoteJid
         const txt = m.message.conversation || m.message.extendedTextMessage?.text || ""
         if(!txt) return
+
         const cmd = txt.trim().split(' ')[0].toLowerCase()
         const q = txt.trim().split(' ').slice(1).join(' ').trim()
+        const linkMatch = txt.match(/https?:\/\/[^\s]+/)
 
-        if(cmd === '.downlink'){
-            if(!q) return await sock.sendMessage(from, {text:`Usa:\n.downlink https://...`}, {quoted:m})
-            await sock.sendMessage(from, {text:`⬇️ Descargando...`}, {quoted:m})
-            try{
-                if(q.includes('tiktok')){
-                    const { data } = await axios.get(`https://tikwm.com/api/?url=${q}`)
-                    if(data.data?.play){
-                        await sock.sendMessage(from, {video:{url:data.data.play}, caption:`${BOT_NAME}`}, {quoted:m})
-                    }else throw 'e'
-                }else{
-                    const { data } = await axios.post('https://api.cobalt.tools/api/json', {url:q}, {
-                        headers:{Accept:'application/json','Content-Type':'application/json'}
-                    })
-                    if(data.url){
-                        await sock.sendMessage(from, {video:{url:data.url}, caption:`${BOT_NAME}`}, {quoted:m})
-                    }else throw 'e'
+        // IA GRATIS -.ia
+        if(cmd === '.ia' || cmd === '.gpt' || cmd === '.ai' || cmd === '.jakudoshy'){
+            if(!q) return await sock.sendMessage(from, {text:`Usa:\n.ia hola como estas\n.ia hazme un poema de ${OWNER}\n.ia que es javascript`}, {quoted:m})
+
+            await sock.sendMessage(from, {text:`🧠 Pensando...`}, {quoted:m})
+            const resp = await IA_GRATIS(q)
+            await sock.sendMessage(from, {text: `${resp}\n\n${BOT_NAME} • ${OWNER}`}, {quoted:m})
+            return
+        }
+
+        // DESCARGA AUTOMATICA
+        if(linkMatch){
+            const url = linkMatch[0]
+            if(url.includes('whatsapp.com')) return
+            if(cmd === '.downlink' ||!txt.startsWith('.')){
+                if(url.includes('tiktok') || url.includes('instagram') || url.includes('facebook') || url.includes('youtu') || cmd === '.downlink'){
+                    await sock.sendMessage(from, {text:`⬇️ Descargando...`}, {quoted:m})
+                    try{
+                        let videoUrl = null
+                        if(url.includes('tiktok')){
+                            const { data } = await axios.get(`https://tikwm.com/api/?url=${url}`)
+                            if(data.data?.play) videoUrl = data.data.play
+                        }else{
+                            const { data } = await axios.post('https://api.cobalt.tools/api/json', {url}, {
+                                headers:{Accept:'application/json','Content-Type':'application/json'}
+                            })
+                            if(data.url) videoUrl = data.url
+                        }
+                        if(videoUrl) await sock.sendMessage(from, {video:{url:videoUrl}, caption:`${BOT_NAME}`}, {quoted:m})
+                    }catch{}
                 }
-            }catch{
-                await sock.sendMessage(from, {text:`❌ No se pudo descargar`}, {quoted:m})
             }
         }
 
         if(cmd === '.menu'){
-            await sock.sendMessage(from, {text:`${BOT_NAME} • ${OWNER}\n\n.downlink + link`}, {quoted:m})
+            await sock.sendMessage(from, {text:`${BOT_NAME} • ${OWNER}
+
+.ia + pregunta - IA GRATIS sin key
+.downlink + link - descarga video
+Manda link y baja automático`}, {quoted:m})
         }
     })
 }
@@ -93,7 +110,7 @@ app.use(express.json())
 app.get('/pair', async(req,res)=>{
     try{
         let num = req.query.number?.replace(/[^0-9]/g,'')
-        if(!num || num.length < 8) return res.json({error:"Número inválido"})
+        if(!num) return res.json({error:"Número inválido"})
         if(!sock){ await startBot(); await new Promise(r=>setTimeout(r,3500)) }
         const now = Date.now()
         if(lastCode && (now-lastCodeTime) < 25000) return res.json({code:lastCode})
@@ -103,56 +120,11 @@ app.get('/pair', async(req,res)=>{
         const code = await sock.requestPairingCode(num)
         lastCode=code; lastCodeTime=Date.now()
         return res.json({code})
-    }catch(e){ return res.json({error:"Espera 2 min"}) }
+    }catch{ return res.json({error:"Espera 2 min"}) }
 })
 
 app.get('/', (req,res)=>{
-    res.send(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>${BOT_NAME}</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:'JetBrains Mono',monospace}
-body{background:#080c08;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-canvas{position:fixed;inset:0;z-index:0}
-.ov{position:fixed;inset:0;background:radial-gradient(700px at 50% 0%, rgba(0,255,80,.10) 0%, #080c08 70%);z-index:1}
-.main{position:relative;z-index:2;width:100%;max-width:380px;display:flex;flex-direction:column;gap:16px}
-.card{width:100%;background:rgba(16,22,17,.95);border:1px solid rgba(0,255,80,.22);border-radius:20px;padding:26px;text-align:center}
-.title{font-size:26px;letter-spacing:6px;color:#fff;font-weight:700}
-.sub{font-size:10px;letter-spacing:4px;color:#00ff64;margin-top:6px}
-.input{margin-top:20px;display:flex;gap:8px;background:#0a0f0b;border:1px solid rgba(0,255,80,.2);border-radius:12px;padding:12px 14px}
-input{flex:1;background:transparent;border:none;outline:none;color:#fff;text-align:center;font-size:14px}
-.btn{width:100%;margin-top:14px;background:#00ff64;color:#000;border:none;padding:14px;border-radius:12px;font-weight:700;letter-spacing:3px;cursor:pointer}
-.codebox{display:none;margin-top:16px;border:1px solid #00ff64;border-radius:14px;padding:16px;background:rgba(0,255,80,.08)}
-.code{font-size:22px;letter-spacing:6px;color:#fff;font-weight:700;word-break:break-all}
-.welcome{width:100%;background:rgba(0,255,100,.10);border:1px solid rgba(0,255,100,.25);border-radius:16px;padding:18px;text-align:center;display:none}
-</style></head><body>
-<canvas id="c"></canvas><div class="ov"></div>
-<div class="main">
-<div class="card">
-<div class="title">${BOT_NAME}</div>
-<div class="sub">${OWNER}</div>
-<div class="input"><span style="color:#00ff64">+</span><input id="num" placeholder="51912345678"></div>
-<button class="btn" id="btn" onclick="gen()">GENERAR</button>
-<div class="codebox" id="box"><div style="font-size:9px;color:#00ff64;letter-spacing:3px">CÓDIGO</div><div class="code" id="code">--------</div></div>
-</div>
-<div class="welcome" id="welcome"><div style="color:#00ff64;font-size:12px;letter-spacing:2px">✓ VINCULADO</div><div style="color:#8aaa8f;font-size:11px;margin-top:6px">Bot activo<br>.downlink + link</div></div>
-</div>
-<script>
-const c=document.getElementById('c'),x=c.getContext('2d');function r(){c.width=innerWidth;c.height=innerHeight}r();onresize=r;
-let d=new Array(Math.floor(innerWidth/16)).fill(0);function l(){x.fillStyle='rgba(8,12,8,0.14)';x.fillRect(0,0,c.width,c.height);x.fillStyle='#00ff64';x.font='12px monospace';d.forEach((v,i)=>{x.fillText(Math.random()>.5?'1':'0',i*16,v*16);if(v*16>c.height&&Math.random()>.97)d[i]=0;d[i]++});requestAnimationFrame(l)}l();
-async function gen(){
- const n=document.getElementById('num').value.trim(); if(!n) return alert('Pon número');
- const b=document.getElementById('btn'); b.innerText='GENERANDO...'; b.disabled=true;
- try{
-  const r=await fetch('/pair?number='+encodeURIComponent(n)).then(r=>r.json());
-  if(r.error){alert(r.error); b.innerText='GENERAR'; b.disabled=false; return;}
-  document.getElementById('code').innerText=r.code;
-  document.getElementById('box').style.display='block';
-  document.getElementById('welcome').style.display='block';
-  b.innerText=r.code;
-  setTimeout(()=>{b.innerText='GENERAR'; b.disabled=false},12000);
- }catch{alert('Error'); b.innerText='GENERAR'; b.disabled=false;}
-}
-</script></body></html>`)
+    res.send(`<html><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{background:#080c08;color:#fff;font-family:monospace;display:flex;justify-content:center;padding:30px}.c{background:#111;border:1px solid #00ff64;border-radius:20px;padding:24px;width:100%;max-width:360px;text-align:center} input{width:100%;padding:12px;border-radius:10px;background:#080c08;border:1px solid #00ff64;color:#fff;text-align:center;margin-top:12px} button{width:100%;padding:12px;border-radius:10px;background:#00ff64;border:none;font-weight:700;margin-top:12px}.code{margin-top:12px;font-size:22px;letter-spacing:5px;word-break:break-all}</style></head><body><div class="c"><div>${BOT_NAME}</div><div style="color:#00ff64;font-size:10px">${OWNER} • IA GRATIS</div><input id="n" placeholder="51912345678"><button onclick="g()">GENERAR</button><div id="b" style="display:none;margin-top:12px;border:1px solid #00ff64;padding:12px;border-radius:10px"><div id="co" class="code"></div></div><div style="font-size:10px;color:#5a7a62;margin-top:10px">.ia + pregunta funciona sin key</div></div><script>async function g(){const v=document.getElementById('n').value; const r=await fetch('/pair?number='+v).then(r=>r.json()); if(r.code){document.getElementById('co').innerText=r.code; document.getElementById('b').style.display='block';}else alert(r.error)}</script></body></html>`)
 })
 
-app.listen(PORT, ()=>{ console.log('JK BOT listo '+PORT); startBot() })
+app.listen(PORT, ()=>{ console.log('JK + IA GRATIS listo'); startBot() })
