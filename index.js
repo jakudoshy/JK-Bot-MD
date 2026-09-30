@@ -9,7 +9,7 @@ let sock = null
 let lastCode = null
 let lastCodeTime = 0
 
-const BOT_NAME = "ᴊᴋ_ʙᴏᴛꫂꤪꤨᴼᶠᶜ"
+const BOT_NAME = "ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ"
 const BOT_BY = "ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ"
 const CHANNEL = "https://t.me/gg_no_root"
 
@@ -22,7 +22,7 @@ async function startBot(){
             logger: P({ level: 'silent' }),
             printQRInTerminal: false,
             auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, P({ level: 'silent' })) },
-            browser: ["Ubuntu", "Chrome", "20.0.04"],
+            browser: ["ᴊᴋ ʙᴏᴛ", "Chrome", "1.0"],
             syncFullHistory: false,
             markOnlineOnConnect: true,
             getMessage: async()=>undefined
@@ -38,7 +38,7 @@ async function startBot(){
             if(connection === 'open'){
                 lastCode = null
                 try{
-                    await sock.sendMessage(sock.user.id, { text: `${BOT_NAME}\n${BOT_BY}\n\nconected\n${CHANNEL}\n.menu` })
+                    await sock.sendMessage(sock.user.id, { text: `${BOT_NAME}\n${BOT_BY}\n\nconectado\n${CHANNEL}\n.menu` })
                 }catch{}
             }
         })
@@ -58,7 +58,6 @@ async function startBot(){
 
 app.use(express.json())
 
-// MOTOR QUE SI FUNCIONA - FIX VINCULACION
 app.get('/pair', async(req,res)=>{
     try{
         let num = req.query.number?.replace(/[^0-9]/g,'')
@@ -181,11 +180,11 @@ const logsEl=document.getElementById('logs'),pctEl=document.getElementById('pct'
 const steps=[
  "[  ok  ] ${BOT_NAME}",
  "[  ok  ] ${BOT_BY}",
- "[  ok  ] kernel loaded",
+ "[  ok  ] kernel ${BOT_NAME} loaded",
  "[  ok  ] canal gg_no_root",
  "[  ok  ] engine v5",
  "[  ok  ] fix vinculacion",
- "[  ok  ] ready"
+ "[  ok  ] system ready"
 ];
 let p=0, si=0;
 function boot(){
