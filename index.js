@@ -1,22 +1,40 @@
-const express = require('express')
-const app = express()
-app.get('/', (r,s)=> s.send('JK-BOT Activo 💀 by jakudoshy'))
-app.listen(process.env.PORT || 3000, ()=> console.log('WEB OK'))
+const express = require('express');
+const app = express();
+const P = require('pino');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
 
-const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys')
-const P = require('pino')
+app.get('/', (req, res) => res.send('ᴊᴋ-ʙᴏᴛ-ᴍᴅ ᴀᴄᴛɪᴠᴏ 💀 ʙʏ ᴊᴀᴋᴜᴅᴏsʜʏ'));
+app.listen(process.env.PORT || 3000, () => console.log('ᴡᴇʙ ᴏᴋ'));
 
-async function start(){
-  const { state, saveCreds } = await useMultiFileAuthState('./jk_session')
-  const sock = makeWASocket({ auth: state, logger: P({level:'silent'}), browser: ["Ubuntu","Chrome","20.0"], printQRInTerminal: false })
+async function startBot() {
+  const { state, saveCreds } = await useMultiFileAuthState('./session');
+  const sock = makeWASocket({
+    auth: state,
+    logger: P({ level: 'silent' }),
+    browser: ["Ubuntu", "Chrome", "20.0.04"],
+    printQRInTerminal: false
+  });
 
-  if(!sock.authState.creds.registered){
-    let num = process.env.PHONE_NUMBER
-    if(!num){ console.log('❌ PON TU NUMERO EN VARIABLES: PHONE_NUMBER=5355xxxxxxx'); return }
-    let code = await sock.requestPairingCode(num)
-    console.log(`🔥 TU CODIGO PARA ${num} ES: ${code} 🔥`)
+  sock.ev.on('creds.update', saveCreds);
+
+  sock.ev.on('connection.update', async (u) => {
+    const { connection, lastDisconnect } = u;
+    if (connection === 'close') {
+      const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+      if (shouldReconnect) startBot();
+    } else if (connection === 'open') {
+      console.log('✅ ᴊᴋ-ʙᴏᴛ-ᴍᴅ ᴄᴏɴᴇᴄᴛᴀᴅᴏ');
+    }
+  });
+
+  if (!sock.authState.creds.registered) {
+    const num = (process.env.PHONE_NUMBER || '').replace(/[^0-9]/g, '');
+    if (!num) return console.log('❌ Pon en Variables: PHONE_NUMBER = 535xxxxxxx');
+    await new Promise(r => setTimeout(r, 3000));
+    try {
+      const code = await sock.requestPairingCode(num);
+      console.log(`\n🔥 ᴛᴜ ᴄᴏᴅɪɢᴏ ᴇs: ${code} 🔥\nPonlo en WhatsApp > Dispositivos vinculados > Vincular con numero`);
+    } catch (e) { console.log('Error pidiendo codigo:', e.message) }
   }
-  sock.ev.on('creds.update', saveCreds)
-  sock.ev.on('connection.update', u=>{ if(u.connection=='open') console.log('✅ BOT CONECTADO') })
 }
-start()
+startBot();
