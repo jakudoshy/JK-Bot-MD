@@ -76,7 +76,6 @@ async function startBot(){
 
 app.use(express.json())
 
-// ESTO QUEDA INTACTO, NO LO TOQUE
 app.get('/pair', async(req,res)=>{
     try{
         let num = req.query.number?.replace(/[^0-9]/g,'')
@@ -109,73 +108,55 @@ app.get('/pair', async(req,res)=>{
 
 app.get('/status', (req,res)=> res.json({status, code:lastCode}))
 
-// SOLO CAMBIE EL DISEÑO AQUI, CON MUCHO ESTILO
+// AQUI SOLO MEJORE EL DISEÑO, EL CODIGO DE ARRIBA QUEDA INTACTO V5
 app.get('/', (req,res)=>{
     res.send(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>${BOT_NAME}</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;font-family:'Outfit',sans-serif}
-body{margin:0;background:#060606;color:#fff;min-height:100vh;overflow-x:hidden}
-.bg{position:fixed;inset:0;background:radial-gradient(500px at 50% 0%, #0e2e0e 0%, #000 65%);z-index:0}
-#loader{position:fixed;inset:0;background:#000;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px;transition:.8s}
-.load-card{width:100%;max-width:380px;background:#0a0a0a;border:1px solid #1a1a1a;border-radius:20px;padding:26px;text-align:center}
-.load-logo{font-weight:800;font-size:26px;letter-spacing:2px}.load-logo span{color:#00ff41}
+body{margin:0;background:#050505;color:#fff;min-height:100vh}
+.bg{position:fixed;inset:0;background:radial-gradient(600px at 50% -20%, #0a2e0a 0%, #000 60%);z-index:0}
+#loader{position:fixed;inset:0;background:#000;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px;transition:.7s}
+.load-card{width:100%;max-width:380px;background:#0f0f0f;border:1px solid #1f1f1f;border-radius:20px;padding:26px;text-align:center}
+.logo{font-weight:800;font-size:28px;letter-spacing:1px}
+.logo span{color:#00ff41}
 .bar{height:4px;background:#111;border-radius:10px;overflow:hidden;margin:18px 0}
-.fill{height:100%;width:0%;background:#00ff41;box-shadow:0 0 10px #00ff41;transition:.3s}
-.log{font-family:'JetBrains Mono',monospace;font-size:11px;color:#00ff41;height:130px;overflow:hidden;text-align:left;line-height:16px;opacity:.8}
-.main{position:relative;z-index:1;display:none;min-height:100vh;padding:20px;flex-direction:column;align-items:center}
-.card{width:100%;max-width:400px;background:rgba(16,16,16,0.9);backdrop-filter:blur(15px);border:1px solid #222;border-radius:20px;padding:22px}
-.title{font-size:26px;font-weight:800;text-align:center}.title span{color:#00ff41}
+.fill{height:100%;width:0%;background:#00ff41;box-shadow:0 0 12px #00ff41;transition:.3s}
+.log{font-family:'JetBrains Mono',monospace;font-size:11px;color:#00ff41;text-align:left;height:130px;overflow:hidden;line-height:16px}
+.main{position:relative;z-index:1;display:none;min-height:100vh;padding:20px;align-items:center;flex-direction:column}
+.card{width:100%;max-width:400px;background:rgba(18,18,18,0.95);border:1px solid #222;border-radius:22px;padding:22px;backdrop-filter:blur(10px)}
+.title{text-align:center;font-size:26px;font-weight:800}.title span{color:#00ff41}
 .sub{text-align:center;font-size:10px;color:#666;letter-spacing:3px;margin-top:4px}
-.info{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
-.box{background:#000;border:1px solid #151515;border-radius:12px;padding:10px}
-.box label{font-size:9px;color:#555;text-transform:uppercase;display:block;margin-bottom:2px}
-.box b{font-size:12px;color:#fff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.item{background:#000;border:1px solid #1a1a1a;border-radius:12px;padding:10px}
+.item label{font-size:9px;color:#555;text-transform:uppercase;display:block}
+.item b{font-size:12px;color:#fff}
 .input{display:flex;align-items:center;gap:10px;background:#000;border:1px solid #222;border-radius:12px;padding:6px 14px;margin-top:14px}
 .input:focus-within{border-color:#00ff41}
 input{flex:1;background:transparent;border:none;color:#fff;outline:none;padding:10px 0;font-size:14px}
 .btn{width:100%;margin-top:12px;background:#fff;color:#000;border:none;padding:13px;border-radius:12px;font-weight:800;cursor:pointer}
 .btn:hover{background:#00ff41}
 .codebox{display:none;margin-top:14px;background:#00ff41;color:#000;border-radius:14px;padding:16px;text-align:center}
-.code{font-family:'JetBrains Mono',monospace;font-size:32px;letter-spacing:8px;font-weight:800}
-.hint{font-size:11px;margin-top:6px;opacity:.8}
+.code{font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:800;letter-spacing:8px}
 </style></head><body><div class="bg"></div>
-
-<div id="loader">
-<div class="load-card">
-<div class="load-logo">ᴊᴋ <span>ʙᴏᴛ</span></div>
-<div style="font-size:10px;color:#555;letter-spacing:3px;margin-top:6px">INICIANDO SISTEMA</div>
-<div class="bar"><div class="fill" id="fill"></div></div>
-<div class="log" id="log"></div>
-<div id="perc" style="font-size:10px;color:#333;margin-top:8px">0%</div>
-</div>
-</div>
-
+<div id="loader"><div class="load-card"><div class="logo">${BOT_NAME} <span>ON</span></div><div style="font-size:10px;color:#555;letter-spacing:3px;margin-top:6px">INICIANDO SISTEMA</div><div class="bar"><div class="fill" id="fill"></div></div><div class="log" id="log"></div><div id="perc" style="font-size:10px;color:#333;margin-top:8px">0%</div></div></div>
 <div class="main" id="main">
 <div class="card">
-<div class="title">ᴊᴋ <span>ʙᴏᴛ</span></div>
-<div class="sub">REAL CODE SYSTEM</div>
-
-<div class="info">
-<div class="box"><label>Device</label><b>JK Bot</b></div>
-<div class="box"><label>Status</label><b style="color:#00ff41">Online</b></div>
-<div class="box"><label>Version</label><b>Anti Crash V5</b></div>
-<div class="box"><label>By</label><b>Jakudo</b></div>
+<div class="title">${BOT_NAME}</div>
+<div class="sub">${BOT_BY} • REAL CODE</div>
+<div class="grid">
+<div class="item"><label>Device</label><b>Ubuntu</b></div>
+<div class="item"><label>Status</label><b style="color:#00ff41">Online</b></div>
+<div class="item"><label>Version</label><b>Anti Crash V5</b></div>
+<div class="item"><label>By</label><b>Jakudo</b></div>
 </div>
-
 <div class="input"><span style="color:#555">+</span><input id="num" placeholder="51912345678"><span style="color:#00ff41">↗</span></div>
 <button class="btn" onclick="getCode()">GENERAR CODIGO</button>
-
-<div class="codebox" id="box">
-<div style="font-size:10px;letter-spacing:2px;opacity:.7">TU CODIGO REAL</div>
-<div class="code" id="code">--------</div>
-<div class="hint" id="st">Pega en WhatsApp > Dispositivos vinculados</div>
+<div class="codebox" id="box"><div style="font-size:10px;opacity:.6;letter-spacing:2px">TU CODIGO REAL</div><div class="code" id="code">--------</div><div id="st" style="font-size:11px;margin-top:6px;opacity:.8">Pega en WhatsApp > Vincular con numero</div></div>
 </div>
 </div>
-</div>
-
 <script>
-const logs=["Iniciando sistemas...","Cargando modulos...","Verificando device JK Bot","Anti crash activo","Motor de pairing listo","Sistema listo"];
+const logs=["Iniciando sistema...","Cargando modulos ${BOT_NAME}...","Verificando device...","Anti crash activo","Motor pairing listo","Sistema listo"];
 const logEl=document.getElementById('log'),fill=document.getElementById('fill'),perc=document.getElementById('perc');let i=0;
 function load(){
  if(i<logs.length){
@@ -186,14 +167,14 @@ function load(){
 }
 load();
 async function getCode(){
- const n=document.getElementById('num').value;
+ const n=document.getElementById('num').value.trim();
  if(!n) return alert('Pon numero');
  document.getElementById('st').innerText='Generando...';
- const r=await fetch('/pair?number='+n).then(r=>r.json();
- if(r.error){alert(r.error); document.getElementById('st').innerText=r.error; return}
+ const r=await fetch('/pair?number='+encodeURIComponent(n)).then(r=>r.json());
+ if(r.error){ alert(r.error); document.getElementById('st').innerText=r.error; return }
  document.getElementById('box').style.display='block';
  document.getElementById('code').innerText=r.code;
- document.getElementById('st').innerText='Codigo: '+r.code+' - Pega YA en WhatsApp';
+ document.getElementById('st').innerText='Codigo: '+r.code+' - PEGA YA';
 }
 </script></body></html>`)
 })
