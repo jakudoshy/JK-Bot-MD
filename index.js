@@ -8,6 +8,9 @@ let sock
 let lastPairingCode = null
 let connectionStatus = "INICIANDO SISTEMA..."
 
+const BOT_NAME = "ᴊᴋ_ʙᴏᴛꫂꤪꤨᴼᶠᶜ"
+const BOT_BY = "ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ"
+
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('./auth_info')
     const { version } = await fetchLatestBaileysVersion()
@@ -17,7 +20,7 @@ async function startBot() {
         logger: P({ level: 'silent' }),
         printQRInTerminal: false,
         auth: state,
-        browser: ["JK-BOT-MD HACKER", "Chrome", "1.0"]
+        browser: [BOT_NAME, "Chrome", "1.0"]
     })
 
     sock.ev.on('creds.update', saveCreds)
@@ -32,34 +35,30 @@ async function startBot() {
             connectionStatus = "CONECTADO - SISTEMA ACTIVO ✓"
             console.log('BOT CONECTADO')
 
-            // MENSAJE DE BIENVENIDA A TI MISMO (TU PRIVADO)
-            try {
-                const myId = sock.user.id
-                const welcome = `╭━〔 🟢 𝐉𝐊-𝐁𝐎𝐓-𝐌𝐃 𝐇𝐀𝐂𝐊𝐄𝐑 𝐒𝐘𝐒𝐓𝐄𝐌 〕━╮
+            const myId = sock.user.id
+            const welcome = `╭━〔 🟢 ${BOT_NAME} 〕━╮
 ┃
 ┃ 👁️‍🗨️ *ACCESO CONCEDIDO*
 ┃ 🧠 *Usuario:* ${myId.split('@')[0]}
-┃ 💀 *By:* JAKUDOSHY
+┃ 💀 *${BOT_BY}*
 ┃
 ┃ *SISTEMA INICIADO CORRECTAMENTE*
 ┃
 ┃ Escribe los siguientes comandos:
 ┃
-┃ ➤ *.menu* - Menú principal hacker
-┃ ➤ *.ping* - Velocidad del sistema
+┃ ➤ *.menú* - Menú principal
+┃ ➤ *.ping* - Velocidad
 ┃ ➤ *.estado* - Estado del bot
 ┃
 ╰━━━━━━━━━━━━━━━━━━━━━━━╯
 
 [√] Root access: GRANTED
-[√] Encrypting session... DONE`
+[√] Dual Device: ENABLED`
 
-                await sock.sendMessage(myId, { text: welcome })
-            } catch(e){ console.log(e) }
+            await sock.sendMessage(myId, { text: welcome })
         }
     })
 
-    // COMANDOS EXOTICOS
     sock.ev.on('messages.upsert', async ({ messages }) => {
         const m = messages[0]
         if (!m.message || m.key.fromMe) return
@@ -68,26 +67,20 @@ async function startBot() {
 
         if (text.toLowerCase() === '.menu' || text.toLowerCase() === '.menú') {
             const menu = `
-╭━〔 ☠️ 𝐉𝐊-𝐁𝐎𝐓-𝐌𝐃 - 𝐇𝐀𝐂𝐊𝐄𝐑 𝐌𝐄𝐍𝐔 〕━┈
+╭━〔 ☠️ ${BOT_NAME} 〕━┈
 │
 │  *» SISTEMA PRINCIPAL*
 │  ➤ .ping
 │  ➤ .estado
 │  ➤ .owner
 │
-│  *» HACKER TOOLS*
-│  ➤ .hackmenu
-│
-│  ╰  Power by JAKUDOSHY v2.0
+│  ╰  ${BOT_BY}
 ╰━━━━━━━━━━━━━━━━━━━━━
 `
             await sock.sendMessage(from, { text: menu })
         }
         if (text.toLowerCase() === '.ping') {
-            await sock.sendMessage(from, { text: `*PONG!* 🏴‍☠️\nVelocidad: ${Date.now() % 100}ms\n*JK-BOT ACTIVO*` })
-        }
-        if (text.toLowerCase() === '.estado') {
-            await sock.sendMessage(from, { text: `🟢 *ESTADO:* ${connectionStatus}\n💀 *BOT:* JK-BOT-MD HACKER\n👑 *OWNER:* JAKUDOSHY` })
+            await sock.sendMessage(from, { text: `*PONG!* 🏴‍☠️\n${BOT_NAME} ACTIVO\n*${BOT_BY}*` })
         }
     })
 }
@@ -99,7 +92,6 @@ app.get('/pair', async (req, res) => {
         const number = req.query.number?.replace(/[^0-9]/g, '')
         if (!number || number.length < 8) return res.json({ error: "Pon tu numero con codigo pais. Ej: 51912345678" })
         if (!sock) return res.json({ error: "El bot aun no inicia, espera 10 seg" })
-        
         const code = await sock.requestPairingCode(number)
         lastPairingCode = code
         connectionStatus = `CODIGO GENERADO: ${code}`
@@ -114,22 +106,23 @@ app.get('/status', (req, res) => {
 })
 
 app.get('/', (req, res) => {
-    res.send(`<!DOCTYPE html>
+    res.send(`
+<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>JK-BOT-MD HACKER SYSTEM</title>
+<title>${BOT_NAME} - ${BOT_BY}</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 body{margin:0;background:#000;color:#00ff00;font-family:'Share Tech Mono',monospace;overflow:hidden}
 canvas{position:fixed;top:0;left:0;z-index:0}
 .box{position:relative;z-index:2;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
 .panel{width:100%;max-width:420px;background:rgba(0,15,0,0.85);border:1px solid #00ff00;box-shadow:0 0 20px #00ff00, inset 0 0 15px rgba(0,255,0,0.2);padding:25px;border-radius:12px;backdrop-filter:blur(5px)}
-h1{margin:0;text-align:center;font-size:28px;text-shadow:0 0 10px #00ff00;letter-spacing:3px}
-.sub{text-align:center;color:#8f8;font-size:12px;margin:5px 0 20px}
+h1{margin:0;text-align:center;font-size:24px;text-shadow:0 0 10px #00ff00;letter-spacing:2px}
+.sub{text-align:center;color:#8f8;font-size:11px;margin:5px 0 20px;letter-spacing:2px}
 .term{background:#000;border:1px solid #0f0;padding:12px;font-size:12px;height:85px;overflow:hidden;margin-bottom:15px;color:#0f0}
 input{width:100%;background:#000;border:1px solid #0f0;color:#0f0;padding:14px;border-radius:6px;outline:none;font-family:inherit;font-size:16px;box-sizing:border-box}
-button{width:100%;margin-top:12px;background:#00ff00;color:#000;border:none;padding:14px;font-weight:bold;letter-spacing:2px;cursor:pointer;border-radius:6px}
+button{width:100%;margin-top:12px;background:#00ff00;color:#000;border:none;padding:14px;font-weight:bold;font-family:inherit;letter-spacing:2px;cursor:pointer;border-radius:6px}
 button:hover{background:#fff;box-shadow:0 0 20px #0f0}
 .codebox{margin-top:18px;background:#001100;border:1px dashed #0f0;padding:15px;text-align:center;display:none}
 .code{font-size:32px;letter-spacing:8px;font-weight:bold;text-shadow:0 0 15px #0f0}
@@ -140,27 +133,61 @@ button:hover{background:#fff;box-shadow:0 0 20px #0f0}
 <canvas id="c"></canvas>
 <div class="box">
 <div class="panel">
-<h1>JK-BOT-MD</h1>
-<div class="sub">[ ROOT ACCESS v2.0 ] BY JAKUDOSHY</div>
-<div class="term" id="term">> Initializing hacker system...<br>> Bypassing encryption...<br>> Loading modules... OK<br><span style="color:#fff">Esperando numero...</span></div>
-<input id="num" placeholder="51912345678">
+<h1>${BOT_NAME}</h1>
+<div class="sub">[ ${BOT_BY} ]</div>
+<div class="term" id="term">
+> Initializing ${BOT_NAME}...<br>
+> Bypassing encryption... OK<br>
+> Loading modules... OK<br>
+> <span style="color:#fff">Esperando numero...</span>
+</div>
+<input id="num" placeholder="51912345678 (con codigo pais)">
 <button onclick="getCode()">[ GENERAR CODIGO DE 8 DIGITOS ]</button>
-<div class="codebox" id="codebox"><div style="font-size:12px">TU CODIGO ES:</div><div class="code" id="code">--------</div><div style="font-size:11px;margin-top:8px;color:#fff">WhatsApp > Dispositivos vinculados > Vincular con numero</div></div>
+<div class="codebox" id="codebox">
+<div style="font-size:12px">TU CODIGO REAL ES:</div>
+<div class="code" id="code">--------</div>
+<div style="font-size:11px;margin-top:8px;color:#fff">Ve a WhatsApp > Dispositivos vinculados > Vincular con numero</div>
+</div>
 <div class="status" id="status">STATUS: INICIANDO...</div>
+<div style="margin-top:20px;font-size:10px;text-align:center;opacity:0.6">☠️ ${BOT_BY} | DUAL DEVICE ENABLED</div>
 </div>
 </div>
 <script>
 const c=document.getElementById('c'),ctx=c.getContext('2d');
 c.width=window.innerWidth;c.height=window.innerHeight;
-const letters="010101JK-BOT-MD HACKER01";const font=14,cols=Math.floor(c.width/font),drops=Array(cols).fill(1);
-function draw(){ctx.fillStyle="rgba(0,0,0,0.05)";ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle="#0f0";ctx.font=font+"px monospace";drops.forEach((y,i)=>{const text=letters[Math.floor(Math.random()*letters.length)];ctx.fillText(text,i*font,y*font);if(y*font>c.height && Math.random()>0.975) drops[i]=0;drops[i]++})}
+const letters="010101${BOT_NAME}01";
+const font=14,cols=Math.floor(c.width/font),drops=Array(cols).fill(1);
+function draw(){
+ctx.fillStyle="rgba(0,0,0,0.05)";ctx.fillRect(0,0,c.width,c.height);
+ctx.fillStyle="#0f0";ctx.font=font+"px monospace";
+drops.forEach((y,i)=>{
+const text=letters[Math.floor(Math.random()*letters.length)];
+ctx.fillText(text,i*font,y*font);
+if(y*font>c.height && Math.random()>0.975) drops[i]=0;
+drops[i]++
+})
+}
 setInterval(draw,35);
-async function getCode(){const num=document.getElementById('num').value;if(!num) return alert('Pon tu numero!');document.getElementById('term').innerHTML += "<br>> Solicitando codigo para "+num+"...";const res=await fetch('/pair?number='+num).then(r=>r.json());if(res.error){alert(res.error); return}document.getElementById('codebox').style.display='block';document.getElementById('code').innerText=res.code;document.getElementById('term').innerHTML += "<br><span style='color:#fff'>> CODIGO: "+res.code+" GENERADO!</span>";}
-setInterval(async()=>{const s=await fetch('/status').then(r=>r.json());document.getElementById('status').innerText="STATUS: "+s.status;},3000);
+async function getCode(){
+const num=document.getElementById('num').value;
+if(!num) return alert('Pon tu numero!');
+document.getElementById('term').innerHTML += "<br>> Solicitando codigo para "+num+"...";
+const res=await fetch('/pair?number='+num).then(r=>r.json());
+if(res.error){alert(res.error); return}
+document.getElementById('codebox').style.display='block';
+document.getElementById('code').innerText=res.code;
+document.getElementById('term').innerHTML += "<br><span style='color:#fff'>> CODIGO: "+res.code+" GENERADO!</span>";
+}
+setInterval(async()=>{
+const s=await fetch('/status').then(r=>r.json());
+document.getElementById('status').innerText="STATUS: "+s.status;
+},3000);
 </script>
 </body>
-</html>`)
+</html>
+    `)
 })
 
 app.listen(PORT, () => console.log(`Web en puerto ${PORT}`))
 startBot()
+`)
