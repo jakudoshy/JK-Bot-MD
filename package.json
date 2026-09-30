@@ -1,7 +1,7 @@
 {
   "name": "jk-bot-ofc",
   "version": "2.0.0",
-  "description": "ᴊᴋ_ʙᴏᴛꫂꤪꤨᴼᶠᶜ - ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ",
+  "description": "ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ - ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
