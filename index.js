@@ -14,26 +14,19 @@ const PORT = process.env.PORT || 3000
 let sock=null, lastCode=null, lastCodeTime=0, pendingWelcome=false
 console.log(`[ ${c('SISTEMA')} ] ${c('apis premium cargadas')}`)
 
-// --- APIS PREMIUM ---
-const APIS = {
-  gpt: "https://api.davidcyriltech.my.id/ai/chatbot?query=",
-  gpt2: "https://api.azz.biz.id/api/ai/gpt?query=",
-  gpt3: "https://text.pollinations.ai/",
-  premium: "https://api.davidcyriltech.my.id/ai/gemini?query="
-}
-
+// --- SOLO ESTO CAMBIE - TODO CON INTERNET, GRATIS, NUNCA LOCAL ---
 async function IA_PREMIUM(txt){
  const q=encodeURIComponent(txt)
- // API 1 PREMIUM
- try{ const r=await axios.get(APIS.gpt+q,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
- // API 2 PREMIUM
- try{ const r=await axios.get(APIS.premium+q,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
- // API 3 PREMIUM
- try{ const r=await axios.get(APIS.gpt2+q,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
- // API 4 PREMIUM - POLLINATIONS
- try{ const r=await axios.get(APIS.gpt3+q+"?model=openai",{timeout:10000}); if(typeof r.data==='string'&&r.data.length>4) return r.data }catch{}
- try{ const m2=txt.match(/(\d+)\s*([\+\-\*\/x])\s*(\d+)/i); if(m2){ let a=+m2[1],b=+m2[3],op=m2[2]; let res=op==='+'?a+b:op==='-'?a-b:op==='/'?a/b:a*b; return `${a} ${op} ${b} = ${res}` } }catch{}
- return txt
+ try{ const r=await axios.get(`https://text.pollinations.ai/${q}?model=openai`,{timeout:15000}); if(r.data && typeof r.data==='string' && r.data.length>5) return r.data }catch{}
+ try{ const r=await axios.get(`https://text.pollinations.ai/${q}?model=mistral`,{timeout:15000}); if(r.data && typeof r.data==='string' && r.data.length>5) return r.data }catch{}
+ try{ const r=await axios.get(`https://text.pollinations.ai/${q}?model=llama`,{timeout:15000}); if(r.data && typeof r.data==='string' && r.data.length>5) return r.data }catch{}
+ try{ const r=await axios.post('https://www.blackbox.ai/api/chat',{messages:[{role:"user",content:txt}]},{timeout:15000}); if(r.data){ let d=typeof r.data==='string'?r.data:r.data.message||""; if(d.length>5) return d } }catch{}
+ try{ const r=await axios.get(`https://api.davidcyriltech.my.id/ai/chatbot?query=${q}`,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
+ try{ const r=await axios.get(`https://api.davidcyriltech.my.id/ai/gemini?query=${q}`,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
+ try{ const r=await axios.get(`https://api.azz.biz.id/api/ai/gpt?query=${q}`,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
+ try{ const r=await axios.get(`https://api.siputzx.my.id/api/ai/gpt3?content=${q}`,{timeout:12000}); if(r.data?.data) return r.data.data }catch{}
+ try{ const r=await axios.get(`https://api.siputzx.my.id/api/ai/gemini?content=${q}`,{timeout:12000}); if(r.data?.data) return r.data.data }catch{}
+ return `🔴 ${c('intenta de nuevo')} - ${c('apis saturadas 1s')}`
 }
 
 async function welcome(){
@@ -118,56 +111,13 @@ input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-siz
 .api-line span{color:#fff}
 </style></head><body>
 <div class="bg"></div><canvas id="c"></canvas>
-
-<div id="loader">
-<div class="load-box">
-<div class="load-title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div>
-<div class="load-sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div>
-<div class="bar-bg"><div class="bar-fill" id="bar"></div></div>
-<div class="percent" id="percent">0%</div>
-<div class="logs" id="logs"></div>
-</div>
-</div>
-
-<div class="wrap" id="mainContent">
-<div class="box">
-<div class="header"><div class="title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ • ᴘʀᴇᴍɪᴜᴍ ᴀᴘɪs</div></div>
-<div class="card">
-<div class="label">ᴠɪɴᴄᴜʟᴀᴄɪᴏɴ ᴘʀᴇᴍɪᴜᴍ</div>
-<div class="input-wrap"><div class="input-inner"><input id="num" placeholder="51912345678"></div></div>
-<button class="btn" id="btn" onclick="gen()"><div class="btn-inner" id="btnTxt">ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ</div></button>
-<div class="codeBox" id="codeBox"><div class="code" id="codeText"></div></div>
-<div class="api-box">
-<div class="api-line">[ ᴀᴘɪ ] <span>ɢᴘᴛ-4 ᴘʀᴇᴍɪᴜᴍ ᴀᴄᴛɪᴠᴀ ✓</span></div>
-<div class="api-line">[ ᴀᴘɪ ] <span>ɢᴇᴍɪɴɪ ᴘʀᴏ ᴀᴄᴛɪᴠᴀ ✓</span></div>
-<div class="api-line">[ ᴀᴘɪ ] <span>ᴘᴏʟʟɪɴᴀᴛɪᴏɴs ᴀᴄᴛɪᴠᴀ ✓</span></div>
-<div class="api-line">[ ᴀᴘɪ ] <span>ᴍᴏᴅᴜʟᴏs ᴘʀᴇᴍɪᴜᴍ ✓</span></div>
-</div>
-</div>
-<div class="steps">
-<div class="steps-title">ᴘᴀsᴏs ᴘᴀʀᴀ ᴠɪɴᴄᴜʟᴀʀ:</div>
-<div class="step"><div class="step-n">1</div><div class="step-t"><b>ᴘᴏɴ ᴛᴜ ɴᴜᴍᴇʀᴏ</b> ᴄᴏɴ ᴄᴏᴅɪɢᴏ ᴅᴇ ᴘᴀɪs</div></div>
-<div class="step"><div class="step-n">2</div><div class="step-t">ᴅᴀʟᴇ <b>ɢᴇɴᴇʀᴀʀ</b> ʏ ᴄᴏᴘɪᴀ ᴇʟ ᴄᴏᴅɪɢᴏ</div></div>
-<div class="step"><div class="step-n">3</div><div class="step-t">ᴡʜᴀᴛsᴀᴘᴘ > <b>ᴅɪsᴘᴏsɪᴛɪᴠᴏs ᴠɪɴᴄᴜʟᴀᴅᴏs</b></div></div>
-<div class="step"><div class="step-n">4</div><div class="step-t"><b>ᴠɪɴᴄᴜʟᴀʀ ᴄᴏɴ ɴᴜᴍᴇʀᴏ</b> ʏ ᴘᴇɢᴀ</div></div>
-</div>
-</div>
-</div>
-
+<div id="loader"><div class="load-box"><div class="load-title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="load-sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div><div class="bar-bg"><div class="bar-fill" id="bar"></div></div><div class="percent" id="percent">0%</div><div class="logs" id="logs"></div></div></div>
+<div class="wrap" id="mainContent"><div class="box"><div class="header"><div class="title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ • ᴘʀᴇᴍɪᴜᴍ ᴀᴘɪs</div></div><div class="card"><div class="label">ᴠɪɴᴄᴜʟᴀᴄɪᴏɴ ᴘʀᴇᴍɪᴜᴍ</div><div class="input-wrap"><div class="input-inner"><input id="num" placeholder="51912345678"></div></div><button class="btn" id="btn" onclick="gen()"><div class="btn-inner" id="btnTxt">ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ</div></button><div class="codeBox" id="codeBox"><div class="code" id="codeText"></div></div><div class="api-box"><div class="api-line">[ ᴀᴘɪ ] <span>ɢᴘᴛ-4 ᴘʀᴇᴍɪᴜᴍ ᴀᴄᴛɪᴠᴀ ✓</span></div><div class="api-line">[ ᴀᴘɪ ] <span>ɢᴇᴍɪɴɪ ᴘʀᴏ ᴀᴄᴛɪᴠᴀ ✓</span></div><div class="api-line">[ ᴀᴘɪ ] <span>ᴘᴏʟʟɪɴᴀᴛɪᴏɴs ᴀᴄᴛɪᴠᴀ ✓</span></div><div class="api-line">[ ᴀᴘɪ ] <span>ᴍᴏᴅᴜʟᴏs ᴘʀᴇᴍɪᴜᴍ ✓</span></div></div></div><div class="steps"><div class="steps-title">ᴘᴀsᴏs ᴘᴀʀᴀ ᴠɪɴᴄᴜʟᴀʀ:</div><div class="step"><div class="step-n">1</div><div class="step-t"><b>ᴘᴏɴ ᴛᴜ ɴᴜᴍᴇʀᴏ</b> ᴄᴏɴ ᴄᴏᴅɪɢᴏ ᴅᴇ ᴘᴀɪs</div></div><div class="step"><div class="step-n">2</div><div class="step-t">ᴅᴀʟᴇ <b>ɢᴇɴᴇʀᴀʀ</b> ʏ ᴄᴏᴘɪᴀ ᴇʟ ᴄᴏᴅɪɢᴏ</div></div><div class="step"><div class="step-n">3</div><div class="step-t">ᴡʜᴀᴛsᴀᴘᴘ > <b>ᴅɪsᴘᴏsɪᴛɪᴠᴏs ᴠɪɴᴄᴜʟᴀᴅᴏs</b></div></div><div class="step"><div class="step-n">4</div><div class="step-t"><b>ᴠɪɴᴄᴜʟᴀʀ ᴄᴏɴ ɴᴜᴍᴇʀᴏ</b> ʏ ᴘᴇɢᴀ</div></div></div></div></div>
 <script>
 const c=document.getElementById('c'),x=c.getContext('2d');function rs(){c.width=innerWidth;c.height=innerHeight}rs();
 let cols=Math.floor(innerWidth/10), drops=new Array(cols).fill(0);
 function matrix(){x.fillStyle='rgba(0,0,0,0.12)';x.fillRect(0,0,c.width,c.height);x.font='16px monospace';drops.forEach((y,i)=>{x.fillStyle='#ff0000';x.fillText('0',i*10,y*10);if(y*10>c.height && Math.random()>.97) drops[i]=0;drops[i]++});requestAnimationFrame(matrix)}matrix();
-const logsData=[
-"[ sɪsᴛᴇᴍᴀ ] ɪɴɪᴄɪᴀɴᴅᴏ ᴍᴏᴅᴜʟᴏs...",
-"[ sɪsᴛᴇᴍᴀ ] ᴄᴀʀɢᴀɴᴅᴏ ᴀᴘɪs ᴘʀᴇᴍɪᴜᴍ...",
-"[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ɢᴘᴛ-4 ✓",
-"[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ɢᴇᴍɪɴɪ ᴘʀᴏ ✓",
-"[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ᴘᴏʟʟɪɴᴀᴛɪᴏɴs ✓",
-"[ sɪsᴛᴇᴍᴀ ] ᴄᴀʀɢᴀɴᴅᴏ ʙᴀɪʟᴇʏs...",
-"[ sɪsᴛᴇᴍᴀ ] sᴇʀᴠɪᴅᴏʀ ᴏɴʟɪɴᴇ ✓",
-"[ sɪsᴛᴇᴍᴀ ] ᴘʀᴇᴍɪᴜᴍ ʟɪsᴛᴏ ✓"
-];
+const logsData=["[ sɪsᴛᴇᴍᴀ ] ɪɴɪᴄɪᴀɴᴅᴏ ᴍᴏᴅᴜʟᴏs...","[ sɪsᴛᴇᴍᴀ ] ᴄᴀʀɢᴀɴᴅᴏ ᴀᴘɪs ᴘʀᴇᴍɪᴜᴍ...","[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ɢᴘᴛ-4 ✓","[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ɢᴇᴍɪɴɪ ᴘʀᴏ ✓","[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ᴘᴏʟʟɪɴᴀᴛɪᴏɴs ✓","[ sɪsᴛᴇᴍᴀ ] ᴄᴀʀɢᴀɴᴅᴏ ʙᴀɪʟᴇʏs...","[ sɪsᴛᴇᴍᴀ ] sᴇʀᴠɪᴅᴏʀ ᴏɴʟɪɴᴇ ✓","[ sɪsᴛᴇᴍᴀ ] ᴘʀᴇᴍɪᴜᴍ ʟɪsᴛᴏ ✓"];
 let pct=0; const bar=document.getElementById('bar'), perc=document.getElementById('percent'), logs=document.getElementById('logs'), loader=document.getElementById('loader'), main=document.getElementById('mainContent');
 function addLog(i){ if(i>=logsData.length) return; const d=document.createElement('div'); d.className='log-line'; d.innerHTML=logsData[i]; logs.appendChild(d); logs.scrollTop=logs.scrollHeight; }
 let logIdx=0; addLog(0);
