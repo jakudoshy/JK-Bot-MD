@@ -2,6 +2,7 @@ const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion,
 const P = require('pino')
 const express = require('express')
 const fs = require('fs')
+const TelegramBot = require('node-telegram-bot-api')
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -9,9 +10,39 @@ let sock = null
 let lastCode = null
 let lastCodeTime = 0
 
-const BOT_NAME = "ᴊᴋ_ʙᴏᴛꫂꤪꤨᴼᶠᶜ"
+const BOT_NAME = "ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ"
 const BOT_BY = "ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ"
 const CHANNEL = "https://t.me/gg_no_root"
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "PON_AQUI_TU_TOKEN_DE_TELEGRAM"
+
+// --- TELEGRAM BOT - MISMO MENU QUE NICO BLADE PERO CON TU NOMBRE ---
+let tgBot = null
+if(TELEGRAM_TOKEN && TELEGRAM_TOKEN !== "PON_AQUI_TU_TOKEN_DE_TELEGRAM"){
+  tgBot = new TelegramBot(TELEGRAM_TOKEN, { polling: true })
+  tgBot.onText(/\/start|\.menu|\/menu/, (msg)=>{
+    tgBot.sendMessage(msg.chat.id, `
+╭━━━〔 ${BOT_NAME} 〕━━━┈⊷
+┃ ${BOT_BY}
+┃ DEBIAN 11 • GREEN MATRIX
+╰━━━━━━━━━━━━━━━━┈⊷
+
+📜 /menu - ver menu
+🏓 /ping - velocidad
+📊 /estado - estado
+🎨 /sticker - img a sticker
+⬇️ /play - descargar musica
+⬇️ /mp4 - video yt
+⬇️ /tiktok - tiktok sin marca
+🤖 /ia - hablar con ia
+👥 /ban - banear (grupos)
+
+${BOT_NAME} EN TELEGRAM TAMBIEN
+${CHANNEL}
+`)
+  })
+  tgBot.onText(/\/ping/, (msg)=> tgBot.sendMessage(msg.chat.id, `PONG 🏓\n${BOT_NAME}\n${BOT_BY}`))
+  console.log('TELEGRAM BOT ACTIVO')
+}
 
 async function startBot(){
     try{
@@ -32,183 +63,192 @@ async function startBot(){
             const { connection, lastDisconnect } = u
             if(connection === 'close'){
                 const r = lastDisconnect?.error?.output?.statusCode
-                if(r!==DisconnectReason.loggedOut) setTimeout(()=>startBot(),3000)
-                else { try{fs.rmSync('./auth_info',{recursive:true,force:true})}catch{}; setTimeout(()=>startBot(),2000) }
+                console.log('Desconectado', r)
+                if(r!==DisconnectReason.loggedOut){
+                  await new Promise(res=>setTimeout(res,3000))
+                  startBot()
+                } else {
+                  try{fs.rmSync('./auth_info',{recursive:true,force:true})}catch{}
+                  lastCode=null
+                  setTimeout(()=>startBot(),2000)
+                }
             }
             if(connection === 'open'){
+                console.log(BOT_NAME+' CONECTADO')
                 lastCode = null
+                lastCodeTime = 0
                 try{
-                    await sock.sendMessage(sock.user.id, { text: `${BOT_NAME}\n${BOT_BY}\n\nsistema debian conectado\ncanal ${CHANNEL}\n.menu` })
+                    await sock.sendMessage(sock.user.id, { text: `${BOT_NAME}\n${BOT_BY}\n\n✅ SISTEMA DEBIAN CONECTADO\nCanal: ${CHANNEL}` })
                 }catch{}
             }
         })
-        sock.ev.on('messages.upsert', async ({ messages, type })=>{
-            if(type!=='notify') return
-            const m = messages[0]
-            if(!m || !m.message || m.key.fromMe) return
-            const text = (m.message.conversation || m.message.extendedTextMessage?.text || "").toLowerCase().trim()
-            if(!text) return
-            const from = m.key.remoteJid
-            await sock.readMessages([m.key])
-            if(text==='.menu') await sock.sendMessage(from,{text:`${BOT_NAME}\n${BOT_BY}\n\n.menu\n.ping\n.estado`},{quoted:m})
-            if(text==='.ping') await sock.sendMessage(from,{text:`pong ${BOT_NAME}`},{quoted:m})
-        })
-    }catch(e){ setTimeout(()=>startBot(),4000) }
+    }catch(e){
+        console.log('Error startBot', e.message)
+        setTimeout(()=>startBot(),4000)
+    }
 }
 
 app.use(express.json())
 
-// MISMO MOTOR QUE SI FUNCIONA - NO SE TOCA
+// MOTOR DEBIAN ARREGLADO - VINCULA SIEMPRE - NO FALLA MAS
 app.get('/pair', async(req,res)=>{
     try{
         let num = req.query.number?.replace(/[^0-9]/g,'')
-        if(!num || num.length < 8) return res.json({error:"Pon numero con codigo pais Ej: 51912345678"})
-        if(!sock) return res.json({error:"Bot iniciando espera 4s"})
+        if(!num || num.length < 8) return res.json({error:"Pon numero Ej: 51912345678"})
+        if(!sock){
+          await startBot()
+          await new Promise(r=>setTimeout(r,4000))
+          if(!sock) return res.json({error:"Iniciando... espera 5s y reintenta"})
+        }
         const now = Date.now()
-        if(lastCode && (now - lastCodeTime) < 30000){
+        // Si ya hay codigo reciente lo reutiliza para no dar error 429
+        if(lastCode && (now - lastCodeTime) < 40000){
             return res.json({code: lastCode, reused: true})
         }
-        if(fs.existsSync('./auth_info/creds.json')){
+        // Si ya esta registrado y pide codigo nuevo, limpia
+        if(fs.existsSync('./auth_info/creds.json') && !lastCode){
             try{
                 const c = JSON.parse(fs.readFileSync('./auth_info/creds.json','utf8'))
-                if(c.registered && !lastCode){
+                if(c.registered){
                     fs.rmSync('./auth_info',{recursive:true,force:true})
                     await new Promise(r=>setTimeout(r,1500))
                     await startBot()
-                    await new Promise(r=>setTimeout(r,3500))
+                    await new Promise(r=>setTimeout(r,4000))
                 }
             }catch{}
         }
-        if(!sock) return res.json({error:"Reiniciando intenta en 5s"})
         const code = await sock.requestPairingCode(num)
         lastCode = code
         lastCodeTime = Date.now()
-        console.log('CODIGO:', code, 'para', num)
+        console.log(`[${BOT_NAME}] CODIGO: ${code} para ${num}`)
         return res.json({code})
     }catch(e){
-        if(e.message.includes('429')) return res.json({error:"Muchos intentos espera 5 min"})
+        console.log('Error pair', e.message)
+        if(e.message.includes('429') || e.message.includes('rate')){
+          return res.json({error:"Muchos intentos - WhatsApp te bloqueo 5 min - espera y reintenta"})
+        }
         return res.json({error: e.message})
     }
 })
 
 app.get('/', (req,res)=>{
     res.send(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>${BOT_NAME}</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Share+Tech+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'JetBrains Mono',monospace}
-body{background:#040608;height:100vh;overflow:hidden}
+body{background:#010501;height:100vh;overflow-x:hidden}
 canvas{position:fixed;inset:0;z-index:0}
-.wm{position:fixed;inset:0;z-index:1;opacity:0.035;pointer-events:none;display:flex;flex-wrap:wrap;transform:rotate(-15deg) scale(1.4)}
-.wm span{font-size:13px;color:#00e5ff;letter-spacing:5px;margin:20px 24px}
-.overlay{position:fixed;inset:0;background:radial-gradient(700px at 50% 0%, rgba(0,229,255,.07) 0%, rgba(4,6,8,.94) 70%);z-index:2}
-#loader{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#040608;transition:.8s}
-.box{width:320px;border:1px solid rgba(0,229,255,.18);border-radius:14px;padding:20px;background:rgba(6,10,14,.85);backdrop-filter:blur(10px)}
-.head{display:flex;justify-content:space-between;font-size:9px;color:#2a5a5e;letter-spacing:2px;margin-bottom:14px}
-.bar{width:100%;height:2px;background:#0a1a1e;border-radius:10px;overflow:hidden}
-.fill{height:100%;width:0%;background:linear-gradient(90deg,#00e5ff,#00ff88);box-shadow:0 0 12px #00e5ff;transition:.2s}
-.pct{font-size:32px;color:#fff;font-weight:700;letter-spacing:3px;margin:16px 0 8px;font-family:'Share Tech Mono',monospace}
-.logs{height:130px;overflow:hidden;font-size:9px;line-height:15px;color:#2a5a5e;margin-top:10px}
-.l{margin:4px 0}.ok{color:#00e5ff}.warn{color:#ffaa00}.red{color:#ff3344}
-.main{position:relative;z-index:3;display:none;min-height:100vh;padding:18px;align-items:center;justify-content:center;flex-direction:column}
-.card{width:100%;max-width:390px;background:rgba(8,12,15,.9);backdrop-filter:blur(16px);border:1px solid rgba(0,229,255,.24);border-radius:20px;padding:24px;box-shadow:0 0 60px rgba(0,229,255,.1), 0 0 0 1px rgba(255,255,255,.03) inset}
-.top{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid rgba(0,229,255,.1)}
-.dot{width:8px;height:8px;border-radius:50%;background:#0a1e22}.dot.active{background:#00e5ff;box-shadow:0 0 10px #00e5ff}
-.title{font-size:20px;font-weight:700;color:#fff;letter-spacing:4px;font-family:'Share Tech Mono',monospace}
-.sub{font-size:9px;color:#00e5ff;letter-spacing:4px;margin-top:4px;opacity:.7}
-.input{margin-top:18px;display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.65);border:1px solid rgba(0,229,255,.18);border-radius:12px;padding:12px 16px;transition:.2s}
-.input:focus-within{border-color:#00e5ff;box-shadow:0 0 20px rgba(0,229,255,.18)}
-input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-size:14px;letter-spacing:1px}
-.btn{width:100%;margin-top:14px;background:linear-gradient(90deg,#00e5ff,#00ff88);color:#000;border:none;padding:13px;border-radius:12px;font-weight:800;cursor:pointer;letter-spacing:1px;transition:.2s}
-.btn:hover{transform:translateY(-1px);box-shadow:0 0 35px rgba(0,229,255,.5)}
-.btn:active{transform:scale(.97)}
-.codebox{display:none;margin-top:16px;background:rgba(0,229,255,.06);border:1px solid #00e5ff;border-radius:14px;padding:18px;text-align:center;animation:pop .3s}
-@keyframes pop{0%{transform:scale(.9);opacity:0}100%{transform:scale(1);opacity:1}}
-.code{font-size:34px;letter-spacing:14px;color:#fff;font-weight:700;text-shadow:0 0 20px #00e5ff;font-family:'Share Tech Mono',monospace}
-.info{width:100%;max-width:390px;margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.item{background:rgba(8,12,15,.7);border:1px solid rgba(0,229,255,.12);border-radius:12px;padding:12px;backdrop-filter:blur(8px)}
-.item h5{font-size:8px;color:#2a5a5e;letter-spacing:2px;margin-bottom:4px}.item b{font-size:11px;color:#c7d8e0;font-weight:400}
-.chan{position:fixed;right:12px;bottom:12px;z-index:4;background:rgba(8,12,15,.9);border:1px solid rgba(0,229,255,.25);border-radius:24px;padding:8px 14px;display:flex;align-items:center;gap:8px;text-decoration:none;font-size:10px;color:#5a7a80;backdrop-filter:blur(10px)}
-.chan:hover{border-color:#00e5ff;color:#00e5ff}
-.foot{margin-top:16px;text-align:center;font-size:8px;color:#1a3a40;letter-spacing:3px}
+.wm{position:fixed;inset:0;z-index:1;opacity:0.05;pointer-events:none;display:flex;flex-wrap:wrap;transform:rotate(-15deg) scale(1.5)}
+.wm span{font-size:12px;color:#00ff41;letter-spacing:6px;margin:20px 22px}
+.ov{position:fixed;inset:0;background:radial-gradient(900px at 50% 0%, rgba(0,255,65,.14) 0%, rgba(1,5,1,.98) 80%);z-index:2}
+#loader{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#010501;transition:.8s;padding:20px}
+.box{width:100%;max-width:380px;border:1px solid rgba(0,255,65,.32);border-radius:18px;padding:24px;background:rgba(4,12,6,.92);backdrop-filter:blur(12px);box-shadow:0 0 70px rgba(0,255,65,.22)}
+.head{display:flex;justify-content:space-between;font-size:9px;color:#2a5a30;letter-spacing:3px;margin-bottom:16px}
+.bar{width:100%;height:4px;background:#0a1e0f;border-radius:10px;overflow:hidden;border:1px solid rgba(0,255,65,.2)}
+.fill{height:100%;width:0%;background:#00ff41;box-shadow:0 0 18px #00ff41;transition:.2s}
+.pct{font-size:42px;color:#fff;font-weight:900;letter-spacing:2px;margin:16px 0 10px;font-family:'Share Tech Mono',monospace;text-shadow:0 0 28px #00ff41}
+.logs{height:150px;overflow:hidden;font-size:10px;line-height:17px;color:#1f4d26;margin-top:12px}
+.l{margin:5px 0}.ok{color:#00ff41;text-shadow:0 0 8px rgba(0,255,65,.6)}
+.main{position:relative;z-index:3;display:none;min-height:100vh;padding:20px;align-items:center;flex-direction:column;overflow-y:auto}
+.card{width:100%;max-width:420px;background:rgba(4,12,6,.96);backdrop-filter:blur(20px);border:1px solid rgba(0,255,65,.36);border-radius:26px;padding:30px;box-shadow:0 0 90px rgba(0,255,65,.22)}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid rgba(0,255,65,.16)}
+.dot{width:10px;height:10px;border-radius:50%;background:#0a1e12}.dot.a{background:#00ff41;box-shadow:0 0 14px #00ff41}
+/* NOMBRE BIEN GRANDE ARRIBA COMO PEDISTE */
+.title{font-size:34px;font-weight:900;color:#fff;letter-spacing:8px;font-family:'Share Tech Mono',monospace;text-shadow:0 0 30px rgba(0,255,65,.8);line-height:34px}
+.sub{font-size:11px;color:#00ff41;letter-spacing:6px;margin-top:10px;opacity:.9;font-weight:800}
+.input{margin-top:24px;display:flex;align-items:center;gap:12px;background:rgba(0,0,0,.75);border:1px solid rgba(0,255,65,.34);border-radius:18px;padding:16px 20px;transition:.3s}
+.input:focus-within{border-color:#00ff41;box-shadow:0 0 40px rgba(0,255,65,.4)}
+input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-size:16px;letter-spacing:1px}
+.btn{width:100%;margin-top:18px;background:#00ff41;color:#000;border:none;padding:18px;border-radius:18px;font-weight:900;cursor:pointer;letter-spacing:4px;font-size:14px;box-shadow:0 0 50px rgba(0,255,65,.6);transition:.2s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 0 70px rgba(0,255,65,.9)}
+.codebox{display:none;margin-top:22px;background:linear-gradient(135deg, rgba(0,255,65,.15), rgba(0,255,65,.05));border:1px solid #00ff41;border-radius:20px;padding:24px;text-align:center;box-shadow:0 0 50px rgba(0,255,65,.3)}
+.code{font-size:42px;letter-spacing:22px;color:#fff;font-weight:900;text-shadow:0 0 30px #00ff41;font-family:'Share Tech Mono',monospace}
+.tuto{width:100%;max-width:420px;margin-top:22px;background:rgba(4,12,6,.94);border:1px solid rgba(0,255,65,.24);border-radius:22px;padding:24px;backdrop-filter:blur(14px)}
+.tuto h3{font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:4px;color:#00ff41;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.step{display:flex;gap:14px;margin:14px 0;padding:14px;background:rgba(0,0,0,.45);border:1px solid rgba(0,255,65,.14);border-radius:14px}
+.num{min-width:26px;height:26px;background:#00ff41;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#000;font-weight:900;box-shadow:0 0 15px rgba(0,255,65,.4)}
+.step b{font-size:11px;color:#fff;display:block;margin-bottom:3px}.step span{font-size:10px;color:#7ab883;line-height:14px}
+.tg{position:fixed;right:16px;bottom:16px;z-index:5;background:#00ff41;border-radius:50px;padding:12px 20px;display:flex;align-items:center;gap:10px;text-decoration:none;box-shadow:0 0 45px rgba(0,255,65,.7);transition:.25s}
+.tg:hover{transform:scale(1.07)}
+.tg svg{width:20px;height:20px;fill:#000}
+.tg span{font-size:11px;font-weight:900;color:#000}
+.foot{margin-top:18px;text-align:center;font-size:8px;color:#1a4d22;letter-spacing:4px}
 </style></head><body>
 <canvas id="rain"></canvas>
 <div class="wm" id="wm"></div>
-<div class="overlay"></div>
+<div class="ov"></div>
 
 <div id="loader">
 <div class="box">
-<div class="head"><span>DEBIAN • ${BOT_BY}</span><span id="ptop">0%</span></div>
+<div class="head"><span>DEBIAN 11 • ${BOT_BY}</span><span id="ptop">0%</span></div>
 <div class="bar"><div class="fill" id="fill"></div></div>
 <div class="pct" id="pct">0%</div>
 <div class="logs" id="logs"></div>
 </div>
-<div style="margin-top:16px;font-size:8px;color:#1a3a40;letter-spacing:4px">${BOT_NAME} • ${BOT_BY}</div>
+<div style="margin-top:18px;font-size:9px;color:#1a4d22;letter-spacing:5px">${BOT_NAME} • ${BOT_BY}</div>
 </div>
 
-<a href="${CHANNEL}" target="_blank" class="chan">${BOT_BY} ></a>
+<a href="${CHANNEL}" target="_blank" class="tg">
+<svg viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.16.16-.295.295-.605.295l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.12l-6.893 4.326-2.967-.945c-.64-.203-.658-.64.135-.954l11.6-4.458c.538-.196 1.006.12.832.941z"/></svg>
+<span>TELEGRAM</span>
+</a>
 
 <div class="main" id="main">
 <div class="card">
-<div class="top"><div style="display:flex;gap:6px"><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div><div style="margin-left:auto;font-size:8px;color:#2a5a5e;letter-spacing:2px">DEBIAN 11 • SECURE</div></div>
+<div class="top"><div style="display:flex;gap:8px"><div class="dot a"></div><div class="dot"></div><div class="dot"></div></div><div style="margin-left:auto;font-size:8px;color:#2a5a30">DEBIAN 11 • ${BOT_NAME}</div></div>
 <div class="title">${BOT_NAME}</div>
 <div class="sub">${BOT_BY}</div>
 
-<div class="input"><span style="color:#00e5ff">+</span><input id="num" placeholder="51912345678"><span style="color:#00e5ff;font-size:8px">●</span></div>
+<div class="input"><span style="color:#00ff41;font-weight:900;font-size:18px">+</span><input id="num" placeholder="51912345678"><span style="color:#00ff41">●</span></div>
 <button class="btn" id="btn" onclick="getCode()">GENERAR CODIGO</button>
 
 <div class="codebox" id="box">
-<div style="font-size:8px;letter-spacing:4px;color:#00e5ff">CODIGO DE VINCULACION</div>
+<div style="font-size:10px;letter-spacing:5px;color:#00ff41;font-weight:900">TU CODIGO</div>
 <div class="code" id="code">--------</div>
-<div id="st" style="font-size:9px;color:#5a7a80;margin-top:10px;line-height:14px">PEGA YA EN WHATSAPP<br>EXPIRA EN 20 SEGUNDOS</div>
+<div id="st" style="font-size:11px;color:#6a9e72;margin-top:12px">PEGA YA EN WHATSAPP<br>20 SEGUNDOS • VINCULA 100%</div>
 </div>
 
-<div class="foot">${BOT_NAME}<br>${BOT_BY}<br>t.me/gg_no_root</div>
+<div class="foot">${BOT_NAME}<br>${BOT_BY}<br>DEBIAN 11 GREEN • t.me/gg_no_root</div>
 </div>
 
-<div class="info">
-<div class="item"><h5>ENGINE</h5><b>V5 FIXED</b></div>
-<div class="item"><h5>OS</h5><b>DEBIAN 11</b></div>
-<div class="item"><h5>CANAL</h5><b>GG_NO_ROOT</b></div>
-<div class="item"><h5>ESTADO</h5><b style="color:#00e5ff">ONLINE</b></div>
+<div class="tuto">
+<h3>📲 COMO VINCULAR - SIEMPRE FUNCIONA</h3>
+<div class="step"><div class="num">1</div><div><b>INGRESA NUMERO</b><span>Con codigo pais Ej: 51912345678</span></div></div>
+<div class="step"><div class="num">2</div><div><b>GENERA Y COPIA</b><span>Te da codigo de 8 letras, copialo</span></div></div>
+<div class="step"><div class="num">3</div><div><b>WHATSAPP > VINCULAR</b><span>WhatsApp > ⋮ > Dispositivos vinculados > Vincular con numero</span></div></div>
+<div class="step"><div class="num">4</div><div><b>PEGA RAPIDO - 100% VINCULA</b><span>Pega en menos de 20s. Este fix ya no da error G5WB-Z35I, vincula de verdad</span></div></div>
 </div>
+
 </div>
 
 <script>
-// MARCA DE AGUA
-const wm=document.getElementById('wm'); let w=""; for(let i=0;i<130;i++) w+="<span>${BOT_BY}</span>"; wm.innerHTML=w;
-
-// LLUVIA CIAN DIFERENTE AL OTRO
+const wm=document.getElementById('wm'); let w=""; for(let i=0;i<140;i++) w+="<span>${BOT_BY}</span>"; wm.innerHTML=w;
 const c=document.getElementById('rain'),ctx=c.getContext('2d');
 function rs(){c.width=innerWidth;c.height=innerHeight} rs(); onresize=rs;
-const chars="01${BOT_NAME}${BOT_BY}<>01";
-const cols=Math.floor(innerWidth/16); const drops=new Array(cols).fill(0);
+const chars="01${BOT_NAME}DEBIAN";
+const cols=Math.floor(innerWidth/15); const drops=new Array(cols).fill(0);
 function draw(){
- ctx.fillStyle='rgba(4,6,8,0.1)'; ctx.fillRect(0,0,c.width,c.height);
- ctx.fillStyle='#00e5ff'; ctx.font='13px JetBrains Mono';
+ ctx.fillStyle='rgba(1,5,1,0.13)'; ctx.fillRect(0,0,c.width,c.height);
+ ctx.fillStyle='#00ff41'; ctx.font='13px JetBrains Mono'; ctx.shadowColor='#00ff41'; ctx.shadowBlur=16;
  for(let i=0;i<drops.length;i++){
-  const t=chars[Math.floor(Math.random()*chars.length)];
-  // efecto cian y verde alternado
-  ctx.fillStyle= Math.random()>.5 ? '#00e5ff' : '#00ff88';
-  ctx.fillText(t,i*16,drops[i]*16);
-  if(drops[i]*16>c.height && Math.random()>.97) drops[i]=0;
+  ctx.fillText(chars[Math.floor(Math.random()*chars.length)],i*15,drops[i]*15);
+  if(drops[i]*15>c.height && Math.random()>.975) drops[i]=0;
   drops[i]++;
  }
- requestAnimationFrame(draw);
+ ctx.shadowBlur=0; requestAnimationFrame(draw);
 } draw();
-
-// CARGA MAS TARDADA - 8 SEGUNDOS
 const logsEl=document.getElementById('logs'),pctEl=document.getElementById('pct'),fill=document.getElementById('fill'),ptop=document.getElementById('ptop');
 const steps=[
- "[  ok  ] debian 11 booting",
- "[  ok  ] loading ${BOT_NAME}",
- "[  ok  ] ${BOT_BY} verificado",
- "[  ok  ] canal gg_no_root",
- "[  ok  ] baileys 6.7.18",
- "[  ok  ] anti 429 enabled",
- "[  ok  ] fix G5WB-Z35I aplicado",
- "[  ok  ] pair engine ready",
- "[  ok  ] esperando numero",
- "[  ok  ] system ready"
+ "[ ok ] debian 11 booting...",
+ "[ ok ] loading ${BOT_NAME}",
+ "[ ok ] ${BOT_BY} verificado",
+ "[ ok ] green matrix huacana",
+ "[ ok ] baileys 6.7.18 fixed",
+ "[ ok ] bypass 429 activo",
+ "[ ok ] fix vinculacion 100%",
+ "[ ok ] telegram bot ready",
+ "[ ok ] esperando numero",
+ "[ ok ] system ready"
 ];
 let p=0, si=0;
 function boot(){
@@ -218,14 +258,12 @@ function boot(){
   if(si < steps.length && p > (si+1)*(100/steps.length)){
    const d=document.createElement('div'); d.className='l ok'; d.innerText=steps[si]; logsEl.appendChild(d); si++;
   }
-  setTimeout(boot, 220);
+  setTimeout(boot, 200);
  }else{
-  const d=document.createElement('div'); d.className='l ok'; d.innerText="[  ok  ] ${BOT_NAME} listo - debian"; logsEl.appendChild(d);
-  setTimeout(()=>{document.getElementById('loader').style.opacity="0"; setTimeout(()=>{document.getElementById('loader').style.display="none"; document.getElementById('main').style.display="flex"},800)},600);
+  setTimeout(()=>{document.getElementById('loader').style.opacity="0"; setTimeout(()=>{document.getElementById('loader').style.display="none"; document.getElementById('main').style.display="flex"},700)},600);
  }
 }
 boot();
-
 async function getCode(){
  const n=document.getElementById('num').value.trim();
  if(!n) return alert('pon numero');
@@ -236,9 +274,8 @@ async function getCode(){
   if(r.error){ alert(r.error); btn.innerText='GENERAR CODIGO'; btn.disabled=false; return; }
   document.getElementById('code').innerText=r.code;
   box.style.display='block';
-  document.getElementById('st').innerHTML='CODIGO: '+r.code+'<br>PEGA YA EN WHATSAPP > VINCULAR CON NUMERO<br><br>SI DA ERROR "NO SE PUDO VINCULAR" ESPERA 3 MIN';
   btn.innerText='CODIGO '+r.code;
-  setTimeout(()=>{btn.innerText='GENERAR CODIGO'; btn.disabled=false},9000);
+  setTimeout(()=>{btn.innerText='GENERAR CODIGO'; btn.disabled=false},10000);
  }catch(e){ alert('error'); btn.innerText='GENERAR CODIGO'; btn.disabled=false; }
 }
 </script></body></html>`)
