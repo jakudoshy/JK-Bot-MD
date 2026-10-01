@@ -46,6 +46,7 @@ async function startBot(){
    if(u.connection==='close' && u.lastDisconnect?.error?.output?.statusCode!==DisconnectReason.loggedOut) setTimeout(()=>startBot(),2500)
    if(u.connection==='open' && pendingWelcome){ pendingWelcome=false; await welcome() }
  })
+ // FIX ESPERANDO MENSAJE
  sock.ev.on('messages.upsert', async({type,messages})=>{
    if(type!=='notify') return
    const m=messages[0]; if(!m?.message || m.key.fromMe) return
@@ -66,11 +67,11 @@ async function startBot(){
 }
 
 app.use(express.json())
+// CODIGOS ILIMITADOS - SIN BLOQUEO
 app.get('/pair', async(req,res)=>{
  try{
    let num=req.query.number?.replace(/[^0-9]/g,''); if(!num) return res.json({error:"error"})
    if(!sock){ await startBot(); await new Promise(r=>setTimeout(r,3000)) }
-   const now=Date.now(); if(lastCode && (now-lastCodeTime)<12000) return res.json({code:lastCode})
    pendingWelcome=true; const code=await sock.requestPairingCode(num); lastCode=code; lastCodeTime=Date.now(); return res.json({code})
  }catch{ return res.json({error:"espera"}) }
 })
@@ -102,8 +103,10 @@ canvas{position:fixed;inset:0;opacity:.3}
 .card{background:rgba(0,0,0,.7);border:1px solid rgba(255,0,0,.35);border-radius:16px;padding:18px}
 .label{font-size:11px;letter-spacing:3px;color:#ff0000;font-weight:900;margin-bottom:10px}
 .input-wrap{background:linear-gradient(135deg,#ff0000,#cc0000);padding:2px;border-radius:12px;box-shadow:0 0 30px rgba(255,0,0,.6)}
-.input-inner{display:flex;align-items:center;background:#0a0000;border-radius:10px;padding:16px}
+.input-inner{display:flex;align-items:center;background:#0a0000;border-radius:10px;padding:16px;gap:8px}
+.plus{color:#ff0000;font-size:22px;font-weight:900;user-select:none;font-family:'JetBrains Mono'}
 input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-size:18px;font-weight:900;text-align:center;font-family:'JetBrains Mono'}
+input::placeholder{color:rgba(255,255,255,0.5);text-align:center}
 .btn{width:100%;margin-top:14px;background:linear-gradient(135deg,#ff0000,#990000);padding:2px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 0 40px rgba(255,0,0,.6)}
 .btn-inner{background:#000;color:#fff;border-radius:10px;padding:16px;font-weight:900;font-size:13px;letter-spacing:2px;text-align:center}
 .codeBox{display:none;margin-top:14px;background:rgba(255,0,0,.12);border:2px solid #ff0000;border-radius:12px;padding:14px}
@@ -130,7 +133,7 @@ input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-siz
 <div class="header"><div class="title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div></div>
 <div class="card">
 <div class="label">ᴠɪɴᴄᴜʟᴀᴄɪᴏɴ ᴘʀᴇᴍɪᴜᴍ</div>
-<div class="input-wrap"><div class="input-inner"><input id="num" placeholder="53XXXXXXXX"></div></div>
+<div class="input-wrap"><div class="input-inner"><div class="plus">+</div><input id="num" placeholder="53XXXXXXXX" style="text-align:center"></div></div>
 <button class="btn" id="btn" onclick="gen()"><div class="btn-inner" id="btnTxt">ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ</div></button>
 <div class="codeBox" id="codeBox"><div class="code" id="codeText"></div></div>
 </div>
@@ -139,7 +142,7 @@ input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-siz
 <div class="step"><div class="step-n">1</div><div class="step-t"><b>ᴘᴏɴ ᴛᴜ ɴᴜᴍᴇʀᴏ</b> ᴄᴏɴ ᴄᴏᴅɪɢᴏ ᴅᴇ ᴘᴀɪs</div></div>
 <div class="step"><div class="step-n">2</div><div class="step-t">ᴅᴀʟᴇ <b>ɢᴇɴᴇʀᴀʀ</b> ʏ ᴄᴏᴘɪᴀ ᴇʟ ᴄᴏᴅɪɢᴏ</div></div>
 <div class="step"><div class="step-n">3</div><div class="step-t">ᴡʜᴀᴛsᴀᴘᴘ > <b>ᴅɪsᴘᴏsɪᴛɪᴠᴏs ᴠɪɴᴄᴜʟᴀᴅᴏs</b></div></div>
-<div class="step"><div class="step-n">4</div><div class="step-t"><b>ᴠɪɴᴄᴜʟᴀʀ ᴄᴏɴ ᴇʟ ᴄᴏᴅɪɢᴏ</b> 
+<div class="step"><div class="step-n">4</div><div class="step-t"><b>ᴠɪɴᴄᴜʟᴀʀ ᴄᴏɴ ᴇʟ ᴄᴏᴅɪɢᴏ</b></div></div>
 </div>
 </div>
 </div>
@@ -176,7 +179,20 @@ let interval=setInterval(()=>{
   setTimeout(()=>{ loader.style.transition='opacity.6s'; loader.style.opacity='0'; setTimeout(()=>{ loader.style.display='none'; main.style.display='block'; },600)},400)
  }
 }, 45);
-async function gen(){const n=document.getElementById('num').value.trim();if(!n) return;const b=document.getElementById('btn');document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀɴᴅᴏ...';b.disabled=true;try{const r=await fetch('/pair?number='+encodeURIComponent(n)).then(r=>r.json());if(r.error){document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ';b.disabled=false;return;}document.getElementById('codeText').innerText=r.code;document.getElementById('codeBox').style.display='block';document.getElementById('btnTxt').innerText=r.code}catch{document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ';b.disabled=false}}
+async function gen(){
+ const n=document.getElementById('num').value.trim().replace(/[^0-9]/g,'');
+ if(!n) return;
+ const b=document.getElementById('btn');
+ document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀɴᴅᴏ...';
+ try{
+   const r=await fetch('/pair?number='+encodeURIComponent(n)).then(r=>r.json());
+   if(r.error){document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ';return;}
+   document.getElementById('codeText').innerText=r.code;
+   document.getElementById('codeBox').style.display='block';
+   document.getElementById('btnTxt').innerText=r.code;
+   setTimeout(()=>{document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴏᴛʀᴏ'},2500);
+ }catch{document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ';}
+}
 </script></body></html>`)
 })
 app.listen(PORT, ()=>{
