@@ -4,434 +4,272 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ :: PANEL</title>
-<meta name="description" content="ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ: bot de WhatsApp con herramientas, novedades y comunidad oficial.">
-<meta name="theme-color" content="#0a0a14">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ">
-<meta property="og:title" content="ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ — Bot de WhatsApp">
-<meta property="og:description" content="Novedades, actualizaciones y herramientas para tu WhatsApp.">
+<meta name="description" content="ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ bot de WhatsApp">
+<meta name="theme-color" content="#050000">
 <meta property="og:image" content="__JAKUDOSHY_OG_IMAGE__">
-<meta property="og:image:secure_url" content="__JAKUDOSHY_OG_IMAGE__">
-<meta property="og:image:type" content="image/jpeg">
-<meta property="og:image:width" content="1584">
-<meta property="og:image:height" content="672">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ — Bot de WhatsApp">
-<meta name="twitter:description" content="Novedades, actualizaciones y herramientas para tu WhatsApp.">
-<meta name="twitter:image" content="__JAKUDOSHY_OG_IMAGE__">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#07080f;
-    --bg-panel:rgba(15,14,28,0.92);
-    --bg-panel-2:rgba(12,11,22,0.98);
-    --grid:rgba(139,92,246,0.06);
-    --green:#a78bfa;
-    --green-dim:#8b5cf6;
-    --green-deep:#1e1b35;
-    --green-glass:rgba(167,139,250,0.10);
-    --border:rgba(167,139,250,0.22);
-    --text:#f5f3ff;
-    --muted:#a1a1b5;
-    --amber:#c4b5fd;
-    --violet:#a78bfa;
-    --radius:16px;
-  }
-  *{margin:0;padding:0;box-sizing:border-box;}
-  html{scroll-behavior:smooth;}
-  body{background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,sans-serif;min-height:100vh;line-height:1.6;position:relative;overflow-x:hidden;}
- .grid-bg{position:fixed;inset:0;z-index:-3;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:38px 38px;mask-image:radial-gradient(ellipse 80% 70% at 50% 20%,#000 40%,transparent 100%);}
- .glow-orb{position:fixed;top:-10%;left:50%;transform:translateX(-50%);width:60vw;height:60vw;max-width:900px;max-height:900px;background:radial-gradient(circle,rgba(167,139,250,0.18) 0%,rgba(120,80,255,0.08) 30%,transparent 68%);filter:blur(50px);z-index:-2;pointer-events:none;}
- .scanlines{position:fixed;inset:0;z-index:50;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.12) 0px,rgba(0,0,0,0.12) 1px,transparent 2px,transparent 3px);opacity:.08;}
- .particles{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;}
- .particle{position:absolute;background:var(--violet);border-radius:50%;opacity:0;animation:drift linear infinite;box-shadow:0 0 6px var(--violet);}
-  @keyframes drift{0%{transform:translateY(100vh);opacity:0;}10%{opacity:.5;}90%{opacity:.3;}100%{transform:translateY(-10vh);opacity:0;}}
-  #boot{position:fixed;inset:0;z-index:999;background:radial-gradient(circle at 50% 45%,#131026 0,#05040a 58%);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;}
- .boot-panel{width:min(680px,calc(100% - 34px));padding:26px 24px 22px;border:1px solid rgba(167,139,250,.28);border-radius:18px;background:rgba(8,7,15,.92);box-shadow:0 0 50px rgba(139,92,246,.15);}
- .boot-brand{display:flex;justify-content:space-between;gap:12px;color:var(--text);font-size:.76rem;letter-spacing:.12em;margin-bottom:14px;}
- .boot-brand strong{color:var(--green);}
-  #boot pre{min-height:160px;color:var(--green);font-size:.78rem;line-height:1.65;white-space:pre-wrap;margin:0;text-shadow:0 0 8px rgba(167,139,250,.4);}
- .boot-progress{height:9px;border-radius:99px;overflow:hidden;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.24);}
- .boot-progress-bar{height:100%;width:0;background:linear-gradient(90deg,#8b5cf6,#c4b5fd);box-shadow:0 0 16px rgba(167,139,250,.6);transition:width.25s ease;}
- .boot-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:11px;color:var(--muted);font-size:.72rem;}
-  #bootPercent{color:var(--green);font-weight:700;}
-  #boot.cursor{display:inline-block;width:8px;height:16px;background:var(--green);animation:blink 1s step-end infinite;vertical-align:middle;}
-  @keyframes blink{50%{opacity:0;}}
-  #boot.hide{animation:bootOut.5s ease forwards;}
-  @keyframes bootOut{to{opacity:0;visibility:hidden;}}
- .modal{position:fixed;inset:0;background:rgba(5,4,10,.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:800;opacity:0;visibility:hidden;transition:.35s ease;}
- .modal.active{opacity:1;visibility:visible;}
- .modal-content{width:90%;max-width:460px;background:var(--bg-panel-2);border:1px solid var(--border);border-radius:var(--radius);transform:translateY(-30px);transition:transform.35s ease;box-shadow:0 0 60px rgba(139,92,246,.15),0 25px 50px rgba(0,0,0,.6);}
- .modal.active.modal-content{transform:translateY(0);}
- .modal-head{padding:20px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
- .modal-head h2{font-size:1rem;letter-spacing:1px;color:var(--green);font-weight:600;}
- .modal-head h2::before{content:"root@jakudoshy:~$ ";color:var(--muted);}
- .modal-close{background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer;line-height:1;}
- .modal-close:hover{color:var(--green);}
- .modal-body{padding:22px;}
- .modal-body p{color:var(--muted);font-size:.85rem;margin-bottom:16px;}
- .channel-list{display:flex;flex-direction:column;gap:12px;margin-bottom:18px;}
- .channel-item{display:flex;align-items:center;gap:12px;padding:14px;background:linear-gradient(135deg,rgba(167,139,250,.10),rgba(255,255,255,.04));border:1px solid var(--border);border-radius:12px;text-decoration:none;color:var(--text);font-size:.82rem;transition:.25s;}
- .channel-item:hover{background:var(--green-glass);border-color:var(--green);transform:translateX(4px);}
- .channel-item i{color:var(--green);width:22px;font-size:1.1rem;text-align:center;}
- .channel-item span{flex:1;}
- .channel-item small{display:block;color:var(--muted);font-size:.68rem;margin-top:2px;}
- .channel-join{color:var(--green);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;}
- .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--green);color:#0a0714;font-weight:700;font-size:.82rem;letter-spacing:.5px;padding:13px 22px;border:none;border-radius:12px;cursor:pointer;text-decoration:none;width:100%;text-transform:uppercase;transition:.25s;box-shadow:0 10px 28px rgba(139,92,246,.22);}
- .btn:hover{box-shadow:0 0 28px rgba(167,139,250,.45);transform:translateY(-2px);}
- .btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;}
- .btn-outline{background:transparent;color:var(--green);border:1px solid var(--border);}
- .btn-outline:hover{background:var(--green-glass);}
-  nav{position:fixed;top:0;left:0;right:0;height:68px;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(7,8,15,.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);}
- .brand{display:flex;align-items:center;gap:12px;}
- .brand.mark{width:40px;height:40px;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:1.1rem;color:var(--green);background:var(--green-glass);}
- .brand.name{font-weight:800;font-size:1rem;letter-spacing:.3px;}
- .brand.tag{font-size:.68rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
-  header{padding:150px 20px 70px;text-align:center;position:relative;}
- .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:.72rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:22px;border:1px solid var(--border);padding:6px 14px;border-radius:30px;background:var(--green-glass);}
- .eyebrow.pulse{width:6px;height:6px;background:var(--green);border-radius:50%;box-shadow:0 0 8px var(--green);animation:blink 1.4s infinite;}
-  header h1{font-family:Inter,sans-serif;font-size:clamp(2.2rem,6vw,4.2rem);font-weight:800;letter-spacing:-.05em;color:var(--text);margin-bottom:18px;}
-  header h1 span{color:var(--green);text-shadow:0 0 24px rgba(167,139,250,.35);}
-  header p.sub{color:var(--muted);max-width:560px;margin:0 auto;font-size:.95rem;}
-  header p.sub strong{color:var(--green);}
- .hero-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:28px auto 0;max-width:520px;}
- .hero-actions.btn{width:auto;min-width:190px;}
- .quick-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:26px auto 0;max-width:720px;}
- .quick-item{padding:12px 14px;border:1px solid var(--border);border-radius:14px;color:var(--muted);font-size:.72rem;background:rgba(255,255,255,.02);}
- .quick-item i{color:var(--green);margin-right:7px;}
- .stats-row{display:flex;justify-content:center;gap:20px;margin-top:44px;flex-wrap:wrap;}
- .public-bots-panel{width:min(760px,100%);margin:18px auto 0;padding:14px 16px;border:1px solid var(--border);border-radius:15px;background:rgba(12,11,22,.6);text-align:left;}
- .public-bots-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
- .public-bots-title{display:flex;align-items:center;gap:8px;color:var(--text);font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;}
- .public-bots-title i{color:var(--green);}
- .public-bots-live{color:var(--green);font-size:.62rem;font-weight:700;}
- .public-bots-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;}
- .public-bot-item{display:flex;align-items:center;gap:10px;padding:10px 11px;border:1px solid rgba(167,139,250,.15);border-radius:10px;background:rgba(255,255,255,.02);}
- .public-bot-icon{display:grid;place-items:center;width:29px;height:29px;flex:0 0 29px;border-radius:9px;background:rgba(167,139,250,.15);color:var(--green);font-size:.72rem;}
- .public-bot-info{min-width:0;flex:1;}.public-bot-name{display:block;color:var(--text);font-size:.7rem;font-weight:800;}.public-bot-number{display:block;color:var(--muted);font-size:.65rem;margin-top:2px;}
- .public-bot-status{color:var(--green);font-size:.6rem;white-space:nowrap;}.public-bots-empty{padding:9px;color:var(--muted);font-size:.68rem;text-align:center;border:1px dashed var(--border);border-radius:9px;grid-column:1/-1;}
- .stat-card{display:flex;align-items:center;gap:14px;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px 26px;min-width:190px;}
- .stat-card i{font-size:1.5rem;color:var(--green);}
- .stat-value{font-size:1.6rem;font-weight:800;color:var(--green);font-family:'JetBrains Mono',monospace;}
- .stat-label{font-size:.72rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
-  main{max-width:1080px;margin:0 auto;padding:20px 20px 40px;}
-  section.panel{margin:26px 0;padding:34px;background:var(--bg-panel);border:1px solid var(--border);border-radius:20px;backdrop-filter:blur(14px);position:relative;box-shadow:0 18px 60px rgba(0,0,0,.22);}
-  section.panel::before{content:attr(data-label);position:absolute;top:-11px;left:24px;background:var(--bg);padding:0 10px;font-size:.68rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
-  section.panel h2{display:flex;align-items:center;gap:12px;color:var(--green);font-size:1.2rem;margin-bottom:24px;font-weight:800;}
- .feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;}
- .feature-item{padding:24px;border:1px solid var(--border);border-radius:16px;background:rgba(167,139,250,.05);transition:.3s;}
- .feature-item:hover{background:var(--green-glass);transform:translateY(-4px);border-color:var(--green);}
- .feature-item i{font-size:1.6rem;color:var(--green);margin-bottom:14px;display:block;}
- .feature-item h3{font-size:.95rem;margin-bottom:8px;}
- .feature-item p{color:var(--muted);font-size:.82rem;}
- .instructions{background:rgba(167,139,250,.06);border-left:3px solid var(--green);border-radius:8px;padding:20px 22px;margin-bottom:26px;}
- .instructions h3{color:var(--green);font-size:.9rem;margin-bottom:12px;}
- .instructions ol{padding-left:20px;color:var(--muted);font-size:.85rem;}
- .instructions li{margin-bottom:10px;}
- .instructions li::marker{color:var(--green);}
- .input-box{display:flex;flex-direction:column;gap:16px;max-width:440px;}
- .input-group{position:relative;}
- .input-group i{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--muted);}
- .input-group input{width:100%;padding:15px 16px 15px 46px;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.35);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.9rem;transition:.25s;}
- .input-group input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(167,139,250,.15);}
-  #status{margin-top:20px;padding:16px 18px;border-radius:12px;background:rgba(0,0,0,.3);border-left:3px solid var(--muted);font-size:.85rem;display:none;}
-  #status.show{display:block;}
-  #status.success{border-left-color:var(--green);background:rgba(167,139,250,.10);color:var(--green);}
-  #status.error{border-left-color:var(--violet);background:rgba(167,139,250,.10);color:#d8ccff;}
-  #status.warning{border-left-color:var(--amber);background:rgba(196,181,253,.10);color:var(--amber);}
- .code-wrap{display:none;margin-top:26px;animation:riseIn.5s ease;}
-  @keyframes riseIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
- .code-box{font-family:'JetBrains Mono',monospace;font-size:2rem;letter-spacing:8px;text-align:center;padding:22px;border:1px dashed var(--green);border-radius:12px;background:rgba(0,0,0,.45);color:var(--green);text-shadow:0 0 12px rgba(167,139,250,.4);cursor:pointer;transition:.25s;}
- .code-box:hover{background:var(--green-glass);}
- .copy-hint{text-align:center;font-size:.72rem;color:var(--muted);margin-top:10px;}
- .waiting{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:18px;font-size:.78rem;color:var(--muted);}
- .waiting.dot{width:7px;height:7px;background:var(--green);border-radius:50%;box-shadow:0 0 8px var(--green);animation:blink 1.3s infinite;}
- .link-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;}
- .official-card{display:flex;align-items:center;gap:16px;padding:20px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(135deg,rgba(167,139,250,.10),rgba(255,255,255,.03));text-decoration:none;color:var(--text);transition:.3s;}
- .official-card:hover{transform:translateY(-4px);border-color:var(--green);box-shadow:0 14px 35px rgba(139,92,246,.18);}
- .official-card i{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:var(--green-glass);color:var(--green);font-size:1.35rem;}
- .official-card strong{display:block;font-size:.9rem;margin-bottom:3px;}
- .official-card span{color:var(--muted);font-size:.72rem;}
- .steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
- .step-card{padding:22px;border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.02);}
- .step-number{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:var(--green-glass);color:var(--green);font-weight:800;margin-bottom:16px;}
- .step-card h3{font-size:.92rem;margin-bottom:7px;}
- .step-card p{color:var(--muted);font-size:.78rem;}
- .faq-list{display:grid;gap:10px;}
- .faq-list details{border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.02);padding:16px 18px;}
- .faq-list summary{cursor:pointer;font-size:.86rem;font-weight:700;color:var(--text);}
- .faq-list details p{color:var(--muted);font-size:.78rem;padding:12px 24px 2px 0;}
-  footer{text-align:center;padding:50px 20px;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border);margin-top:40px;}
-  footer span{color:var(--green);}
-  #toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--green);color:#0a0714;padding:12px 24px;border-radius:30px;font-size:.8rem;font-weight:700;transition:.4s cubic-bezier(.175,.885,.32,1.275);z-index:900;}
-  #toast.show{transform:translateX(-50%) translateY(0);}
- .hero-banner{width:min(1100px,calc(100% - 32px));margin:86px auto 0;position:relative;overflow:hidden;border:1px solid var(--border);border-radius:22px;background:var(--bg-panel);box-shadow:0 20px 70px rgba(0,0,0,.28);}
- .hero-banner img{display:block;width:100%;height:auto;aspect-ratio:1584/672;object-fit:cover;}
- .banner-nav{width:min(1100px,calc(100% - 32px));margin:12px auto 0;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;}
- .banner-nav a{display:inline-flex;align-items:center;gap:8px;padding:11px 15px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.03);color:var(--text);font-size:.74rem;font-weight:700;text-decoration:none;transition:.2s;}
- .banner-nav a:hover{transform:translateY(-2px);border-color:var(--green);background:var(--green-glass);}
- .banner-nav a i{color:var(--green);}
-  @media(max-width:768px){nav{padding:0 18px;}header{padding:120px 16px 50px;}section.panel{padding:24px 18px;}.code-box{font-size:1.4rem;letter-spacing:5px;}.steps-grid,.quick-strip{grid-template-columns:1fr;}}
+:root{--bg:#050000;--panel:rgba(18,4,4,0.92);--panel2:rgba(12,2,2,0.98);--grid:rgba(255,0,0,0.06);--red:#ff0a1a;--border:rgba(255,10,26,0.26);--text:#fff5f5;--muted:#8a6b6b;--radius:12px}
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:Inter,sans-serif;min-height:100vh;overflow-x:hidden}
+.grid{position:fixed;inset:0;z-index:-3;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:36px 36px}
+.glow{position:fixed;top:-15%;left:50%;transform:translateX(-50%);width:70vw;height:70vw;background:radial-gradient(circle,rgba(255,10,26,0.2),transparent 70%);filter:blur(45px);z-index:-2}
+.scan{position:fixed;inset:0;z-index:50;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.15) 0px,rgba(0,0,0,.15) 1px,transparent 2px,transparent 3px);opacity:.12}
+/* boot cortico */
+#boot{position:fixed;inset:0;z-index:999;background:#000;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace}
+.boot-box{width:min(540px,92%);padding:22px 20px;border:1px solid var(--border);border-radius:14px;background:rgba(12,2,2,.98);box-shadow:0 0 40px rgba(255,10,26,.18)}
+.boot-top{display:flex;justify-content:space-between;color:var(--red);font-size:.7rem;letter-spacing:.12em;font-weight:900;margin-bottom:10px}
+#boot pre{min-height:60px;color:var(--red);font-size:.78rem;line-height:1.6;white-space:pre-wrap;text-shadow:0 0 10px var(--red)}
+.bar{height:8px;border-radius:99px;background:rgba(255,10,26,.1);border:1px solid var(--border);overflow:hidden;margin-top:10px}
+.bar-fill{height:100%;width:0;background:linear-gradient(90deg,#ff0a1a,#ff4d5a);transition:width.2s}
+.boot-meta{display:flex;justify-content:space-between;color:var(--muted);font-size:.65rem;margin-top:8px}
+#boot.hide{animation:out.4s forwards}@keyframes out{to{opacity:0;visibility:hidden}}@keyframes blink{50%{opacity:0}}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:800;opacity:0;visibility:hidden;transition:.3s}.modal.active{opacity:1;visibility:visible}
+.m-content{width:90%;max-width:400px;background:#0c0202;border:1px solid var(--border);border-radius:14px}.m-head{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between}.m-head h2{color:var(--red);font-size:.85rem}.m-close{background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer}.m-body{padding:18px}
+.channel{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:10px;background:rgba(255,10,26,.06);text-decoration:none;color:#fff;margin-bottom:10px}.channel i{color:var(--red)}
+.btn{width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--red);color:#000;font-weight:900;padding:13px 20px;border:none;border-radius:10px;cursor:pointer;text-transform:uppercase;font-size:.8rem;box-shadow:0 8px 24px rgba(255,10,26,.3)}.btn:hover{transform:translateY(-2px)}.btn-outline{background:transparent;color:var(--red);border:1px solid var(--border)}
+nav{position:fixed;top:0;left:0;right:0;height:64px;background:rgba(5,0,0,.92);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;z-index:200}
+.brand{display:flex;gap:10px;align-items:center}.mark{width:38px;height:38px;background:var(--red);color:#000;display:grid;place-items:center;font-weight:900;border-radius:8px}.name{font-weight:900;font-size:1rem}.tag{font-size:.6rem;color:var(--muted);letter-spacing:2px}
+.hero-banner{width:min(1080px,calc(100% - 24px));margin:78px auto 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 0 40px rgba(255,10,26,.12)}.hero-banner img{width:100%;display:block;aspect-ratio:1584/672;object-fit:cover}
+.banner-nav{width:min(1080px,calc(100% - 24px));margin:10px auto 0;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.banner-nav a{padding:9px 14px;border:1px solid var(--border);border-radius:9px;background:rgba(255,10,26,.06);color:#fff;font-size:.7rem;font-weight:800;text-decoration:none}.banner-nav a i{color:var(--red)}
+header{padding:36px 16px 20px;text-align:center}header h1{font-size:clamp(2.2rem,7vw,4rem);font-weight:900}header h1 span{color:var(--red);text-shadow:0 0 28px rgba(255,10,26,.6)}header p.sub{color:var(--muted);max-width:540px;margin:14px auto 0;font-size:.88rem}header p.sub strong{color:var(--red)}
+.hero-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:22px auto 0;max-width:500px}.hero-actions.btn{width:auto;min-width:180px}
+.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:20px auto 0;max-width:700px}.quick div{padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:rgba(255,10,26,.04);color:var(--muted);font-size:.68rem;font-weight:700;text-transform:uppercase}.quick i{color:var(--red);margin-right:6px}
+.stats{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:22px}.stat{display:flex;gap:12px;align-items:center;padding:14px 20px;border:1px solid var(--border);border-radius:12px;background:var(--panel);min-width:160px}.stat i{color:var(--red)}.stat b{font-size:1.4rem;color:var(--red);display:block}.stat span{font-size:.6rem;color:var(--muted);text-transform:uppercase}
+.bots{width:min(700px,100%);margin:14px auto 0;padding:12px;border:1px solid var(--border);border-radius:12px;background:rgba(15,3,3,.7);text-align:left}.bots-head{display:flex;justify-content:space-between;font-size:.7rem;font-weight:800;margin-bottom:8px}.bots-head i{color:var(--red)}.bots-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px}.bot-item{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid rgba(255,10,26,.18);border-radius:8px;background:rgba(0,0,0,.3);font-size:.68rem}.bot-icon{width:26px;height:26px;display:grid;place-items:center;background:rgba(255,10,26,.18);color:var(--red);border-radius:7px}
+main{max-width:1060px;margin:0 auto;padding:16px}
+section.panel{margin:18px 0;padding:24px;background:var(--panel);border:1px solid var(--border);border-radius:14px}section.panel h2{color:var(--red);font-size:1rem;font-weight:900;margin-bottom:16px;display:flex;gap:8px;align-items:center;text-transform:uppercase}
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}.feature{padding:16px;border:1px solid var(--border);border-radius:10px;background:rgba(255,10,26,.04)}.feature:hover{border-color:var(--red);background:rgba(255,10,26,.08);transform:translateY(-2px)}.feature i{color:var(--red);margin-bottom:8px;display:block}.feature h3{font-size:.85rem;margin-bottom:4px}.feature p{color:var(--muted);font-size:.75rem}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.step{padding:16px;border:1px solid var(--border);border-radius:10px;background:rgba(0,0,0,.2)}.step.num{width:26px;height:26px;display:grid;place-items:center;background:var(--red);color:#000;font-weight:900;border-radius:7px;margin-bottom:10px;font-size:.75rem}
+.instructions{background:rgba(255,10,26,.07);border-left:3px solid var(--red);border-radius:8px;padding:14px 16px;margin-bottom:16px}.instructions h3{color:var(--red);font-size:.85rem;margin-bottom:6px}.instructions ol{padding-left:18px;color:var(--muted);font-size:.8rem}
+.input-box{max-width:420px;display:flex;flex-direction:column;gap:10px}.input{position:relative}.input i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted)}.input input{width:100%;padding:12px 12px 12px 36px;border-radius:10px;border:1px solid var(--border);background:#080000;color:#fff;font-family:'JetBrains Mono',monospace;font-size:.85rem}.input input:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 3px rgba(255,10,26,.15)}
+#status{margin-top:12px;padding:10px 12px;border-radius:8px;background:#000;border-left:3px solid var(--muted);font-size:.78rem;display:none}#status.show{display:block}#status.success{border-color:var(--red);color:var(--red);background:rgba(255,10,26,.08)}#status.error{color:#ffb3b8}
+.code-wrap{display:none;margin-top:14px}.code{font-family:'JetBrains Mono',monospace;font-size:1.7rem;letter-spacing:6px;text-align:center;padding:16px;border:1px dashed var(--red);border-radius:10px;color:var(--red);background:#0a0000;cursor:pointer}
+.tele{display:flex;gap:12px;align-items:center;padding:14px;border:1px solid var(--border);border-radius:10px;background:linear-gradient(135deg,rgba(255,10,26,.1),rgba(0,0,0,.3));text-decoration:none;color:#fff}.tele i{width:36px;height:36px;display:grid;place-items:center;background:rgba(255,10,26,.18);color:var(--red);border-radius:8px}
+footer{text-align:center;padding:28px;color:var(--muted);font-size:.7rem;border-top:1px solid var(--border);margin-top:20px}footer b{color:var(--red)}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--red);color:#000;padding:8px 18px;border-radius:30px;font-weight:900;font-size:.75rem;transition:.3s;z-index:900}#toast.show{transform:translateX(-50%) translateY(0)}
+@media(max-width:700px){.quick,.steps{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div id="boot">
-  <div class="boot-panel">
-    <div class="boot-brand"><strong>ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ // SISTEMA</strong><span>INICIO SEGURO</span></div>
-    <pre id="bootText"></pre>
-    <div class="boot-progress"><div class="boot-progress-bar" id="bootProgress"></div></div>
-    <div class="boot-meta"><span id="bootStatus">Preparando el panel...</span><span id="bootPercent">0%</span></div>
-  </div>
+<div class="boot-box">
+<div class="boot-top"><strong>ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</strong><span>RED // BLACK</span></div>
+<pre id="bootText"></pre>
+<div class="bar"><div class="bar-fill" id="bar"></div></div>
+<div class="boot-meta"><span id="bootStatus">Iniciando...</span><span id="bootPercent">0%</span></div>
 </div>
-<div class="scanlines"></div>
-<div class="grid-bg"></div>
-<div class="glow-orb"></div>
-<div class="particles" id="particles"></div>
-<div id="channelModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-head">
-      <h2>canales_oficiales.sh</h2>
-      <button class="modal-close" id="modalClose">&times;</button>
-    </div>
-    <div class="modal-body">
-      <p>// Únete a los canales oficiales de ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ para novedades y soporte.</p>
-      <div class="channel-list">
-        <a href="https://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l" target="_blank" rel="noopener" class="channel-item"><i class="fab fa-whatsapp"></i><span><strong>Canal oficial de WhatsApp</strong><small>Novedades de ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</small></span><b class="channel-join">Ver canal</b></a>
-        <a href="https://t.me/Dark_Zone_666" target="_blank" rel="noopener" class="channel-item"><i class="fab fa-telegram-plane"></i><span><strong>Canal oficial de Telegram</strong><small>Soporte</small></span><b class="channel-join">Unirse</b></a>
-      </div>
-      <button class="btn" id="confirmFollow"><i class="fas fa-check"></i> Ya me uní · Continuar</button>
-    </div>
-  </div>
 </div>
-<nav>
-  <div class="brand">
-    <div class="mark">J</div>
-    <div>
-      <div class="name">ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div>
-      <div class="tag">automatización de WhatsApp</div>
-    </div>
-  </div>
-</nav>
-<div class="hero-banner">
-  <img src="Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg" alt="Banner oficial de ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ">
+<div class="grid"></div><div class="glow"></div><div class="scan"></div>
+
+<div id="modal" class="modal">
+<div class="m-content">
+<div class="m-head"><h2>canal oficial</h2><button class="m-close" id="mClose">&times;</button></div>
+<div class="m-body">
+<p style="color:#8a6b6b;font-size:.75rem;margin-bottom:12px">Únete al canal oficial de ᴊᴀᴋᴜᴅᴏѕʜʏꫂ</p>
+<a class="channel" href="https://t.me/Dark_Zone_666" target="_blank"><i class="fab fa-telegram"></i><span><strong>Telegram Oficial</strong><br><small style="color:#8a6b6b">Novedades y soporte</small></span></a>
+<button class="btn" id="okBtn">CONTINUAR</button>
 </div>
+</div>
+</div>
+
+<nav><div class="brand"><div class="mark">J</div><div><div class="name">ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div><div class="tag">RED BLACK SYSTEM</div></div></div></nav>
+
+<div class="hero-banner"><img src="Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg" alt="banner ᴊᴀᴋᴜᴅᴏѕʜʏꫂ"></div>
 <div class="banner-nav">
-  <a href="#features"><i class="fas fa-star"></i> Funciones</a>
-  <a href="#connect"><i class="fas fa-link"></i> Conectar</a>
-  <a href="#links"><i class="fas fa-broadcast-tower"></i> Canales</a>
-  <a href="#faq"><i class="fas fa-circle-question"></i> Ayuda</a>
+<a href="#features"><i class="fas fa-fire"></i> FUNCIONES</a>
+<a href="#connect"><i class="fas fa-link"></i> CONECTAR</a>
+<a href="#links"><i class="fab fa-telegram"></i> TELEGRAM</a>
 </div>
+
 <header>
-  <div class="eyebrow"><span class="pulse"></span> SESIÓN LISTA // NODO EN LÍNEA</div>
-  <h1><span>ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</span></h1>
-  <p class="sub">Un núcleo rápido y minimalista para automatizar WhatsApp, creado y mantenido por <strong>ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</strong>.</p>
-  <div class="hero-actions">
-    <a class="btn" href="#connect"><i class="fas fa-link"></i> Conectar mi número</a>
-    <a class="btn btn-outline" href="#features"><i class="fas fa-compass"></i> Explorar funciones</a>
-  </div>
-  <div class="quick-strip">
-    <div class="quick-item"><i class="fas fa-bolt"></i>Panel sencillo</div>
-    <div class="quick-item"><i class="fas fa-chart-line"></i>Estado en tiempo real</div>
-    <div class="quick-item"><i class="fas fa-mobile-screen-button"></i>Diseñado para móvil</div>
-  </div>
-  <div class="stats-row">
-    <div class="stat-card"><i class="fas fa-signal"></i><div><div class="stat-value" id="activeSockets">0</div><div class="stat-label">Conexiones activas</div></div></div>
-    <div class="stat-card"><i class="fas fa-users"></i><div><div class="stat-value" id="totalUsers">0</div><div class="stat-label">Usuarios conectados</div></div></div>
-  </div>
-  <div class="public-bots-panel">
-    <div class="public-bots-head"><span class="public-bots-title"><i class="fas fa-robot"></i> Bots conectados</span><span id="publicBotsLive" class="public-bots-live">Actualizando...</span></div>
-    <div id="publicBotsList" class="public-bots-list"><div class="public-bots-empty">Esperando conexiones...</div></div>
-  </div>
+<h1><span>ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</span></h1>
+<p class="sub">Sistema <strong>rojo y negro</strong> rápido y minimalista. Sin música, sin lag.</p>
+<div class="hero-actions">
+<a class="btn" href="#connect"><i class="fas fa-link"></i> CONECTAR NÚMERO</a>
+<a class="btn btn-outline" href="#features"><i class="fas fa-eye"></i> FUNCIONES</a>
+</div>
+<div class="quick">
+<div><i class="fas fa-bolt"></i>Ultra rápido</div>
+<div><i class="fas fa-shield"></i>Seguro</div>
+<div><i class="fas fa-mobile"></i>Para móvil</div>
+</div>
+<div class="stats">
+<div class="stat"><i class="fas fa-signal"></i><div><b id="activeSockets">0</b><span>Activas</span></div></div>
+<div class="stat"><i class="fas fa-users"></i><div><b id="totalUsers">0</b><span>Usuarios</span></div></div>
+</div>
+<div class="bots">
+<div class="bots-head"><span><i class="fas fa-robot"></i> BOTS CONECTADOS</span><span id="botsLive" style="color:#ff0a1a">0 en línea</span></div>
+<div id="botsList" class="bots-list"><div style="padding:8px;text-align:center;color:#8a6b6b;border:1px dashed var(--border);border-radius:8px;grid-column:1/-1">Esperando conexiones...</div></div>
+</div>
 </header>
+
 <main>
-  <section id="features" class="panel" data-label="./funciones">
-    <h2><i class="fas fa-star"></i> Funciones</h2>
-    <div class="feature-grid">
-      <div class="feature-item"><i class="fas fa-reply"></i><h3>Respuestas automáticas</h3><p>Respuestas inteligentes basadas en activadores configurables.</p></div>
-      <div class="feature-item"><i class="fas fa-image"></i><h3>Herramientas multimedia</h3><p>Descarga, convierte y gestiona archivos multimedia fácilmente.</p></div>
-      <div class="feature-item"><i class="fas fa-puzzle-piece"></i><h3>Sistema de comandos</h3><p>Amplía el bot con comandos y automatizaciones personalizadas.</p></div>
-      <div class="feature-item"><i class="fas fa-shield-alt"></i><h3>Protección</h3><p>Controles integrados para cuidar tus sesiones y tu privacidad.</p></div>
-    </div>
-  </section>
-  <section class="panel" data-label="./inicio-rápido">
-    <h2><i class="fas fa-route"></i> Empieza en tres pasos</h2>
-    <div class="steps-grid">
-      <article class="step-card"><div class="step-number">01</div><h3>Conecta</h3><p>Introduce tu número y vincula el dispositivo desde WhatsApp.</p></article>
-      <article class="step-card"><div class="step-number">02</div><h3>Configura</h3><p>Explora las funciones y adapta el bot a tu forma de trabajar.</p></article>
-      <article class="step-card"><div class="step-number">03</div><h3>Automatiza</h3><p>Deja que los comandos respondan y gestionen tus tareas diarias.</p></article>
-    </div>
-  </section>
-  <section id="connect" class="panel" data-label="./conectar">
-    <h2><i class="fas fa-link"></i> Conectar con WhatsApp</h2>
-    <div class="instructions">
-      <h3>Cómo conectar tu número</h3>
-      <ol>
-        <li>Escribe tu número con código de país, sin «+», espacios ni paréntesis.</li>
-        <li>Pulsa «Solicitar código de vinculación».</li>
-        <li>Copia el código de ocho dígitos.</li>
-        <li>Abre WhatsApp → Ajustes → Dispositivos vinculados → Vincular con número.</li>
-        <li>Introduce el código.</li>
-      </ol>
-    </div>
-    <div class="input-box">
-      <div class="input-group">
-        <i class="fas fa-phone"></i>
-        <input type="tel" id="phone" placeholder="Ej.: 5491112345678 (con código de país)">
-      </div>
-      <button class="btn" id="requestPairing"><i class="fas fa-key"></i> Solicitar código</button>
-    </div>
-    <div id="status"></div>
-    <div class="code-wrap" id="codeWrap">
-      <div class="code-box" id="pairingCode" onclick="copyCode()">0000 0000</div>
-      <div class="copy-hint">Toca el código para copiarlo</div>
-      <div class="waiting"><span class="dot"></span> Esperando la vinculación del dispositivo...</div>
-    </div>
-  </section>
-  <section id="links" class="panel" data-label="./canales-oficiales">
-    <h2><i class="fas fa-broadcast-tower"></i> Canales oficiales</h2>
-    <div class="link-grid">
-      <a class="official-card" href="https://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i><span><strong>WhatsApp oficial</strong><span>Ver canal y recibir novedades</span></span><b class="channel-join">Ver canal</b></a>
-      <a class="official-card" href="https://t.me/Dark_Zone_666" target="_blank" rel="noopener"><i class="fab fa-telegram-plane"></i><span><strong>Telegram oficial</strong><span>Noticias y soporte</span></span><i class="fas fa-arrow-up-right-from-square join-arrow"></i></a>
-    </div>
-  </section>
-  <section id="faq" class="panel" data-label="./ayuda">
-    <h2><i class="fas fa-circle-question"></i> Preguntas frecuentes</h2>
-    <div class="faq-list">
-      <details><summary>¿Qué necesito para conectar mi número?</summary><p>Tu número de WhatsApp con código de país y acceso a «Dispositivos vinculados».</p></details>
-      <details><summary>¿Dónde recibo novedades y soporte?</summary><p>En los canales oficiales de WhatsApp y Telegram de ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ.</p></details>
-      <details><summary>¿Puedo ver cuántas conexiones hay activas?</summary><p>Sí. El panel actualiza las conexiones en tiempo real.</p></details>
-    </div>
-  </section>
+<section id="features" class="panel">
+<h2><i class="fas fa-fire"></i> FUNCIONES PRINCIPALES</h2>
+<div class="feature-grid">
+<div class="feature"><i class="fas fa-reply"></i><h3>Respuestas Auto</h3><p>Responde solo en grupos y privados.</p></div>
+<div class="feature"><i class="fas fa-download"></i><h3>Descargas</h3><p>Video, música, TikTok, FB, IG.</p></div>
+<div class="feature"><i class="fas fa-terminal"></i><h3>Comandos</h3><p>Más de 100 comandos listos.</p></div>
+<div class="feature"><i class="fas fa-shield-halved"></i><h3>Protección</h3><p>Anti-link, anti-call, anti-delete.</p></div>
+</div>
+</section>
+
+<section class="panel">
+<h2><i class="fas fa-bolt"></i> COMO EMPEZAR</h2>
+<div class="steps">
+<div class="step"><div class="num">01</div><h3 style="font-size:.85rem">Conecta</h3><p style="color:#8a6b6b;font-size:.75rem">Pon tu número con código país</p></div>
+<div class="step"><div class="num">02</div><h3 style="font-size:.85rem">Vincula</h3><p style="color:#8a6b6b;font-size:.75rem">WhatsApp > Dispositivos vinculados > Con número</p></div>
+<div class="step"><div class="num">03</div><h3 style="font-size:.85rem">Listo</h3><p style="color:#8a6b6b;font-size:.75rem">El bot se conecta automático</p></div>
+</div>
+</section>
+
+<section id="connect" class="panel">
+<h2><i class="fas fa-link"></i> CONECTAR WHATSAPP</h2>
+<div class="instructions">
+<h3>Instrucciones</h3>
+<ol>
+<li>Número con código país sin + ni espacios. Ej: 1809XXXXXXX</li>
+<li>Pulsa SOLICITAR CÓDIGO</li>
+<li>Copia el código de 8 dígitos</li>
+<li>WhatsApp > Ajustes > Dispositivos vinculados > Vincular con número de teléfono</li>
+<li>Pega el código</li>
+</ol>
+</div>
+<div class="input-box">
+<div class="input"><i class="fas fa-phone"></i><input type="tel" id="phone" placeholder="1809XXXXXXX"></div>
+<button class="btn" id="requestPairing"><i class="fas fa-key"></i> SOLICITAR CÓDIGO</button>
+</div>
+<div id="status"></div>
+<div class="code-wrap" id="codeWrap"><div class="code" id="pairingCode" onclick="copyCode()">0000 0000</div><p style="text-align:center;color:#8a6b6b;font-size:.65rem;margin-top:6px">Toca para copiar</p></div>
+</section>
+
+<section id="links" class="panel">
+<h2><i class="fab fa-telegram"></i> CANAL OFICIAL</h2>
+<a class="tele" href="https://t.me/Dark_Zone_666" target="_blank"><i class="fab fa-telegram"></i><span><strong>Telegram Oficial ᴊᴀᴋᴜᴅᴏѕʜʏꫂ</strong><br><small style="color:#8a6b6b">Soporte y novedades</small></span><span style="margin-left:auto;color:#ff0a1a"><i class="fas fa-external-link-alt"></i></span></a>
+</section>
 </main>
-<footer>&copy; <span id="year"></span> <span>ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</span> — Todos los derechos reservados.</footer>
-<div id="toast">¡CÓDIGO COPIADO!</div>
+
+<footer>&copy; <span id="year"></span> <b>ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</b> — RED SYSTEM</footer>
+<div id="toast">COPIADO</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const bootLines = [
-  "iniciando núcleo de ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ...",
-  "cargando módulos de automatización... OK",
-  "verificando el puente seguro de WhatsApp... OK",
-  "preparando conexión en tiempo real... OK",
-  "sincronizando sesiones activas... OK",
-  "interfaz ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ lista. bienvenido."
+// BOOT CORTO - 3 lineas nada mas
+const bootLines=[
+"iniciando ᴊᴀᴋᴜᴅᴏѕʜʏꫂ...",
+"cargando red system...",
+"listo."
 ];
-const bootEl = document.getElementById('bootText');
-const bootProgress = document.getElementById('bootProgress');
-const bootPercent = document.getElementById('bootPercent');
-const bootStatus = document.getElementById('bootStatus');
-let li = 0, ci = 0;
+const bootText=document.getElementById('bootText');
+const bar=document.getElementById('bar');
+const bootPercent=document.getElementById('bootPercent');
+const bootStatus=document.getElementById('bootStatus');
+let li=0,ci=0;
 function typeBoot(){
-  if(li >= bootLines.length){
-    bootProgress.style.width = '100%';
-    bootPercent.textContent = '100%';
-    bootStatus.textContent = 'Carga completada · entrando...';
-    setTimeout(()=>{document.getElementById('boot').classList.add('hide');}, 850);
-    return;
-  }
-  const line = bootLines[li];
-  if(ci <= line.length){
-    bootEl.innerText = bootLines.slice(0,li).join('\n') + (li>0?'\n':'') + line.slice(0,ci) + ' ';
-    bootEl.innerHTML = bootEl.innerText.replace(/\n/g,'<br>') + '<span class="cursor"></span>';
-    const percent = Math.min(96, Math.round(((li + ci / Math.max(line.length, 1)) / bootLines.length) * 100));
-    bootProgress.style.width = percent + '%';
-    bootPercent.textContent = percent + '%';
-    bootStatus.textContent = li < 2? 'Inicializando...' : li < 5? 'Sincronizando...' : 'Finalizando...';
-    ci++; setTimeout(typeBoot, 28);
-  } else { li++; ci = 0; setTimeout(typeBoot, 260); }
+if(li>=bootLines.length){
+bar.style.width='100%';bootPercent.textContent='100%';bootStatus.textContent='Entrando...';
+setTimeout(()=>document.getElementById('boot').classList.add('hide'),400);
+return;
+}
+const line=bootLines[li];
+if(ci<=line.length){
+bootText.innerText=bootLines.slice(0,li).join('\n')+(li>0?'\n':'')+line.slice(0,ci);
+const pct=Math.min(95,Math.round(((li+ci/line.length)/bootLines.length)*100));
+bar.style.width=pct+'%';bootPercent.textContent=pct+'%';
+ci++;setTimeout(typeBoot,18);
+}else{li++;ci=0;setTimeout(typeBoot,120);}
 }
 typeBoot();
-const pWrap = document.getElementById('particles');
-for(let i=0;i<30;i++){
-  const p = document.createElement('div'); p.className='particle';
-  const size = Math.random()*3+1; p.style.width=size+'px'; p.style.height=size+'px';
-  p.style.left=Math.random()*100+'%'; p.style.animationDuration=(12+Math.random()*14)+'s';
-  p.style.animationDelay=(Math.random()*14)+'s'; pWrap.appendChild(p);
+
+// modal solo telegram
+const modal=document.getElementById('modal');
+const mClose=document.getElementById('mClose');
+const okBtn=document.getElementById('okBtn');
+window.addEventListener('load',()=>{
+if(!localStorage.getItem('jk_red_final')){
+setTimeout(()=>modal.classList.add('active'),600);
 }
-const channelModal = document.getElementById('channelModal');
-const modalClose = document.getElementById('modalClose');
-const confirmFollow = document.getElementById('confirmFollow');
-window.addEventListener('load', ()=>{
-  if(!localStorage.getItem('jakudoshy_followed')){
-    setTimeout(()=>channelModal.classList.add('active'), 1200);
-  }
 });
-modalClose?.addEventListener('click', ()=>channelModal.classList.remove('active'));
-confirmFollow?.addEventListener('click', ()=>{
-  localStorage.setItem('jakudoshy_followed','1');
-  channelModal.classList.remove('active');
+mClose?.addEventListener('click',()=>modal.classList.remove('active'));
+okBtn?.addEventListener('click',()=>{
+localStorage.setItem('jk_red_final','1');
+modal.classList.remove('active');
 });
-const toast = document.getElementById('toast');
-function showToast(msg){ toast.innerText=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2000); }
-const statusEl = document.getElementById('status');
-function setStatus(msg,type){ statusEl.innerText=msg; statusEl.className='show '+(type||''); }
-const socket = io();
-const phoneInput = document.getElementById('phone');
-const requestBtn = document.getElementById('requestPairing');
-const codeWrap = document.getElementById('codeWrap');
-const pairingCode = document.getElementById('pairingCode');
-const publicBotsList = document.getElementById('publicBotsList');
-const publicBotsLive = document.getElementById('publicBotsLive');
-function renderPublicBots(bots=[]){
-  if(!publicBotsList) return;
-  publicBotsList.innerHTML='';
-  if(!bots.length){
-    publicBotsList.innerHTML='<div class="public-bots-empty">No hay bots conectados en este momento.</div>';
-    if(publicBotsLive) publicBotsLive.textContent='0 en línea'; return;
-  }
-  bots.forEach(bot=>{
-    const item=document.createElement('div'); item.className='public-bot-item';
-    const icon=document.createElement('span'); icon.className='public-bot-icon'; icon.innerHTML='<i class="fas fa-robot"></i>';
-    const info=document.createElement('div'); info.className='public-bot-info';
-    const name=document.createElement('strong'); name.className='public-bot-name'; name.textContent=bot.type || 'Bot';
-    const number=document.createElement('span'); number.className='public-bot-number'; number.textContent=bot.phone || 'Número vinculado';
-    info.append(name,number);
-    const status=document.createElement('span'); status.className='public-bot-status'; status.textContent='● En línea';
-    item.append(icon,info,status); publicBotsList.appendChild(item);
-  });
-  if(publicBotsLive) publicBotsLive.textContent=`${bots.length} en línea`;
+
+// pairing - NO TOCAR - mecanica igual
+const toast=document.getElementById('toast');
+function showToast(m){toast.innerText=m;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2000)}
+const statusEl=document.getElementById('status');
+function setStatus(msg,type){statusEl.innerText=msg;statusEl.className='show '+(type||'')}
+const socket=io();
+const phoneInput=document.getElementById('phone');
+const requestBtn=document.getElementById('requestPairing');
+const codeWrap=document.getElementById('codeWrap');
+const pairingCode=document.getElementById('pairingCode');
+const botsList=document.getElementById('botsList');
+const botsLive=document.getElementById('botsLive');
+
+function renderBots(bots=[]){
+if(!botsList) return;
+botsList.innerHTML='';
+if(!bots.length){
+botsList.innerHTML='<div style="padding:8px;text-align:center;color:#8a6b6b;border:1px dashed var(--border);border-radius:8px;grid-column:1/-1">Sin bots conectados</div>';
+if(botsLive) botsLive.textContent='0 en línea';
+return;
+}
+bots.forEach(b=>{
+const d=document.createElement('div');
+d.className='bot-item';
+d.innerHTML=`<span class="bot-icon"><i class="fas fa-robot"></i></span><div style="flex:1"><b style="font-size:.7rem">${b.type||'Bot'}</b><br><span style="color:#8a6b6b;font-size:.62rem">${b.phone||'Vinculado'}</span></div><span style="color:#ff0a1a;font-size:.6rem">●</span>`;
+botsList.appendChild(d);
+});
+if(botsLive) botsLive.textContent=bots.length+' en línea';
 }
 function copyCode(){
-  const code = pairingCode.innerText;
-  if(code === '0000 0000') return;
-  navigator.clipboard.writeText(code.replace(/\s/g,'')).then(()=>showToast('¡CÓDIGO COPIADO!'));
+const c=pairingCode.innerText;
+if(c==='0000 0000') return;
+navigator.clipboard.writeText(c.replace(/\s/g,'')).then(()=>showToast('¡CÓDIGO COPIADO!'));
 }
-requestBtn.addEventListener('click', ()=>{
-  const number = phoneInput.value.replace(/\D/g,'');
-  if(!number || number.length < 10){
-    setStatus('Introduce un número válido con código de país.', 'error'); phoneInput.focus(); return;
-  }
-  requestBtn.disabled = true;
-  requestBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Solicitando...';
-  setStatus('Enviando la solicitud de vinculación...', 'warning');
-  const userId = 'user_' + Math.random().toString(36).substr(2,9);
-  socket.emit('set-user', userId);
-  socket.emit('pair-request', { userId, number });
+requestBtn.addEventListener('click',()=>{
+const number=phoneInput.value.replace(/\D/g,'');
+if(!number||number.length<10){setStatus('Número inválido - usa código país','error');return}
+requestBtn.disabled=true;
+requestBtn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Solicitando...';
+setStatus('Enviando solicitud de vinculación...','');
+const userId='user_'+Math.random().toString(36).substr(2,9);
+socket.emit('set-user',userId);
+socket.emit('pair-request',{userId,number});
 });
-socket.on('pairing-code', (code)=>{
-  requestBtn.disabled = false; requestBtn.innerHTML = '<i class="fas fa-key"></i> Solicitar código';
-  setStatus('Código generado. Vincula WhatsApp durante los próximos 60 segundos.', 'success');
-  codeWrap.style.display = 'block'; pairingCode.innerText = code;
+socket.on('pairing-code',(code)=>{
+requestBtn.disabled=false;
+requestBtn.innerHTML='<i class="fas fa-key"></i> SOLICITAR CÓDIGO';
+setStatus('Código generado - tienes 60 segundos','success');
+codeWrap.style.display='block';
+pairingCode.innerText=code;
 });
-socket.on('pair-error', (msg)=>{
-  requestBtn.disabled = false; requestBtn.innerHTML = '<i class="fas fa-key"></i> Solicitar código';
-  setStatus(msg || 'No se pudo generar el código. Inténtalo de nuevo.', 'error');
+socket.on('pair-error',(msg)=>{
+requestBtn.disabled=false;
+requestBtn.innerHTML='<i class="fas fa-key"></i> SOLICITAR CÓDIGO';
+setStatus(msg||'Error al generar código','error');
 });
-socket.on('connection-status', (status)=>{
-  if(status && status.connected){
-    pairingCode.innerText = 'LINKED'; pairingCode.style.color = '#a78bfa'; pairingCode.style.borderColor = '#a78bfa';
-    setStatus('¡Dispositivo vinculado correctamente!', 'success'); showToast('¡CONEXIÓN COMPLETADA!');
-    setTimeout(()=>location.reload(), 3000);
-  }
+socket.on('connection-status',(s)=>{
+if(s&&s.connected){
+pairingCode.innerText='LINKED';
+setStatus('¡Dispositivo vinculado correctamente!','success');
+showToast('¡CONECTADO!');
+setTimeout(()=>location.reload(),2000);
+}
 });
-socket.on('stats', (data)=>{
-  if(data){
-    renderPublicBots(data.bots || []);
-    if(typeof data.activeSockets!== 'undefined') document.getElementById('activeSockets').innerText = data.activeSockets;
-    if(typeof data.totalUsers!== 'undefined') document.getElementById('totalUsers').innerText = data.totalUsers;
-  }
+socket.on('stats',(data)=>{
+if(data){
+renderBots(data.bots||[]);
+if(data.activeSockets!==undefined) document.getElementById('activeSockets').innerText=data.activeSockets;
+if(data.totalUsers!==undefined) document.getElementById('totalUsers').innerText=data.totalUsers;
+}
 });
-document.getElementById('year').innerText = new Date().getFullYear();
+document.getElementById('year').innerText=new Date().getFullYear();
 </script>
 </body>
 </html>
