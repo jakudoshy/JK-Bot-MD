@@ -14,7 +14,6 @@ const PORT = process.env.PORT || 3000
 let sock=null, lastCode=null, lastCodeTime=0, pendingWelcome=false
 console.log(`[ ${c('SISTEMA')} ] ${c('apis premium cargadas')}`)
 
-// --- APIS PREMIUM ---
 const APIS = {
   gpt: "https://api.davidcyriltech.my.id/ai/chatbot?query=",
   gpt2: "https://api.azz.biz.id/api/ai/gpt?query=",
@@ -47,17 +46,13 @@ async function startBot(){
    if(u.connection==='close' && u.lastDisconnect?.error?.output?.statusCode!==DisconnectReason.loggedOut) setTimeout(()=>startBot(),2500)
    if(u.connection==='open' && pendingWelcome){ pendingWelcome=false; await welcome() }
  })
- // --- FIX UNICO: ESPERANDO MENSAJE NUNCA MAS ---
  sock.ev.on('messages.upsert', async({type,messages})=>{
    if(type!=='notify') return
    const m=messages[0]; if(!m?.message || m.key.fromMe) return
    const from=m.key.remoteJid; if(from==='status@broadcast') return
    const txt=m.message.conversation||m.message.extendedTextMessage?.text||""; if(!txt) return
    const low=txt.toLowerCase()
-   if(low==='.menu'){
-     await sock.sendMessage(from,{text:`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('apis premium')}\n│.ia ${c('pregunta')}\n│.menu\n╰─ • ${c('online')} • ─`})
-     return
-   }
+   if(low==='.menu'){ return await sock.sendMessage(from,{text:`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('apis premium')}\n│.ia ${c('pregunta')}\n│.menu\n╰─ • ${c('online')} • ─`}) }
    if(low.startsWith('.ia')||low.startsWith('.bot')||low.startsWith('.gpt')){
      let q=txt.replace(/^\.(ia|bot|gpt)/i,'').trim(); if(!q) return
      try{
@@ -101,7 +96,6 @@ canvas{position:fixed;inset:0;opacity:.3}
 .percent{margin-top:16px;font-size:42px;font-weight:900;color:#fff;letter-spacing:4px;text-shadow:0 0 20px #ff0000;font-family:'JetBrains Mono'}
 .logs{margin-top:18px;text-align:left;background:#000;border:1px solid rgba(255,0,0,.25);border-radius:10px;padding:10px;height:110px;overflow:hidden}
 .log-line{color:#ff0000;font-size:10px;font-family:'JetBrains Mono';line-height:16px;opacity:0;animation:logIn.3s forwards}
-.log-line span{color:#00ff00}
 @keyframes logIn{to{opacity:1}}
 #mainContent{display:none;animation:fadeIn.5s forwards}
 @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -120,12 +114,8 @@ input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-siz
 .step-n{background:#ff0000;color:#000;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0}
 .step-t{color:#ccc;font-size:11px;line-height:20px;font-family:'JetBrains Mono'}
 .step-t b{color:#fff}
-.api-box{margin-top:12px;background:rgba(255,0,0,.08);border:1px dashed rgba(255,0,0,.4);border-radius:10px;padding:10px}
-.api-line{color:#ff0000;font-size:10px;font-family:'JetBrains Mono'}
-.api-line span{color:#fff}
 </style></head><body>
 <div class="bg"></div><canvas id="c"></canvas>
-
 <div id="loader">
 <div class="load-box">
 <div class="load-title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div>
@@ -135,21 +125,14 @@ input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-siz
 <div class="logs" id="logs"></div>
 </div>
 </div>
-
 <div class="wrap" id="mainContent">
 <div class="box">
-<div class="header"><div class="title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ • ᴘʀᴇᴍɪᴜᴍ ᴀᴘɪs</div></div>
+<div class="header"><div class="title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div></div>
 <div class="card">
 <div class="label">ᴠɪɴᴄᴜʟᴀᴄɪᴏɴ ᴘʀᴇᴍɪᴜᴍ</div>
 <div class="input-wrap"><div class="input-inner"><input id="num" placeholder="51912345678"></div></div>
 <button class="btn" id="btn" onclick="gen()"><div class="btn-inner" id="btnTxt">ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ</div></button>
 <div class="codeBox" id="codeBox"><div class="code" id="codeText"></div></div>
-<div class="api-box">
-<div class="api-line">[ ᴀᴘɪ ] <span>ɢᴘᴛ-4 ᴘʀᴇᴍɪᴜᴍ ᴀᴄᴛɪᴠᴀ ✓</span></div>
-<div class="api-line">[ ᴀᴘɪ ] <span>ɢᴇᴍɪɴɪ ᴘʀᴏ ᴀᴄᴛɪᴠᴀ ✓</span></div>
-<div class="api-line">[ ᴀᴘɪ ] <span>ᴘᴏʟʟɪɴᴀᴛɪᴏɴs ᴀᴄᴛɪᴠᴀ ✓</span></div>
-<div class="api-line">[ ᴀᴘɪ ] <span>ᴍᴏᴅᴜʟᴏs ᴘʀᴇᴍɪᴜᴍ ✓</span></div>
-</div>
 </div>
 <div class="steps">
 <div class="steps-title">ᴘᴀsᴏs ᴘᴀʀᴀ ᴠɪɴᴄᴜʟᴀʀ:</div>
@@ -160,7 +143,6 @@ input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-siz
 </div>
 </div>
 </div>
-
 <script>
 const c=document.getElementById('c'),x=c.getContext('2d');function rs(){c.width=innerWidth;c.height=innerHeight}rs();
 let cols=Math.floor(innerWidth/10), drops=new Array(cols).fill(0);
@@ -199,6 +181,5 @@ async function gen(){const n=document.getElementById('num').value.trim();if(!n) 
 })
 app.listen(PORT, ()=>{
   console.log(`[ ${c('SISTEMA')} ] ${c('servidor premium online')}`)
-  console.log(`[ ${c('SISTEMA')} ] ${c('apis premium activas')}`)
   startBot()
 })
