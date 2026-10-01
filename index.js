@@ -49,7 +49,15 @@ async function startBot(){
    if(type!=='notify') return
    const m=messages[0]; if(!m?.message) return
    const from=m.key.remoteJid; if(!from||from==='status@broadcast') return
-   if(m.key.fromMe) return
+
+   // FIX DEFINITIVO PARA TU FOTO - RESPONDE EN (Tú) Y EN TODOS LOS PRIVADOS
+   const myId = sock.user?.id || ""
+   const myNum = myId.split(':')[0].split('@')[0]
+   const fromNum = from.split('@')[0].split(':')[0]
+   const isSelfChat = from===myId || fromNum===myNum
+   // Si es mensaje mio y NO es mi chat conmigo mismo, no responder (evita loop)
+   if(m.key.fromMe &&!isSelfChat) return
+
    const txt=m.message.conversation||m.message.extendedTextMessage?.text||m.message.imageMessage?.caption||""; if(!txt) return
    const args=txt.trim().split(/ +/); const cmd=args[0].toLowerCase(); const q=args.slice(1).join(' ')
    const send=async(t)=>{ await sock.sendMessage(from,{text:t}) }
