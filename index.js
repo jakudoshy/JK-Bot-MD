@@ -1689,7 +1689,7 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `◬━━━〈 *Niku MD BOT* 〉━━━◬\n\n` +
+                        const welcomeText = `◬━━━〈 *jakudoshy mod by bot* 〉━━━◬\n\n` +
                             `*🌑 CONECTADO CORRECTAMENTE* ✅\n\n` +
                             `Tu WhatsApp ha sido vinculado al sistema de automatización de Niku MD.\n\n` +
                             `*📱 INFORMACIÓN DEL BOT:*\n` +
@@ -1699,7 +1699,7 @@ class BotSession {
                             `*🎵 CANCIÓN ACTUAL:*\n` +
                             `> Sin canción seleccionada\n\n` +
                             `Escribe *.menu* para explorar todas las funciones.\n\n` +
-                            `> © NIKU MD BOT v${settings.version || '3.0.0'}`;
+                            `> ©ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ v${settings.version || '3.0.0'}`;
 
                         const menuImagePath = path.join(__dirname, 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg');
                         if (fs.existsSync(menuImagePath)) {
@@ -1801,7 +1801,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const content = {
         interactiveMessage: {
             body: { text: caption },
-            footer: { text: 'NIKU MD • Comunidad oficial' },
+            footer: { text: 'jakudoshy • Comunidad oficial' },
             nativeFlowMessage: {
                 buttons: [categoryButton, channelButton],
                 messageVersion: 1
@@ -1814,7 +1814,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
             mimetype: 'image/jpeg'
         }, { upload: sock.waUploadToServer });
         content.interactiveMessage.header = {
-            title: 'NIKU MD MINI BOT',
+            title: 'Jakudoshy MINI BOT',
             hasMediaAttachment: true,
             imageMessage: imageContent.imageMessage
         };
@@ -1906,7 +1906,7 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
     const content = {
         interactiveMessage: {
             body: { text },
-            footer: { text: 'NIKU MD • Comunidad oficial' },
+            footer: { text: 'Jakudoshy • Comunidad oficial' },
             nativeFlowMessage: {
                 buttons: [channelButton],
                 messageVersion: 1
@@ -1950,18 +1950,12 @@ function generateMenuText(userName, session) {
     const ownerName = settings.ownerName || 'ɴɪᴋᴜ_ʙʟᴀᴅᴇᴼᶠᶜ';
     const version = settings.version || '3.0.0';
     const lines = [
-        '─〔 💀 ɴɪᴋᴜ ᴍᴅ ᴍɪɴɪ ʙᴏᴛ 💀 〕─',
+        '─〔 ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ 〕─',
         '',
         '⚙️ ɪɴғᴏʀᴍᴀᴄɪóɴ ᴅᴇʟ ʙᴏᴛ',
         '',
-        `🤖 ʙᴏᴛ: \`${botName}\``,
-        `👤 ᴘʀᴏᴘɪᴇᴛᴀʀɪᴏ: \`${ownerName}\``,
-        '👑 ᴄᴏ-ᴏᴡɴᴇʀ: `Bryan`',
-        `📦 ᴠᴇʀsɪóɴ: \`${version}\``,
-        `🌐 ᴍᴏᴅᴏ: \`${mode}\``,
-        '🔑 ᴘʀᴇғɪᴊᴏ: `Niku666ofc`',
-        '',
-        '『 MENÚ PRINCIPAL 』',
+        `🤖 ʙᴏᴛ: ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ`,
+        `👤 ᴘʀᴏᴘɪᴇᴛᴀʀɪᴏ: ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`,
         '',
         `✨ \`${prefix}allmenu\` • \`Comandos\``,
         `👑 \`${prefix}ownermenu\` • \`Creador\``,
@@ -1975,7 +1969,7 @@ function generateMenuText(userName, session) {
         `🛠️ \`${prefix}toolsmenu\` • \`Herramientas\``,
         `🎉 \`${prefix}funmenu\` • \`Diversión\``,
         '',
-        '> NIKU MD • Comunidad oficial'
+        '> Jakudoshy • Comunidad oficial'
     ];
     return lines.join('\n');
 }
