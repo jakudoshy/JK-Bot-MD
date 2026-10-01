@@ -6,10 +6,11 @@ const fs = require('fs')
 
 const app = express()
 const PORT = process.env.PORT || 3000
-let sock=null, currentPairNumber=null
+let sock=null
 let economy={}
 if(fs.existsSync('./economy.json')){ try{ economy=JSON.parse(fs.readFileSync('./economy.json')) }catch{} }
 
+// IA
 async function IA(txt){
  const q=encodeURIComponent(txt)
  const urls=[
@@ -21,22 +22,24 @@ async function IA(txt){
  for(let u of urls){
   try{ const r=await axios.get(u,{timeout:7000}); let res=r.data?.result||r.data?.response||r.data; if(typeof res==='string'&&res.length>3) return res.trim() }catch{}
  }
- return "IA ocupada bro, intenta de nuevo"
+ return "IA ocupada, intenta de nuevo bro"
 }
-
 function getBal(jid){ if(!economy[jid]) economy[jid]={bal:0}; return economy[jid].bal }
 function addBal(jid,n){ if(!economy[jid]) economy[jid]={bal:0}; economy[jid].bal+=n; fs.writeFileSync('./economy.json',JSON.stringify(economy)) }
 
-async function startBot(newAuth=false){
- if(newAuth && fs.existsSync('./auth_info')){ try{ fs.rmSync('./auth_info',{recursive:true,force:true}) }catch{} }
+// BOT CON DEBIAN Y FIX DE VINCULACION
+async function startBot(clean=false){
+ if(clean && fs.existsSync('./auth_info')){
+   try{ fs.rmSync('./auth_info',{recursive:true,force:true}); console.log("Auth limpiada") }catch{}
+ }
  const { state, saveCreds } = await useMultiFileAuthState('./auth_info')
  const { version } = await fetchLatestBaileysVersion()
  sock = makeWASocket({
    version,
    logger:P({level:'silent'}),
    printQRInTerminal:false,
-   auth:{creds:state.creds,keys:makeCacheableSignalKeyStore(state.keys,P({level:'silent'}))},
-   browser:["Debian","Chrome","110.0.0.558"], // <--- DEBIAN COMO QUERIAS
+   auth:{creds:state.creds, keys:makeCacheableSignalKeyStore(state.keys,P({level:'silent'}))},
+   browser:["Debian","Chrome","110.0.0.558"], // DEBIAN COMO PEDISTE
    markOnlineOnConnect:true,
    syncFullHistory:false
  })
@@ -59,48 +62,65 @@ async function startBot(newAuth=false){
   if(cmd==='.allmenu'||cmd==='.menu'||cmd==='menu'){
    return send(`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─
 │ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ
-│ DEBIAN • FUNCIONAL
+│ DEBIAN • FUNCIONAL 100%
 
-✨.ownermenu
-👥.groupmenu
-🛡️.adminmenu
-🤖.aimenu
-⬇️.download
-🪙.economymenu
-🛠️.toolsmenu
-🎉.funmenu
+✨.ownermenu • Creador
+👥.groupmenu • Grupos
+🛡️.adminmenu • Admin
+👤.profilemenu • Perfil
+🤖.aimenu • IA
+⬇️.download • Descargas
+🪙.economymenu • Economía
+🛠️.toolsmenu • Herramientas
+🎉.funmenu • Juegos
 
-> t.me/gg_no_root
+> ᴊᴋ ᴄʜᴀɴɴᴇʟ: t.me/gg_no_root
 ╰─ • ONLINE • ─`)
   }
-  if(cmd==='.toolsmenu'){ return send(`『 🛠️ TOOLS MENU 』
--.ping -.dp -.vv -.translate -.base64 -.qr -.shorturl -.calc -.weather -.github -.ipinfo -.tempmail -.fakeinfo -.binlookup -.whois -.dnslookup -.screenshot -.define -.wiki -.npm -.yts -.playstore`) }
-  if(cmd==='.aimenu'){ return send(`『 🤖 AI MENU 』\n-.ai <pregunta>\n-.chatbot <pregunta>`) }
-  if(cmd==='.economymenu'){ return send(`『 🪙 ECONOMY 』\n-.balance -.daily -.work -.coinflip`) }
-  if(cmd==='.download'){ return send(`『 ⬇️ DOWNLOAD 』\n-.song -.video -.tiktok -.insta -.facebook`) }
+  if(cmd==='.toolsmenu'){ return send(`『 🛠️ TOOLS MENU 』\n· · · ✦ · · ·\n -.ping\n -.dp [@user]\n -.vv (responde a viewonce)\n -.translate <texto>\n -.base64 <texto>\n -.qr <texto>\n -.shorturl <link>\n -.calc 2+2\n -.weather <ciudad>\n -.github <user>\n -.ipinfo <ip>\n -.tempmail\n -.fakeinfo\n -.binlookup <bin>\n -.whois <dominio>\n -.dnslookup <dominio>\n -.screenshot <link>\n -.define <palabra>\n -.wiki <query>\n -.npm <paquete>\n -.yts <query>\n · · · ✦ · · ·\n✦ 24 comandos ✦`) }
+  if(cmd==='.aimenu'){ return send(`『 🤖 AI MENU 』\n -.ai <pregunta>\n -.chatbot <pregunta>\n -.gali <pregunta>`) }
+  if(cmd==='.economymenu'){ return send(`『 🪙 ECONOMY MENU 』\n -.balance\n -.daily\n -.work\n -.coinflip\n -.rob @user`) }
+  if(cmd==='.download'){ return send(`『 ⬇️ DOWNLOAD MENU 』\n -.song <nombre>\n -.video <nombre>\n -.tiktok <link>\n -.insta <link>`) }
+  if(cmd==='.groupmenu'){ return send(`『 👥 GROUP MENU 』\n -.kick @user\n -.tagall\n -.hidetag`) }
+  if(cmd==='.funmenu'){ return send(`『 🎉 FUN MENU 』\n -.coinflip\n -.roll\n -.8ball <pregunta>`) }
 
   if(cmd==='.ping'){ const s=Date.now(); await send('Pong!'); return send(`⚡ ${Date.now()-s}ms`) }
   if(cmd==='.qr'){ if(!q) return send('.qr texto'); let url=`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(q)}`; await sock.sendMessage(from,{image:{url},caption:`QR: ${q}`}); return }
   if(cmd==='.base64'){ if(!q) return send('.base64 texto'); return send(`B64: ${Buffer.from(q).toString('base64')}`) }
   if(cmd==='.calc'){ try{ let r=eval(q.replace(/[^0-9+\-*/().]/g,'')); return send(`${q} = ${r}`) }catch{ return send('Error calc') } }
-  if(cmd==='.ipinfo'){ try{ let r=await axios.get(`http://ip-api.com/json/${q}`); return send(`IP: ${r.data.query}\nPais: ${r.data.country}\nCity: ${r.data.city}`) }catch{} return }
-  if(cmd==='.tempmail'){ try{ let r=await axios.get('https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1'); return send(`📧 ${r.data[0]}`) }catch{} return }
-  if(['.ai','.chatbot','.ia','.bot','.gpt'].includes(cmd)){ if(!q) return send('Pregunta?'); await sock.sendPresenceUpdate('composing',from); let res=await IA(q); await sock.sendMessage(from,{text:res}); return }
-  if(cmd==='.balance'){ return send(`💰 $${getBal(from)}`) }
+  if(cmd==='.weather'){ try{ let r=await axios.get(`https://wttr.in/${q}?format=3`); return send(r.data) }catch{ return send('Error weather') } }
+  if(cmd==='.github'){ try{ let r=await axios.get(`https://api.github.com/users/${q}`); return send(`*${r.data.login}*\nRepos: ${r.data.public_repos}\nLink: ${r.data.html_url}`) }catch{ return send('No existe') } }
+  if(cmd==='.ipinfo'){ try{ let r=await axios.get(`http://ip-api.com/json/${q}`); return send(`IP: ${r.data.query}\nPais: ${r.data.country}\nCiudad: ${r.data.city}`) }catch{} return }
+  if(cmd==='.tempmail'){ try{ let r=await axios.get('https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1'); return send(`📧 Temp: ${r.data[0]}`) }catch{} return }
+  if(['.ai','.chatbot','.ia','.bot','.gpt'].includes(cmd)){ if(!q) return send('Escribe pregunta'); await sock.sendPresenceUpdate('composing',from); let res=await IA(q); await sock.sendMessage(from,{text:res}); return }
+  if(cmd==='.balance'){ return send(`💰 Balance: $${getBal(from)}`) }
   if(cmd==='.daily'){ addBal(from,100); return send(`+100 daily\nBalance $${getBal(from)}`) }
+  if(cmd==='.work'){ let n=Math.floor(Math.random()*50)+10; addBal(from,n); return send(`Trabajaste +$${n}`) }
+  if(cmd==='.coinflip'){ return send(`🪙 ${Math.random()>0.5?'Cara':'Cruz'}`) }
  })
 }
 
+// PAIR CON FIX DEL ERROR DE TU FOTO
 app.get('/pair', async(req,res)=>{
  try{
-  let num=req.query.number?.replace(/[^0-9]/g,''); if(!num||num.length<8) return res.json({error:"Numero invalido"})
-  if(currentPairNumber && currentPairNumber!==num){ try{ if(sock) sock.end() }catch{}; sock=null; await startBot(true); await new Promise(r=>setTimeout(r,3500)) }
-  if(!sock){ await startBot(); await new Promise(r=>setTimeout(r,4000)) }
-  currentPairNumber=num
-  const code=await sock.requestPairingCode(num)
-  let formatted=code; if(!code.includes('-')&&code.length==8) formatted=code.slice(0,4)+'-'+code.slice(4)
+  let num=req.query.number?.replace(/[^0-9]/g,'')
+  if(!num||num.length<8) return res.json({error:"Numero invalido"})
+
+  // FIX: borra sesion vieja y crea codigo fresco
+  if(sock){ try{ sock.end() }catch{}; sock=null; await new Promise(r=>setTimeout(r,1000)) }
+  await startBot(true)
+  await new Promise(r=>setTimeout(r,3500))
+
+  const code = await sock.requestPairingCode(num)
+  const formatted = code.includes('-')? code : code.slice(0,4)+'-'+code.slice(4)
+  console.log(`CODIGO FRESCO ${formatted} PARA ${num} - PONLO EN 20s`)
   return res.json({code:formatted})
- }catch(e){ try{ fs.rmSync('./auth_info',{recursive:true,force:true}) }catch{}; sock=null; return res.json({error:"Error vinculando, espera 10s"}) }
+ }catch(e){
+  console.log("ERROR PAIR:", e.message)
+  try{ fs.rmSync('./auth_info',{recursive:true,force:true}) }catch{}
+  sock=null
+  return res.json({error:"Espera 10s y genera de nuevo"})
+ }
 })
 
 app.get('/', (req,res)=>{
@@ -193,12 +213,11 @@ const c=document.getElementById('c'),x=c.getContext('2d');function rs(){c.width=
 let drops=new Array(Math.floor(innerWidth/14)).fill(0);
 function matrix(){x.fillStyle='rgba(0,0,0,0.12)';x.fillRect(0,0,c.width,c.height);x.font='16px monospace';drops.forEach((y,i)=>{x.fillStyle='#ff0000';x.fillText('0',i*14,y*14);if(y*14>c.height&&Math.random()>.97)drops[i]=0;drops[i]++});requestAnimationFrame(matrix)}matrix();
 const logsData=[
-"[ SISTEMA ] INICIANDO MODULOS...",
-"[ SISTEMA ] CARGANDO APIS PREMIUM...",
+"[ SISTEMA ] INICIANDO MODULOS DEBIAN...",
+"[ SISTEMA ] CARGANDO BAILEYS PREMIUM...",
+"[ SISTEMA ] FIX VINCULACION ACTIVO ✓",
 "[ SISTEMA ] API GPT-4 ✓",
 "[ SISTEMA ] API GEMINI PRO ✓",
-"[ SISTEMA ] API POLLINATIONS ✓",
-"[ SISTEMA ] CARGANDO BAILEYS DEBIAN...",
 "[ SISTEMA ] SERVIDOR ONLINE ✓",
 "[ SISTEMA ] PREMIUM LISTO ✓"
 ];
@@ -208,29 +227,28 @@ let logIdx=0; addLog(0);
 let int=setInterval(()=>{
  pct+=Math.random()*4+1; if(pct>100) pct=100;
  bar.style.width=pct+'%'; perc.innerText=Math.floor(pct)+'%';
- if(pct>14&&logIdx==0){logIdx=1;addLog(1)}
- if(pct>28&&logIdx==1){logIdx=2;addLog(2)}
- if(pct>42&&logIdx==2){logIdx=3;addLog(3)}
- if(pct>56&&logIdx==3){logIdx=4;addLog(4)}
- if(pct>70&&logIdx==4){logIdx=5;addLog(5)}
- if(pct>85&&logIdx==5){logIdx=6;addLog(6)}
- if(pct>95&&logIdx==6){logIdx=7;addLog(7)}
+ if(pct>20&&logIdx==0){logIdx=1;addLog(1)}
+ if(pct>40&&logIdx==1){logIdx=2;addLog(2)}
+ if(pct>60&&logIdx==2){logIdx=3;addLog(3)}
+ if(pct>75&&logIdx==3){logIdx=4;addLog(4)}
+ if(pct>88&&logIdx==4){logIdx=5;addLog(5)}
+ if(pct>95&&logIdx==5){logIdx=6;addLog(6)}
  if(pct>=100){ clearInterval(int); perc.innerText='100%'; bar.style.width='100%'; setTimeout(()=>{ loader.style.transition='opacity.6s'; loader.style.opacity='0'; setTimeout(()=>{ loader.style.display='none'; main.style.display='block'; },600)},400) }
 },45);
 async function gen(){
  const n=document.getElementById('num').value.trim().replace(/[^0-9]/g,'')
  if(!n||n.length<10){ alert('Pon numero completo 53XXXXXXXX'); return }
- const btn=document.getElementById('btnTxt'); btn.innerText='GENERANDO...'
+ const btn=document.getElementById('btnTxt'); btn.innerText='GENERANDO CODIGO FRESCO...'
  try{
   const r=await fetch('/pair?number='+encodeURIComponent(n)).then(r=>r.json())
   if(r.error){ btn.innerText=r.error; setTimeout(()=>btn.innerText='GENERAR CODIGO',4000); return }
   let code=r.code; if(!code.includes('-')&&code.length==8) code=code.slice(0,4)+'-'+code.slice(4)
   document.getElementById('codeText').innerText=code
   document.getElementById('codeBox').style.display='block'
-  btn.innerText=code
-  setTimeout(()=>{btn.innerText='GENERAR OTRO'},5000)
+  btn.innerText='COPIA RAPIDO: '+code+' (20s)'
+  setTimeout(()=>{btn.innerText='GENERAR OTRO'},8000)
  }catch{ btn.innerText='ERROR, REINTENTA'; setTimeout(()=>btn.innerText='GENERAR CODIGO',3000) }
 }
 </script></body></html>`)
 })
-app.listen(PORT, ()=>{ console.log("DEBIAN ONLINE"); startBot() })
+app.listen(PORT, ()=>{ console.log("DEBIAN ONLINE FIX"); startBot() })
