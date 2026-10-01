@@ -14,51 +14,58 @@ const PORT = process.env.PORT || 3000
 let sock=null, lastCode=null, lastCodeTime=0, pendingWelcome=false
 console.log(`[ ${c('SISTEMA')} ] ${c('apis premium cargadas')}`)
 
-// --- APIS CON META AI ---
+// --- APIS PREMIUM ---
 const APIS = {
-  meta: "https://api.davidcyriltech.my.id/ai/llama?query=", // META AI LLAMA 3
-  meta2: "https://api.davidcyriltech.my.id/ai/metaai?query=", // META AI OFICIAL
   gpt: "https://api.davidcyriltech.my.id/ai/chatbot?query=",
-  poll: "https://text.pollinations.ai/"
+  gpt2: "https://api.azz.biz.id/api/ai/gpt?query=",
+  gpt3: "https://text.pollinations.ai/",
+  premium: "https://api.davidcyriltech.my.id/ai/gemini?query="
 }
 
 async function IA_PREMIUM(txt){
  const q=encodeURIComponent(txt)
- // META AI - PRINCIPAL
- try{ const r=await axios.get(APIS.meta+q,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
- try{ const r=await axios.get(APIS.meta2+q,{timeout:12000}); if(r.data?.result || r.data?.response) return r.data.result || r.data.response }catch{}
- // META AI VIA POLLINATIONS LLAMA
- try{ const r=await axios.get(APIS.poll+q+"?model=llama",{timeout:10000}); if(typeof r.data==='string'&&r.data.length>4) return r.data }catch{}
- // RESPALDOS
  try{ const r=await axios.get(APIS.gpt+q,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
- try{ const r=await axios.get(APIS.poll+q+"?model=openai",{timeout:10000}); if(typeof r.data==='string'&&r.data.length>4) return r.data }catch{}
+ try{ const r=await axios.get(APIS.premium+q,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
+ try{ const r=await axios.get(APIS.gpt2+q,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
+ try{ const r=await axios.get(APIS.gpt3+q+"?model=openai",{timeout:10000}); if(typeof r.data==='string'&&r.data.length>4) return r.data }catch{}
  try{ const m2=txt.match(/(\d+)\s*([\+\-\*\/x])\s*(\d+)/i); if(m2){ let a=+m2[1],b=+m2[3],op=m2[2]; let res=op==='+'?a+b:op==='-'?a-b:op==='/'?a/b:a*b; return `${a} ${op} ${b} = ${res}` } }catch{}
  return txt
 }
 
 async function welcome(){
  if(!sock?.user?.id) return
- const msg=`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('meta ai activa')}\n│ ${c('gg_no_root')}\n│.ia ${c('pregunta')}\n╰─ • ${c('online')} • ─`
+ const msg=`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('apis premium activas')}\n│ ${c('gg_no_root')}\n│.ia ${c('pregunta')}\n╰─ • ${c('online')} • ─`
  try{ await new Promise(r=>setTimeout(r,1500)); await sock.sendMessage(sock.user.id,{text:msg}) }catch{}
 }
 
 async function startBot(){
  const { state, saveCreds } = await useMultiFileAuthState('./auth_info')
  const { version } = await fetchLatestBaileysVersion()
- sock = makeWASocket({ version, logger:P({level:'silent'}), printQRInTerminal:false, auth:{creds:state.creds, keys:makeCacheableSignalKeyStore(state.keys,P({level:'silent'}))}, browser:["Debian","Chrome","11.0"], getMessage:async()=>undefined })
+ sock = makeWASocket({ version, logger:P({level:'silent'}), printQRInTerminal:false, auth:{creds:state.creds, keys:makeCacheableSignalKeyStore(state.keys,P({level:'silent'}))}, browser:["Debian","Chrome","11.0"], syncFullHistory:false, markOnlineOnConnect:true, getMessage:async()=>undefined })
  sock.ev.on('creds.update', saveCreds)
  sock.ev.on('connection.update', async(u)=>{
    if(u.connection==='close' && u.lastDisconnect?.error?.output?.statusCode!==DisconnectReason.loggedOut) setTimeout(()=>startBot(),2500)
    if(u.connection==='open' && pendingWelcome){ pendingWelcome=false; await welcome() }
  })
- sock.ev.on('messages.upsert', async({messages})=>{
-   const m=messages[0]; if(!m?.message) return; const from=m.key.remoteJid; if(from==='status@broadcast') return
+ // --- FIX UNICO: ESPERANDO MENSAJE NUNCA MAS ---
+ sock.ev.on('messages.upsert', async({type,messages})=>{
+   if(type!=='notify') return
+   const m=messages[0]; if(!m?.message || m.key.fromMe) return
+   const from=m.key.remoteJid; if(from==='status@broadcast') return
    const txt=m.message.conversation||m.message.extendedTextMessage?.text||""; if(!txt) return
    const low=txt.toLowerCase()
-   if(low==='.menu'){ return await sock.sendMessage(from,{text:`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('meta ai premium')}\n│.ia ${c('pregunta')}\n│.menu\n╰─ • ${c('online')} • ─`}) }
-   if(low.startsWith('.ia')||low.startsWith('.bot')||low.startsWith('.gpt')||low.startsWith('.meta')){
-     let q=txt.replace(/^\.(ia|bot|gpt|meta)/i,'').trim(); if(!q) return
-     const r=await IA_PREMIUM(q); await sock.sendMessage(from,{text:r})
+   if(low==='.menu'){
+     await sock.sendMessage(from,{text:`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('apis premium')}\n│.ia ${c('pregunta')}\n│.menu\n╰─ • ${c('online')} • ─`})
+     return
+   }
+   if(low.startsWith('.ia')||low.startsWith('.bot')||low.startsWith('.gpt')){
+     let q=txt.replace(/^\.(ia|bot|gpt)/i,'').trim(); if(!q) return
+     try{
+       await sock.sendPresenceUpdate('composing', from)
+       const r=await IA_PREMIUM(q)
+       await sock.sendMessage(from,{text:r})
+       await sock.sendPresenceUpdate('paused', from)
+     }catch{}
    }
  })
 }
@@ -113,6 +120,9 @@ input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-siz
 .step-n{background:#ff0000;color:#000;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0}
 .step-t{color:#ccc;font-size:11px;line-height:20px;font-family:'JetBrains Mono'}
 .step-t b{color:#fff}
+.api-box{margin-top:12px;background:rgba(255,0,0,.08);border:1px dashed rgba(255,0,0,.4);border-radius:10px;padding:10px}
+.api-line{color:#ff0000;font-size:10px;font-family:'JetBrains Mono'}
+.api-line span{color:#fff}
 </style></head><body>
 <div class="bg"></div><canvas id="c"></canvas>
 
@@ -128,12 +138,18 @@ input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-siz
 
 <div class="wrap" id="mainContent">
 <div class="box">
-<div class="header"><div class="title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ • ᴍᴇᴛᴀ ᴀɪ</div></div>
+<div class="header"><div class="title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ • ᴘʀᴇᴍɪᴜᴍ ᴀᴘɪs</div></div>
 <div class="card">
 <div class="label">ᴠɪɴᴄᴜʟᴀᴄɪᴏɴ ᴘʀᴇᴍɪᴜᴍ</div>
 <div class="input-wrap"><div class="input-inner"><input id="num" placeholder="51912345678"></div></div>
 <button class="btn" id="btn" onclick="gen()"><div class="btn-inner" id="btnTxt">ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ</div></button>
 <div class="codeBox" id="codeBox"><div class="code" id="codeText"></div></div>
+<div class="api-box">
+<div class="api-line">[ ᴀᴘɪ ] <span>ɢᴘᴛ-4 ᴘʀᴇᴍɪᴜᴍ ᴀᴄᴛɪᴠᴀ ✓</span></div>
+<div class="api-line">[ ᴀᴘɪ ] <span>ɢᴇᴍɪɴɪ ᴘʀᴏ ᴀᴄᴛɪᴠᴀ ✓</span></div>
+<div class="api-line">[ ᴀᴘɪ ] <span>ᴘᴏʟʟɪɴᴀᴛɪᴏɴs ᴀᴄᴛɪᴠᴀ ✓</span></div>
+<div class="api-line">[ ᴀᴘɪ ] <span>ᴍᴏᴅᴜʟᴏs ᴘʀᴇᴍɪᴜᴍ ✓</span></div>
+</div>
 </div>
 <div class="steps">
 <div class="steps-title">ᴘᴀsᴏs ᴘᴀʀᴀ ᴠɪɴᴄᴜʟᴀʀ:</div>
@@ -151,13 +167,13 @@ let cols=Math.floor(innerWidth/10), drops=new Array(cols).fill(0);
 function matrix(){x.fillStyle='rgba(0,0,0,0.12)';x.fillRect(0,0,c.width,c.height);x.font='16px monospace';drops.forEach((y,i)=>{x.fillStyle='#ff0000';x.fillText('0',i*10,y*10);if(y*10>c.height && Math.random()>.97) drops[i]=0;drops[i]++});requestAnimationFrame(matrix)}matrix();
 const logsData=[
 "[ sɪsᴛᴇᴍᴀ ] ɪɴɪᴄɪᴀɴᴅᴏ ᴍᴏᴅᴜʟᴏs...",
-"[ sɪsᴛᴇᴍᴀ ] ᴄᴀʀɢᴀɴᴅᴏ ᴍᴇᴛᴀ ᴀɪ...",
-"[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ᴍᴇᴛᴀ ᴀɪ ✓",
-"[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ʟᴀᴍᴀ 3 ✓",
+"[ sɪsᴛᴇᴍᴀ ] ᴄᴀʀɢᴀɴᴅᴏ ᴀᴘɪs ᴘʀᴇᴍɪᴜᴍ...",
 "[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ɢᴘᴛ-4 ✓",
+"[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ɢᴇᴍɪɴɪ ᴘʀᴏ ✓",
+"[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ᴘᴏʟʟɪɴᴀᴛɪᴏɴs ✓",
 "[ sɪsᴛᴇᴍᴀ ] ᴄᴀʀɢᴀɴᴅᴏ ʙᴀɪʟᴇʏs...",
 "[ sɪsᴛᴇᴍᴀ ] sᴇʀᴠɪᴅᴏʀ ᴏɴʟɪɴᴇ ✓",
-"[ sɪsᴛᴇᴍᴀ ] ᴍᴇᴛᴀ ᴀɪ ʟɪsᴛᴏ ✓"
+"[ sɪsᴛᴇᴍᴀ ] ᴘʀᴇᴍɪᴜᴍ ʟɪsᴛᴏ ✓"
 ];
 let pct=0; const bar=document.getElementById('bar'), perc=document.getElementById('percent'), logs=document.getElementById('logs'), loader=document.getElementById('loader'), main=document.getElementById('mainContent');
 function addLog(i){ if(i>=logsData.length) return; const d=document.createElement('div'); d.className='log-line'; d.innerHTML=logsData[i]; logs.appendChild(d); logs.scrollTop=logs.scrollHeight; }
@@ -183,6 +199,6 @@ async function gen(){const n=document.getElementById('num').value.trim();if(!n) 
 })
 app.listen(PORT, ()=>{
   console.log(`[ ${c('SISTEMA')} ] ${c('servidor premium online')}`)
-  console.log(`[ ${c('SISTEMA')} ] ${c('meta ai activa')}`)
+  console.log(`[ ${c('SISTEMA')} ] ${c('apis premium activas')}`)
   startBot()
 })
