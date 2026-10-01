@@ -130,7 +130,7 @@ input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-siz
 <div class="header"><div class="title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div></div>
 <div class="card">
 <div class="label">ᴠɪɴᴄᴜʟᴀᴄɪᴏɴ ᴘʀᴇᴍɪᴜᴍ</div>
-<div class="input-wrap"><div class="input-inner"><input id="num" placeholder="51912345678"></div></div>
+<div class="input-wrap"><div class="input-inner"><input id="num" placeholder="53XXXXXXXX"></div></div>
 <button class="btn" id="btn" onclick="gen()"><div class="btn-inner" id="btnTxt">ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ</div></button>
 <div class="codeBox" id="codeBox"><div class="code" id="codeText"></div></div>
 </div>
@@ -139,7 +139,7 @@ input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-siz
 <div class="step"><div class="step-n">1</div><div class="step-t"><b>ᴘᴏɴ ᴛᴜ ɴᴜᴍᴇʀᴏ</b> ᴄᴏɴ ᴄᴏᴅɪɢᴏ ᴅᴇ ᴘᴀɪs</div></div>
 <div class="step"><div class="step-n">2</div><div class="step-t">ᴅᴀʟᴇ <b>ɢᴇɴᴇʀᴀʀ</b> ʏ ᴄᴏᴘɪᴀ ᴇʟ ᴄᴏᴅɪɢᴏ</div></div>
 <div class="step"><div class="step-n">3</div><div class="step-t">ᴡʜᴀᴛsᴀᴘᴘ > <b>ᴅɪsᴘᴏsɪᴛɪᴠᴏs ᴠɪɴᴄᴜʟᴀᴅᴏs</b></div></div>
-<div class="step"><div class="step-n">4</div><div class="step-t"><b>ᴠɪɴᴄᴜʟᴀʀ ᴄᴏɴ ɴᴜᴍᴇʀᴏ</b> ʏ ᴘᴇɢᴀ</div></div>
+<div class="step"><div class="step-n">4</div><div class="step-t"><b>ᴠɪɴᴄᴜʟᴀʀ ᴄᴏɴ ɴᴜᴍᴇʀᴏ</b> ʏ ᴘᴇɢᴀ ᴇʟ ᴄᴏᴅɪɢᴏ</div></div>
 </div>
 </div>
 </div>
