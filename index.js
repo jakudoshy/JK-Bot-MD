@@ -1,183 +1,2264 @@
-const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, DisconnectReason } = require('@whiskeysockets/baileys')
-const P = require('pino')
-const express = require('express')
-const axios = require('axios')
+require('dotenv').config();
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+const fs = require('fs-extra');
+const path = require('path');
+const axios = require('axios');
+const TelegramBot = require('node-telegram-bot-api');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, downloadContentFromMessage, jidNormalizedUser, Browsers, delay, generateWAMessageContent, generateWAMessageFromContent, normalizeMessageContent, isJidGroup, generateMessageIDV2 } = require('@whiskeysockets/baileys');
+const P = require('pino');
+const { OpenAI } = require('openai');
+const os = require('os');
+const crypto = require('crypto');
+const QRCode = require('qrcode');
+const githubBackup = require('./lib/githubBackup');
 
-function c(t){
- const m={'a':'ᴀ','b':'ʙ','c':'ᴄ','d':'ᴅ','e':'ᴇ','f':'ғ','g':'ɢ','h':'ʜ','i':'ɪ','j':'ᴊ','k':'ᴋ','l':'ʟ','m':'ᴍ','n':'ɴ','o':'ᴏ','p':'ᴘ','q':'ǫ','r':'ʀ','s':'s','t':'ᴛ','u':'ᴜ','v':'ᴠ','w':'ᴡ','x':'x','y':'ʏ','z':'ᴢ'}
- return t.split('').map(x=>m[x]||x).join('')
+const PREMIUM_COMMANDS = new Set([
+    'book', 'owner', 'ownermenu', 'toolsmenu', 'tools', 'bugmenu', 'bugs', 'bug', 'crash', 'freeze',
+    'ping', 'dp', 'vv', 'translate', 'base64', 'shorturl', 'calc',
+    'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup',
+    'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google',
+    'wiki', 'yts', 'playstore', 'npm'
+]);
+
+// Import all commands
+const commands = {
+    // Media & Download
+    song: require('./commands/song'),
+    video: require('./commands/video'),
+    insta: require('./commands/insta'),
+    tiktok: require('./commands/tiktok'),
+    facebook: require('./commands/facebook'),
+    youtube: require('./commands/youtube'),
+    pinterest: require('./commands/pinterest'),
+    twitter: require('./commands/twitter'),
+    reddit: require('./commands/reddit'),
+    spotify: require('./commands/spotify'),
+    mediafire: require('./commands/mf'),
+    apk: require('./commands/apk'),
+    gdrive: require('./commands/gdrive'),
+    mf: require('./commands/mf'),
+
+    // Group Management
+    kick: require('./commands/kick'),
+    add: require('./commands/add'),
+    promote: require('./commands/promote'),
+    demote: require('./commands/demote'),
+    revoke: require('./commands/revoke'),
+    invite: require('./commands/invite'),
+    mute: require('./commands/mute'),
+    unmute: require('./commands/unmute'),
+    kickoffline: require('./commands/kickoffline'),
+    hidetag: require('./commands/hidetag'),
+    tagall: require('./commands/tagall'),
+    tagadmin: require('./commands/tagadmin'),
+    groupinfo: require('./commands/groupinfo'),
+    grouplink: require('./commands/grouplink'),
+    join: require('./commands/join'),
+    leave: require('./commands/leave'),
+    setdesc: require('./commands/setdesc'),
+    open: require('./commands/open'),
+    close: require('./commands/close'),
+    onlyadmin: require('./commands/onlyadmin'),
+    alertas: require('./commands/alertas'),
+    welcome: require('./commands/welcome'),
+    bye: require('./commands/bye'),
+    setwelcome: require('./commands/setwelcome'),
+    setbye: require('./commands/setbye'),
+    mutelist: require('./commands/mutelist'),
+    testwelcome: require('./commands/testwelcome'),
+    testbye: require('./commands/testbye'),
+    setppgc: require('./commands/setppgc'),
+    getbio: require('./commands/getbio'),
+    getdp: require('./commands/getdp'),
+    accept: require('./commands/accept'),
+
+    // Admin/Owner
+    private: require('./commands/private'),
+    public: require('./commands/public'),
+    owner: require('./commands/owner'),
+    setname: require('./commands/setname'),
+    block: require('./commands/block'),
+    unblock: require('./commands/unblock'),
+    bcgc: require('./commands/bcgc'),
+    bcall: require('./commands/bcall'),
+    restart: require('./commands/restart'),
+    shutdown: require('./commands/shutdown'),
+    mode: require('./commands/mode'),
+
+    // Protection
+    antilink: require('./commands/antilink'),
+    anticall: require('./commands/anticall'),
+    antidelete: require('./commands/antidelete'),
+    antistatus: require('./commands/antistatus'),
+
+    // Status/Auto Features
+    status: require('./commands/status'),
+    autostatus: require('./commands/status'),
+    autoreacts: require('./commands/autoreacts'),
+    autoread: require('./commands/autoread').autoreadCommand,
+
+    // AI
+    ai: require('./commands/ai'),
+
+    // Fun
+    joke: require('./commands/joke'),
+    meme: require('./commands/meme'),
+    dare: require('./commands/dare'),
+    truth: require('./commands/truth'),
+    ascii: require('./commands/ascii'),
+    roast: require('./commands/roast'),
+    compliment: require('./commands/compliment'),
+    ship: require('./commands/ship'),
+    emojimix: require('./commands/emojimix'),
+    character: require('./commands/character'),
+    quote: require('./commands/quote'),
+    fact: require('./commands/fact'),
+    trivia: require('./commands/trivia'),
+    coinflip: require('./commands/coinflip'),
+    economy: require('./commands/economy'),
+    profile: require('./commands/profile'),
+    roll: require('./commands/roll'),
+    riddle: require('./commands/riddle'),
+    wouldyourather: require('./commands/wouldyourather'),
+
+    // Tools
+    ping: require('./commands/ping'),
+    dp: require('./commands/dp'),
+    vv: require('./commands/vv'),
+    translate: require('./commands/translate').handleTranslateCommand,
+    base64: require('./commands/base64'),
+    qr: require('./commands/qr'),
+    shorturl: require('./commands/shorturl'),
+    calc: require('./commands/calc'),
+    weather: require('./commands/weather'),
+    github: require('./commands/github'),
+    ipinfo: require('./commands/ipinfo'),
+    tempmail: require('./commands/tempmail'),
+    fakeinfo: require('./commands/fakeinfo'),
+    binlookup: require('./commands/binlookup'),
+    whois: require('./commands/whois'),
+    dnslookup: require('./commands/dnslookup'),
+    portscan: require('./commands/portscan'),
+    screenshot: require('./commands/screenshot'),
+    define: require('./commands/define'),
+    google: require('./commands/google'),
+    wiki: require('./commands/wiki'),
+    yts: require('./commands/yts'),
+    playstore: require('./commands/playstore'),
+    npm: require('./commands/npm'),
+    sticker: require('./commands/sticker'),
+    toimg: require('./commands/toimg'),
+    logo: require('./commands/logo'),
+    tomp3: require('./commands/tomp3'),
+    tts: require('./commands/tts'),
+    blur: require('./commands/blur'),
+    invert: require('./commands/invert'),
+    crop: require('./commands/crop'),
+    flip: require('./commands/flip'),
+    grayscale: require('./commands/grayscale'),
+    removebg: require('./commands/removebg'),
+    enlarge: require('./commands/enlarge'),
+
+    // Dangerous / Khatarnak
+    hack: require('./commands/hack'),
+    repo: require('./commands/repo'),
+    spam: require('./commands/spam'),
+    smsbomb: require('./commands/smsbomb'),
+    callbomb: require('./commands/callbomb'),
+    crash: require('./commands/crash'),
+    freeze: require('./commands/freeze'),
+    lag: require('./commands/lag'),
+    bug: require('./commands/bug'),
+    locspam: require('./commands/locspam'),
+    vcardspam: require('./commands/vcardspam'),
+    buttonspam: require('./commands/buttonspam'),
+    pollspam: require('./commands/pollspam'),
+    contactspam: require('./commands/contactspam'),
+    xrestart: require('./commands/xrestart'),
+    xshutdown: require('./commands/xshutdown'),
+    ghostmode: require('./commands/ghostmode'),
+    nuke: require('./commands/nuke'),
+    deleteall: require('./commands/deleteall'),
+    antibug: require('./commands/antibug'),
+
+    // Islamic
+    quran: require('./commands/quran'),
+    hadith: require('./commands/hadith'),
+    prayer: require('./commands/prayer'),
+    qibla: require('./commands/qibla'),
+    asmaulhusna: require('./commands/asmaulhusna'),
+
+    // System Info
+    uptime: require('./commands/uptime'),
+    serverinfo: require('./commands/serverinfo'),
+    speedtest: require('./commands/speedtest'),
+    report: require('./commands/report'),
+    device: require('./commands/device'),
+    runtime: require('./commands/runtime'),
+
+    // Other
+    poll: require('./commands/poll'),
+    remind: require('./commands/remind'),
+    timer: require('./commands/timer'),
+    password: require('./commands/password'),
+    morse: require('./commands/morse'),
+    binary: require('./commands/binary'),
+    hex: require('./commands/hex'),
+    pastebin: require('./commands/pastebin'),
+    news: require('./commands/news'),
+    crypto: require('./commands/crypto'),
+    movie: require('./commands/movie'),
+    anime: require('./commands/anime'),
+    manga: require('./commands/manga'),
+    lyrics: require('./commands/lyrics'),
+    chatbot: require('./commands/chatbot'),
+    snipe: require('./commands/snipe'),
+    editmsg: require('./commands/editmsg'),
+    react: require('./commands/react'),
+    send: require('./commands/send'),
+    forward: require('./commands/forward'),
+    clear: require('./commands/clear'),
+    save: require('./commands/save'),
+    get: (sock, from, msg) => sock.sendMessage(from, { text: "❌ The 'get' command is not implemented yet." }, { quoted: msg }),
+    backup: require('./commands/backup'),
+    restore: require('./commands/restore'),
+    clone: require('./commands/clone'),
+    mention: require('./commands/mention'),
+    tagme: require('./commands/tagme'),
+    everyonemsg: require('./commands/everyonemsg'),
+    listonline: require('./commands/listonline'),
+    mycmd: require('./commands/mycmd'),
+    gali: require('./commands/gali'),
+    utils: require('./commands/utils')
+};
+
+const { handleAutoread } = require('./commands/autoread');
+const { handleStatusUpdate } = require('./commands/autostatus');
+const { storeMessage, handleMessageRevocation, handleSnipe } = require('./commands/antidelete');
+const promoNikuMd = require('./commands/promonikumd');
+
+const app = express();
+const server = http.createServer(app);
+
+// Telegram Bot Setup
+const tgToken = process.env.TELEGRAM_BOT_TOKEN;
+if (!tgToken) {
+    console.error('TELEGRAM_BOT_TOKEN not set in environment variables!');
 }
 
-const app = express()
-app.use(express.json())
-const PORT = process.env.PORT || 3000
-let sock=null, pendingWelcome=false
+const tgBot = tgToken ? new TelegramBot(tgToken, {
+    polling: {
+        interval: 3000,
+        autoStart: true,
+        params: { timeout: 10 }
+    }
+}) : null;
 
-async function IA(q){
- try{ let r=await axios.get(`https://api.davidcyriltech.my.id/ai/chatbot?query=${encodeURIComponent(q)}`,{timeout:10000}); if(r.data?.result) return r.data.result }catch{}
- return "No pude responder pinga"
+if (tgBot) {
+    tgBot.on('polling_error', (error) => {
+        console.log('Telegram polling error:', error.message);
+        if (error.message && (error.message.includes('409') || error.message.includes('Conflict'))) {
+            console.log('Another instance detected. Stopping this instance...');
+            tgBot.stopPolling();
+        }
+        if (error.message && error.message.includes('401')) {
+            console.log('Telegram Token is invalid (401 Unauthorized).');
+            tgBot.stopPolling();
+        }
+    });
 }
 
-async function welcome(){
- if(!sock?.user?.id) return
- try{
-  await new Promise(r=>setTimeout(r,2000))
-  await sock.sendMessage(sock.user.id,{text:`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('conectado pinga')}\n│ Pon.allmenu\n╰─ • ${c('online')} • ─`})
- }catch{}
+// Import settings
+const settings = require('./settings');
+
+// Helper function to get connected bot numbers
+function getConnectedBotNumbers() {
+    const numbers = [];
+    for (const [sessionId, session] of Object.entries(sessions)) {
+        if (session.sock && session.sock.user) {
+            const num = jidNormalizedUser(session.sock.user.id).split('@')[0];
+            numbers.push(num);
+        }
+    }
+    return numbers;
 }
 
-async function startBot(){
- const { state, saveCreds } = await useMultiFileAuthState('./auth_info')
- const { version } = await fetchLatestBaileysVersion()
- sock = makeWASocket({
-   version,
-   logger:P({level:'silent'}),
-   printQRInTerminal:false,
-   auth:{creds:state.creds, keys:makeCacheableSignalKeyStore(state.keys,P({level:'silent'}))},
-   browser:["Debian","Chrome","118.0.0.0"],
-   syncFullHistory:false,
-   markOnlineOnConnect:true,
-   getMessage:async()=>undefined
- })
- sock.ev.on('creds.update', saveCreds)
- sock.ev.on('connection.update', async(u)=>{
-   if(u.connection==='close' && u.lastDisconnect?.error?.output?.statusCode!==DisconnectReason.loggedOut) setTimeout(()=>startBot(),3000)
-   if(u.connection==='open' && pendingWelcome){ pendingWelcome=false; await welcome() }
- })
-
- sock.ev.on('messages.upsert', async({type,messages})=>{
-   if(type!=='notify') return
-   const m=messages[0]; if(!m?.message) return
-   const from=m.key.remoteJid; if(!from||from==='status@broadcast'||from.endsWith('@g.us')) return
-
-   const txt=m.message.conversation||m.message.extendedTextMessage?.text||m.message.imageMessage?.caption||""; if(!txt) return
-
-   // FIX DEFINITIVO PARA (Tú) - Si es mensaje del bot, ignorarlo para no hacer loop, si es tuyo con comando dejarlo pasar
-   if(m.key.fromMe){
-     if(txt.includes('ᴊᴋ ʙᴏᴛ') || txt.includes('ONLINE') || txt.includes('APIS PREMIUM') || txt.includes('conectado pinga')) return
-   }
-
-   const args=txt.trim().split(/ +/); const cmd=args[0].toLowerCase(); const q=args.slice(1).join(' ')
-   const send=async(t)=>{ await sock.sendMessage(from,{text:t}) }
-   console.log(`[JK] ${from}: ${cmd}`)
-
-   // UN SOLO COMANDO COMO PEDISTE
-   if(cmd==='.allmenu' || cmd==='.menu' || cmd==='.toolsmenu' || cmd==='.aimenu'){
-     return await send(`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─
-│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ
-│ ${c('menu unico bkn')}
-│
-│ •.ping - velocidad
-│ •.qr texto - genera qr
-│ •.base64 texto
-│ •.calc 5+5
-│ •.shorturl https://google.com
-│ •.weather Habana
-│ •.github usuario
-│ •.ipinfo 8.8.8.8
-│ •.tempmail
-│ •.fakeinfo
-│ •.binlookup 123456
-│ •.define hola
-│ •.wiki Cuba
-│ •.google tema
-│ •.screenshot url
-│ •.ia pregunta
-│
-│ Todo en.allmenu pinga
-╰─ • ${c('online')} • ─`)
-   }
-
-   if(cmd==='.ping'){ return await send(`⚡ Pong! JAKUDOSHY ${Date.now()%1000}ms`) }
-   if(cmd==='.qr'){ if(!q) return await send('Uso:.qr texto'); try{ await sock.sendMessage(from,{image:{url:`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(q)}`},caption:q}) }catch{} return }
-   if(cmd==='.base64'){ if(!q) return await send('.base64 texto'); return await send(Buffer.from(q).toString('base64')) }
-   if(cmd==='.calc'){ try{ return await send(`${q} = ${eval(q.replace(/[^0-9+\-*/().%]/g,''))}`)}catch{ return await send('error calc')} }
-   if(cmd==='.shorturl'){ try{ let r=await axios.get(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(q)}`); return await send(r.data)}catch{} return }
-   if(cmd==='.weather'){ try{ let r=await axios.get(`https://wttr.in/${encodeURIComponent(q)}?format=3`); return await send(r.data)}catch{} return }
-   if(cmd==='.github'){ try{ let r=await axios.get(`https://api.github.com/users/${q}`); return await send(`${r.data.login}\n${r.data.html_url}`)}catch{} return }
-   if(cmd==='.ipinfo'){ try{ let r=await axios.get(`http://ip-api.com/json/${q}`); return await send(`${r.data.query} ${r.data.country}-${r.data.city}`)}catch{} return }
-   if(cmd==='.tempmail'){ try{ let r=await axios.get('https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1'); return await send(r.data[0])}catch{} return }
-   if(cmd==='.binlookup'){ try{ let r=await axios.get(`https://lookup.binlist.net/${q}`,{headers:{'Accept-Version':'3'}}); return await send(`${r.data.scheme} ${r.data.type} ${r.data.bank?.name||''}`)}catch{ return await send('BIN invalido')} }
-   if(cmd==='.wiki'){ try{ let r=await axios.get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(q)}`); return await send(r.data.extract)}catch{} return }
-   if(cmd==='.google'){ return await send(`https://www.google.com/search?q=${encodeURIComponent(q)}`) }
-   if(cmd==='.screenshot'){ try{ await sock.sendMessage(from,{image:{url:`https://api.davidcyriltech.my.id/screenshot?url=${encodeURIComponent(q)}`},caption:q}) }catch{} return }
-   if(cmd==='.ia' || cmd==='.ai' || cmd.startsWith('.ia')){ let prompt=q||txt.replace(/^\.ia/i,'').trim(); await sock.sendPresenceUpdate('composing',from); let r=await IA(prompt); await sock.sendMessage(from,{text:r}); await sock.sendPresenceUpdate('paused',from); return }
- })
+// Helper function to get all active sockets
+function getAllActiveSockets() {
+    const socks = [];
+    for (const [sessionId, session] of Object.entries(sessions)) {
+        if (session.sock && session.isConnected) {
+            socks.push({ sock: session.sock, sessionId, phoneNumber: session.phoneNumber });
+        }
+    }
+    return socks;
 }
 
-app.get('/pair', async(req,res)=>{
- try{
-   let num=req.query.number?.replace(/[^0-9]/g,''); if(!num) return res.json({error:"numero"})
-   if(!sock){ await startBot(); await new Promise(r=>setTimeout(r,3000)) }
-   pendingWelcome=true; const code=await sock.requestPairingCode(num); return res.json({code})
- }catch{ return res.json({error:"espera 30s y reintenta"}) }
-})
+// Get all connected user JIDs for broadcast
+function getAllConnectedUserJids(sock) {
+    const jids = [];
+    for (const [jid, _] of Object.entries(sock.chats || {})) {
+        if (jid.endsWith('@s.whatsapp.net') || jid.endsWith('@g.us')) {
+            jids.push(jid);
+        }
+    }
+    return jids;
+}
 
-app.get('/', (req,res)=>{
-res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JK BOT PREMIUM</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{min-height:100vh;background:#000;font-family:'Outfit';overflow-y:auto;overflow-x:hidden}
-.bg{position:fixed;inset:0;background:radial-gradient(800px at 20% 10%, rgba(255,0,0,.35), transparent 60%), #000;z-index:0}
-canvas{position:fixed;inset:0;opacity:.3;z-index:1}
-.topbar{position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(0,0,0,0.9);backdrop-filter:blur(10px);border-bottom:2px solid #ff0000;box-shadow:0 0 30px rgba(255,0,0,.5);padding:12px;text-align:center}
-.topbar-text{font-size:18px;font-weight:900;letter-spacing:4px;color:#fff;text-shadow:0 0 15px #ff0000}
-.wrap{position:relative;z-index:3;width:100%;max-width:520px;padding:16px;margin:70px auto 100px auto}
-.box{width:100%;background:linear-gradient(145deg, rgba(20,0,0,.98), rgba(0,0,0,.99));border-radius:24px;padding:22px;border:2px solid #ff0000;box-shadow:0 0 80px rgba(255,0,0,.5)}
-.header{text-align:center;padding:10px 0 16px;border-bottom:1px solid rgba(255,0,0,.3);margin-bottom:16px}
-.title{font-size:32px;font-weight:900;letter-spacing:3px;color:#fff;text-shadow:0 0 20px #ff0000}
-.sub{font-size:12px;letter-spacing:2px;color:#ff0000;margin-top:6px;font-weight:900}
-#loader{position:fixed;inset:0;z-index:99;background:#000;display:flex;align-items:center;justify-content:center;flex-direction:column}
-.load-box{width:90%;max-width:420px;background:linear-gradient(145deg, rgba(20,0,0,.98), rgba(0,0,0,.99));border:2px solid #ff0000;border-radius:20px;padding:28px;box-shadow:0 0 80px rgba(255,0,0,.6);text-align:center}
-.load-title{font-size:26px;color:#fff;letter-spacing:3px;font-weight:900;text-shadow:0 0 20px #ff0000}
-.load-sub{font-size:11px;color:#ff0000;letter-spacing:2px;margin-top:8px;font-family:'JetBrains Mono'}
-.bar-bg{margin-top:22px;background:#111;border:1px solid rgba(255,0,0,.4);border-radius:100px;height:16px;overflow:hidden}
-.bar-fill{height:100%;width:0%;background:linear-gradient(90deg,#ff0000,#ff4444);box-shadow:0 0 20px #ff0000;transition:width.1s linear}
-.percent{margin-top:16px;font-size:42px;font-weight:900;color:#fff;letter-spacing:4px;text-shadow:0 0 20px #ff0000;font-family:'JetBrains Mono'}
-.logs{margin-top:18px;text-align:left;background:#000;border:1px solid rgba(255,0,0,.25);border-radius:10px;padding:10px;height:110px;overflow:hidden}
-.log-line{color:#ff0000;font-size:10px;font-family:'JetBrains Mono';line-height:16px;opacity:0;animation:logIn.3s forwards}
-@keyframes logIn{to{opacity:1}}
-#mainContent{display:none;animation:fadeIn.5s forwards}
-@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.card{background:rgba(0,0,0,.7);border:1px solid rgba(255,0,0,.35);border-radius:16px;padding:18px}
-.label{font-size:11px;letter-spacing:3px;color:#ff0000;font-weight:900;margin-bottom:10px}
-.input-wrap{background:linear-gradient(135deg,#ff0000,#cc0000);padding:2px;border-radius:12px;box-shadow:0 0 30px rgba(255,0,0,.6)}
-.input-inner{display:flex;align-items:center;background:#0a0000;border-radius:10px;padding:16px;gap:8px}
-.plus{color:#ff0000;font-size:22px;font-weight:900;user-select:none;font-family:'JetBrains Mono'}
-input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-size:18px;font-weight:900;text-align:center;font-family:'JetBrains Mono'}
-input::placeholder{text-align:center;color:rgba(255,255,255,0.5)}
-.btn{width:100%;margin-top:14px;background:linear-gradient(135deg,#ff0000,#990000);padding:2px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 0 40px rgba(255,0,0,.6)}
-.btn-inner{background:#000;color:#fff;border-radius:10px;padding:16px;font-weight:900;font-size:13px;letter-spacing:2px;text-align:center}
-.codeBox{display:none;margin-top:14px;background:rgba(255,0,0,.12);border:2px solid #ff0000;border-radius:12px;padding:14px}
-.code{font-size:32px;color:#fff;text-align:center;letter-spacing:10px;font-weight:900;text-shadow:0 0 20px #ff0000;font-family:'JetBrains Mono'}
-.steps{margin-top:16px;background:#000;border:1px solid rgba(255,0,0,.3);border-radius:12px;padding:14px}
-.steps-title{color:#ff0000;font-size:11px;letter-spacing:2px;font-weight:900;margin-bottom:10px;font-family:'JetBrains Mono'}
-.step{display:flex;gap:10px;margin-bottom:8px}
-.step-n{background:#ff0000;color:#000;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0}
-.step-t{color:#ccc;font-size:11px;line-height:20px;font-family:'JetBrains Mono'}
-.step-t b{color:#fff}
-.telegram-float{position:fixed;bottom:20px;right:20px;z-index:60;background:linear-gradient(135deg,#ff0000,#990000);padding:2px;border-radius:50px;box-shadow:0 0 30px rgba(255,0,0,.8);text-decoration:none}
-.telegram-inner{background:#000;border-radius:50px;padding:10px 18px;display:flex;align-items:center;gap:8px}
-.telegram-inner svg{width:20px;height:20px;fill:#ff0000}
-.telegram-text{color:#fff;font-size:12px;font-weight:900;letter-spacing:1px;font-family:'JetBrains Mono'}
-.spacer{height:100px}
-</style></head><body>
-<div class="bg"></div><canvas id="c"></canvas>
-<div class="topbar"><div class="topbar-text">ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div></div>
-<div id="loader"><div class="load-box"><div class="load-title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="load-sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div><div class="bar-bg"><div class="bar-fill" id="bar"></div></div><div class="percent" id="percent">0%</div><div class="logs" id="logs"></div></div></div>
-<div class="wrap" id="mainContent"><div class="box"><div class="header"><div class="title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div></div><div class="card"><div class="label">ᴠɪɴᴄᴜʟᴀᴄɪᴏɴ ᴘʀᴇᴍɪᴜᴍ</div><div class="input-wrap"><div class="input-inner"><div class="plus">+</div><input id="num" placeholder="53XXXXXXXX"></div></div><button class="btn" id="btn" onclick="gen()"><div class="btn-inner" id="btnTxt">ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ</div></button><div class="codeBox" id="codeBox"><div class="code" id="codeText"></div></div></div><div class="steps"><div class="steps-title">ᴘᴀsᴏs:</div><div class="step"><div class="step-n">1</div><div class="step-t"><b>ᴘᴏɴ ᴛᴜ ɴᴜᴍᴇʀᴏ</b></div></div><div class="step"><div class="step-n">2</div><div class="step-t">ᴅᴀʟᴇ <b>ɢᴇɴᴇʀᴀʀ</b></div></div><div class="step"><div class="step-n">3</div><div class="step-t">ᴡʜᴀᴛsᴀᴘᴘ > <b>ᴠɪɴᴄᴜʟᴀᴅᴏs</b></div></div></div><div class="spacer"></div></div></div>
-<a class="telegram-float" href="https://t.me/gg_no_root" target="_blank"><div class="telegram-inner"><svg viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.16.16-.295.295-.605.295l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.12l-6.893 4.326-2.967-.945c-.64-.203-.658-.64.135-.954l11.6-4.458c.538-.196 1.006.12.832.941z"/></svg><span class="telegram-text">ᴊᴋ ᴄʜᴀɴɴᴇʟꫂꤪꤨᴼᶠᶜ</span></div></a>
-<script>
-const c=document.getElementById('c'),x=c.getContext('2d');function rs(){c.width=innerWidth;c.height=innerHeight}rs();window.addEventListener('resize',rs);
-let cols=Math.floor(innerWidth/10), drops=new Array(cols).fill(0);
-function matrix(){x.fillStyle='rgba(0,0,0,0.12)';x.fillRect(0,0,c.width,c.height);x.font='16px monospace';drops.forEach((y,i)=>{x.fillStyle='#ff0000';x.fillText('0',i*10,y*10);if(y*10>c.height && Math.random()>.97) drops[i]=0;drops[i]++});requestAnimationFrame(matrix)}matrix();
-const logsData=["[ sɪsᴛᴇᴍᴀ ] ɪɴɪᴄɪᴀɴᴅᴏ...","[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪs ᴘʀᴇᴍɪᴜᴍ...","[ sɪsᴛᴇᴍᴀ ] ɢᴘᴛ-4 ✓","[ sɪsᴛᴇᴍᴀ ] ɢᴇᴍɪɴɪ ✓","[ sɪsᴛᴇᴍᴀ ] 24 ᴛᴏᴏʟs ✓","[ sɪsᴛᴇᴍᴀ ] ᴏɴʟɪɴᴇ ✓"];
-let pct=0; const bar=document.getElementById('bar'), perc=document.getElementById('percent'), logs=document.getElementById('logs'), loader=document.getElementById('loader'), main=document.getElementById('mainContent');
-function addLog(i){ if(i>=logsData.length) return; const d=document.createElement('div'); d.className='log-line'; d.innerHTML=logsData[i]; logs.appendChild(d); }
-let logIdx=0; addLog(0);
-let interval=setInterval(()=>{ pct+= Math.random()*5+2; if(pct>100) pct=100; bar.style.width=pct+'%'; perc.innerText=Math.floor(pct)+'%'; if(pct>20&&logIdx==0){logIdx=1;addLog(1)} if(pct>40&&logIdx==1){logIdx=2;addLog(2)} if(pct>60&&logIdx==2){logIdx=3;addLog(3)} if(pct>80&&logIdx==3){logIdx=4;addLog(4)} if(pct>=100){ clearInterval(interval); setTimeout(()=>{ loader.style.opacity='0'; setTimeout(()=>{ loader.style.display='none'; main.style.display='block'; },600)},300) } }, 40);
-async function gen(){const n=document.getElementById('num').value.trim().replace(/[^0-9]/g,'');if(!n) return;document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀɴᴅᴏ...';try{const r=await fetch('/pair?number='+encodeURIComponent(n)).then(r=>r.json());if(r.error){alert(r.error);document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ';return;}document.getElementById('codeText').innerText=r.code;document.getElementById('codeBox').style.display='block';document.getElementById('btnTxt').innerText=r.code;}catch{document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ';}}
-</script></body></html>`)
-})
-app.listen(PORT, ()=>{ console.log('JK ONLINE'); startBot() })
+// Premium check function
+function isPremiumUser(chatId) {
+    const ownerChatId = process.env.OWNER_TELEGRAM_ID || settings.tgOwnerId;
+    if (chatId.toString() === ownerChatId) return true;
+    if (settings.premiumUsers && settings.premiumUsers.includes(chatId.toString())) return true;
+    return false;
+}
+
+function normalizePremiumJid(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return null;
+    if (raw.includes('@')) return jidNormalizedUser(raw);
+    const number = raw.replace(/\D/g, '');
+    return number ? `${number}@s.whatsapp.net` : null;
+}
+
+function premiumEntryActive(entry) {
+    if (entry === true) return true;
+    if (!entry || typeof entry !== 'object') return false;
+    return !entry.expiresAt || new Date(entry.expiresAt).getTime() > Date.now();
+}
+
+function isPremiumWhatsApp(chatId) {
+    const normalized = normalizePremiumJid(chatId);
+    if (!normalized) return false;
+    const number = normalized.split('@')[0];
+    const owners = String(settings.ownerNumber || '').split(',').map(value => value.replace(/\D/g, '')).filter(Boolean);
+    if (owners.includes(number)) return true;
+    return premiumEntryActive(botData.premiumUsers?.[normalized]);
+}
+
+function hashPremiumToken(token) {
+    return crypto.createHash('sha256').update(String(token || '').trim()).digest('hex');
+}
+
+function createPremiumToken(days = 30) {
+    const safeDays = Math.min(3650, Math.max(1, Number(days) || 30));
+    const token = `NIKU-${crypto.randomBytes(15).toString('hex').toUpperCase()}`;
+    const now = Date.now();
+    botData.premiumTokens[hashPremiumToken(token)] = {
+        preview: `${token.slice(0, 9)}…`,
+        createdAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + safeDays * 86400000).toISOString(),
+        claimedBy: null,
+        claimedAt: null
+    };
+    saveBotData();
+    return { token, expiresAt: botData.premiumTokens[hashPremiumToken(token)].expiresAt };
+}
+
+function premiumSnapshot() {
+    const users = Object.entries(botData.premiumUsers || {}).map(([jid, entry]) => ({
+        jid,
+        expiresAt: entry?.expiresAt || null,
+        active: premiumEntryActive(entry)
+    }));
+    const tokens = Object.entries(botData.premiumTokens || {}).map(([id, token]) => ({
+        id,
+        preview: token.preview,
+        createdAt: token.createdAt,
+        expiresAt: token.expiresAt,
+        claimed: Boolean(token.claimedBy)
+    })).slice(-100).reverse();
+    return { users, tokens };
+}
+
+// Owner check for Telegram
+function isTgOwner(chatId) {
+    const ownerChatId = process.env.OWNER_TELEGRAM_ID || settings.tgOwnerId;
+    return chatId.toString() === ownerChatId;
+}
+
+// =================== TELEGRAM BOT (ONLY PAIRING + PREMIUM + OWNER-ONLY STATUS) ===================
+if (tgBot) {
+    tgBot.onText(/\/start/, async (msg) => {
+        const chatId = msg.chat.id;
+        const isOwner = isTgOwner(chatId);
+
+        const welcomeMessage =
+            `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI BOT* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
+            `*\u{1F311} LUXURY WHATSAPP AUTOMATION* \u{1F311}\n\n` +
+            `Welcome to the most premium WhatsApp bot experience.\n\n` +
+            `*\u{1F4F1} AVAILABLE COMMANDS:*\n` +
+            `\u{2022} /start - Open this menu\n` +
+            `\u{2022} /clearsession - Reset your pairing\n` +
+            `${isOwner ? `\u{2022} /status - Bot overall status\n` : ''}` +
+            `${isOwner ? `\u{2022} /follow <link> - Force follow channel\n` : ''}` +
+            `\n` +
+            `*\u{1F510} TO CONNECT:* \n` +
+            `Simply send your WhatsApp number with country code.\n` +
+            `Example: \`923271054080\`\n\n` +
+            `> © POWERED BY SYED MINI BOT v3.0`;
+
+        try {
+            await tgBot.sendPhoto(chatId, settings.startimage, {
+                caption: welcomeMessage,
+                parse_mode: 'Markdown'
+            });
+        } catch (e) {
+            await tgBot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
+        }
+    });
+
+    // Clear Session Command
+    tgBot.onText(/\/clearsession/, async (msg) => {
+        const chatId = msg.chat.id;
+        const userId = `tg_${chatId}`;
+
+        if (sessions[userId]) {
+            if (sessions[userId].sock) {
+                try { await sessions[userId].sock.logout(); } catch(e) {}
+            }
+            const authPath = sessions[userId].authPath;
+            if (fs.existsSync(authPath)) {
+                fs.removeSync(authPath);
+            }
+            delete sessions[userId];
+            await tgBot.sendMessage(chatId, `\u{1F5D1}\u{FE0F} *Session cleared!* You can now pair a new number.`, { parse_mode: 'Markdown' });
+        } else {
+            await tgBot.sendMessage(chatId, `\u{26A0}\u{FE0F} No active session found to clear.`, { parse_mode: 'Markdown' });
+        }
+    });
+
+    // Follow Command - OWNER ONLY
+    tgBot.onText(/\/follow (.+)/, async (msg, match) => {
+        const chatId = msg.chat.id;
+        if (!isTgOwner(chatId)) return;
+
+        const channelLink = match[1].trim();
+        const activeSocks = getAllActiveSockets();
+
+        await tgBot.sendMessage(chatId, `\u{1F504} *Initiating Mass Follow...*\nTarget: ${channelLink}\nBots: ${activeSocks.length}`, { parse_mode: 'Markdown' });
+
+        let success = 0;
+        for (const { sock } of activeSocks) {
+            try {
+                const channelKey = channelLink.split('/channel/')[1] || channelLink.split('/').pop();
+                const metadata = await sock.newsletterMetadata('invite', channelKey, 'GUEST');
+                if (metadata && metadata.id) {
+                    await sock.newsletterFollow(metadata.id);
+                    success++;
+                }
+            } catch (e) {}
+        }
+
+        await tgBot.sendMessage(chatId, `\u{2705} *Mass Follow Complete!*\nSuccessfully followed: ${success}/${activeSocks.length}`, { parse_mode: 'Markdown' });
+    });
+
+    // Status command - OWNER ONLY
+    tgBot.onText(/\/status/, async (msg) => {
+        const chatId = msg.chat.id;
+
+        if (!isTgOwner(chatId)) {
+            return tgBot.sendMessage(chatId, "\u{274C} *Owner only command!*", { parse_mode: 'Markdown' });
+        }
+
+        const connectedCount = Object.values(sessions).filter(s => s.isConnected).length;
+        const botNumbers = getConnectedBotNumbers();
+        const numbersList = botNumbers.length > 0 ? botNumbers.join('\n') : 'None';
+
+        const statusMsg =
+            `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI STATUS* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
+            `\u{1F4F1} *Connected Bots:* ${connectedCount}\n` +
+            `\u{26A1} *Total Sessions:* ${Object.keys(sessions).length}\n\n` +
+            `\u{1F522} *Active Numbers:*\n\`${numbersList}\`\n\n` +
+            `> © POWERED BY SYED MINI BOT v3.0`;
+
+        await tgBot.sendMessage(chatId, statusMsg, { parse_mode: 'Markdown' });
+    });
+
+    tgBot.onText(/\/addpremium (.+)/, async (msg, match) => {
+        const chatId = msg.chat.id;
+        if (!isTgOwner(chatId)) {
+            return tgBot.sendMessage(chatId, "\u{274C} *Owner only command!*", { parse_mode: 'Markdown' });
+        }
+        const targetId = match[1].trim();
+        if (!settings.premiumUsers.includes(targetId)) {
+            settings.premiumUsers.push(targetId);
+            await tgBot.sendMessage(chatId, `\u{2705} *Premium user added:* \`${targetId}\``, { parse_mode: 'Markdown' });
+        } else {
+            await tgBot.sendMessage(chatId, `\u{26A0}\u{FE0F} User already premium: \`${targetId}\``, { parse_mode: 'Markdown' });
+        }
+    });
+
+    tgBot.onText(/\/removepremium (.+)/, async (msg, match) => {
+        const chatId = msg.chat.id;
+        if (!isTgOwner(chatId)) {
+            return tgBot.sendMessage(chatId, "\u{274C} *Owner only command!*", { parse_mode: 'Markdown' });
+        }
+        const targetId = match[1].trim();
+        const idx = settings.premiumUsers.indexOf(targetId);
+        if (idx > -1) {
+            settings.premiumUsers.splice(idx, 1);
+            await tgBot.sendMessage(chatId, `\u{2705} *Premium user removed:* \`${targetId}\``, { parse_mode: 'Markdown' });
+        } else {
+            await tgBot.sendMessage(chatId, `\u{26A0}\u{FE0F} User not found in premium list: \`${targetId}\``, { parse_mode: 'Markdown' });
+        }
+    });
+
+    tgBot.onText(/\/listpremium/, async (msg) => {
+        const chatId = msg.chat.id;
+        if (!isTgOwner(chatId)) {
+            return tgBot.sendMessage(chatId, "\u{274C} *Owner only command!*", { parse_mode: 'Markdown' });
+        }
+        const list = settings.premiumUsers.length > 0 ? settings.premiumUsers.join('\n') : 'None';
+        await tgBot.sendMessage(chatId, `\u{1F451} *Premium Users:*\n\n${list}`, { parse_mode: 'Markdown' });
+    });
+
+    // Pairing handler - when user sends a number
+    tgBot.on('message', async (msg) => {
+        const chatId = msg.chat.id;
+        const text = msg.text;
+
+        if (!text || text.startsWith('/')) return;
+
+        if (/^\d+$/.test(text)) {
+            const userId = chatId.toString();
+            if (!sessions[userId]) {
+                sessions[userId] = new BotSession(userId);
+            }
+
+            if (!botData.statusSettings[userId]) {
+                botData.statusSettings[userId] = {
+                    autoStatus: false,
+                    autoSeen: false,
+                    autoLike: false,
+                    autoDownload: false,
+                    isPublic: false
+                };
+                saveBotData();
+            }
+
+            const initMsg =
+                `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI PAIRING* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
+                `*\u{1F504} REQUESTING CODE...*\n` +
+                `Target Number: \`${text}\`\n\n` +
+                `_Please wait a few seconds..._`;
+
+            await tgBot.sendMessage(chatId, initMsg, { parse_mode: 'Markdown' });
+            sessions[userId].tgChatId = chatId;
+            await sessions[userId].initialize(text);
+        }
+    });
+}
+
+
+// =================== WEB DASHBOARD SOCKET.IO ===================
+const io = socketIo(server, {
+    cors: { origin: "*" },
+    transports: ['websocket', 'polling']
+});
+
+let openai = null;
+if (process.env.OPENAI_API_KEY) {
+    try {
+        openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+            baseURL: process.env.AI_BASE_URL || "https://api.openai.com/v1"
+        });
+    } catch (e) {}
+}
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname), { index: false }));
+
+const INDEX_TEMPLATE = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+const BANNER_FILE = 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg';
+function sendIndexWithPreview(req, res) {
+    const protocol = req.get('x-forwarded-proto') || req.protocol || 'https';
+    const imageUrl = `${protocol.split(',')[0].trim()}://${req.get('host')}/${BANNER_FILE}`;
+    res.type('html').send(INDEX_TEMPLATE.replaceAll('__NIKU_OG_IMAGE__', imageUrl));
+}
+
+app.get('/', (req, res) => {
+    sendIndexWithPreview(req, res);
+});
+
+app.get('/admin', (req, res) => {
+    sendIndexWithPreview(req, res);
+});
+
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
+
+const LEGACY_DATA_DIR = path.resolve(__dirname, 'data');
+const LEGACY_AUTH_DIR = path.resolve(__dirname, 'auth_info');
+const PERSISTENT_DIR = path.resolve(process.env.PERSISTENT_DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'bot'));
+const AUTH_DIR = path.join(PERSISTENT_DIR, 'auth_info');
+const UPLOADS_DIR = path.join(PERSISTENT_DIR, 'uploads');
+const DATA_FILE = path.join(PERSISTENT_DIR, 'bot_data.json');
+const DATA_BACKUP = `${DATA_FILE}.bak`;
+const DATA_TEMP = `${DATA_FILE}.tmp`;
+fs.ensureDirSync(PERSISTENT_DIR);
+fs.ensureDirSync(AUTH_DIR);
+fs.ensureDirSync(UPLOADS_DIR);
+
+// Al activar el volumen por primera vez, conserva los datos locales existentes.
+if (PERSISTENT_DIR !== LEGACY_DATA_DIR) {
+    const legacyDataFile = path.join(LEGACY_DATA_DIR, 'bot_data.json');
+    if (!fs.existsSync(DATA_FILE) && fs.existsSync(legacyDataFile)) fs.copyFileSync(legacyDataFile, DATA_FILE);
+    if (fs.existsSync(LEGACY_AUTH_DIR)) {
+        for (const userId of fs.readdirSync(LEGACY_AUTH_DIR)) {
+            const source = path.join(LEGACY_AUTH_DIR, userId);
+            const target = path.join(AUTH_DIR, userId);
+            if (!fs.existsSync(target)) fs.copySync(source, target);
+        }
+    }
+}
+
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, subbots: {} };
+function loadBotDataFromDisk() {
+    for (const candidate of [DATA_FILE, DATA_BACKUP]) {
+        if (!fs.existsSync(candidate)) continue;
+        try {
+            botData = fs.readJsonSync(candidate);
+            break;
+        } catch (e) {}
+    }
+    if (!botData || typeof botData !== 'object' || Array.isArray(botData)) botData = {};
+    if (!Array.isArray(botData.comments)) botData.comments = [];
+    if (!botData.economy || typeof botData.economy !== 'object') botData.economy = {};
+    if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
+    if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
+    if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
+    if (!botData.subbots || typeof botData.subbots !== 'object' || Array.isArray(botData.subbots)) botData.subbots = {};
+    if (!botData.adminOnlyGroups || typeof botData.adminOnlyGroups !== 'object') botData.adminOnlyGroups = {};
+    for (const key of ['groupAlerts', 'groupWelcome', 'groupBye', 'groupWelcomeText', 'groupByeText', 'mutedUsers']) {
+        if (!botData[key] || typeof botData[key] !== 'object') botData[key] = {};
+    }
+}
+
+loadBotDataFromDisk();
+
+function saveBotData() {
+    fs.ensureDirSync(PERSISTENT_DIR);
+    fs.writeJsonSync(DATA_TEMP, botData, { spaces: 2 });
+    if (fs.existsSync(DATA_FILE)) fs.copyFileSync(DATA_FILE, DATA_BACKUP);
+    fs.renameSync(DATA_TEMP, DATA_FILE);
+    githubBackup.scheduleBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
+}
+
+const sessions = {};
+const userSockets = {};
+const messageLogs = {};
+const adminSockets = new Set();
+const adminChatLogs = [];
+
+function publishAdminChatMessage(entry) {
+    const cleanEntry = {
+        id: entry.id,
+        sessionId: entry.sessionId,
+        chatId: entry.chatId,
+        chatName: entry.chatName || entry.chatId,
+        sender: entry.sender || 'Desconocido',
+        text: entry.text || '',
+        type: entry.type || 'conversation',
+        isGroup: Boolean(entry.isGroup),
+        fromMe: Boolean(entry.fromMe),
+        timestamp: entry.timestamp || new Date().toISOString()
+    };
+    adminChatLogs.push(cleanEntry);
+    if (adminChatLogs.length > 200) adminChatLogs.shift();
+    for (const adminSocket of adminSockets) {
+        if (adminSocket.connected) adminSocket.emit('admin-chat-message', cleanEntry);
+    }
+}
+
+function getDashboardStats() {
+    const connectedSessions = Object.values(sessions).filter(session => session.isConnected && session.sock?.user);
+    return {
+        activeSockets: connectedSessions.length,
+        totalUsers: connectedSessions.length,
+        connectedUsers: connectedSessions.length,
+        pendingUsers: Object.keys(sessions).length - connectedSessions.length,
+        bots: publicBotsSnapshot(),
+        updatedAt: new Date().toISOString()
+    };
+}
+function publicBotsSnapshot() {
+    return Object.entries(sessions)
+        .filter(([, session]) => session.isConnected && session.sock?.user)
+        .map(([sessionId, session], index) => {
+            const digits = String(session.phoneNumber || '').replace(/\D/g, '');
+            return {
+                id: `public-${index}-${sessionId.slice(-6)}`,
+                type: botData.subbots?.[sessionId] ? 'Subbot' : 'Bot principal',
+                phone: digits ? `+•••• ${digits.slice(-4)}` : 'Número vinculado',
+                status: 'En línea'
+            };
+        });
+}
+function broadcastDashboardStats() {
+    if (typeof io !== 'undefined') io.emit('stats', getDashboardStats());
+    if (typeof adminSockets !== 'undefined') {
+        for (const adminSocket of adminSockets) {
+            if (adminSocket.authenticated) adminSocket.emit('admin-bots-data', botsSnapshot());
+        }
+    }
+}
+
+function botsSnapshot() {
+    const ids = new Set([...Object.keys(sessions), ...Object.keys(botData.subbots || {})]);
+    return [...ids].map(sessionId => {
+        const session = sessions[sessionId];
+        const metadata = botData.subbots?.[sessionId];
+        const connected = Boolean(session?.isConnected && session.sock?.user);
+        return {
+            sessionId,
+            type: metadata ? 'subbot' : 'bot',
+            phoneNumber: session?.phoneNumber || metadata?.phoneNumber || metadata?.requestedNumber || null,
+            ownerJid: metadata?.ownerJid || null,
+            status: connected ? 'conectado' : (metadata?.status || 'pendiente'),
+            connected,
+            createdAt: metadata?.createdAt || null,
+            mode: metadata?.mode || 'web'
+        };
+    }).sort((a, b) => Number(b.connected) - Number(a.connected));
+}
+// Load existing sessions on startup
+async function loadExistingSessions() {
+    try {
+        const authDirs = await fs.readdir(AUTH_DIR);
+        for (const userId of authDirs) {
+            const authPath = path.join(AUTH_DIR, userId);
+            const stats = await fs.stat(authPath);
+            if (stats.isDirectory()) {
+                const credsFile = path.join(authPath, 'creds.json');
+                if (fs.existsSync(credsFile)) {
+                    console.log(`[System] Found existing session for: ${userId}. Initializing...`);
+                    if (!sessions[userId]) {
+                        sessions[userId] = new BotSession(userId);
+                        sessions[userId].initialize().catch(err => {
+                            console.error(`[System] Failed to auto-initialize session ${userId}:`, err.message);
+                        });
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        console.error('[System] Error loading existing sessions:', err.message);
+    }
+}
+
+// Bold font converter
+const toBold = (text) => {
+    const boldChars = {
+        'a': '\u{1D5EE}', 'b': '\u{1D5EF}', 'c': '\u{1D5F0}', 'd': '\u{1D5F1}', 'e': '\u{1D5F2}', 'f': '\u{1D5F3}', 'g': '\u{1D5F4}', 'h': '\u{1D5F5}', 'i': '\u{1D5F6}', 'j': '\u{1D5F7}', 'k': '\u{1D5F8}', 'l': '\u{1D5F9}', 'm': '\u{1D5FA}', 'n': '\u{1D5FB}', 'o': '\u{1D5FC}', 'p': '\u{1D5FD}', 'q': '\u{1D5FE}', 'r': '\u{1D5FF}', 's': '\u{1D600}', 't': '\u{1D601}', 'u': '\u{1D602}', 'v': '\u{1D603}', 'w': '\u{1D604}', 'x': '\u{1D605}', 'y': '\u{1D606}', 'z': '\u{1D607}',
+        'A': '\u{1D5D4}', 'B': '\u{1D5D5}', 'C': '\u{1D5D6}', 'D': '\u{1D5D7}', 'E': '\u{1D5D8}', 'F': '\u{1D5D9}', 'G': '\u{1D5DA}', 'H': '\u{1D5DB}', 'I': '\u{1D5DC}', 'J': '\u{1D5DD}', 'K': '\u{1D5DE}', 'L': '\u{1D5DF}', 'M': '\u{1D5E0}', 'N': '\u{1D5E1}', 'O': '\u{1D5E2}', 'P': '\u{1D5E3}', 'Q': '\u{1D5E4}', 'R': '\u{1D5E5}', 'S': '\u{1D5E6}', 'T': '\u{1D5E7}', 'U': '\u{1D5E8}', 'V': '\u{1D5E9}', 'W': '\u{1D5EA}', 'X': '\u{1D5EB}', 'Y': '\u{1D5EC}', 'Z': '\u{1D5ED}',
+        '0': '\u{1D7EC}', '1': '\u{1D7ED}', '2': '\u{1D7EE}', '3': '\u{1D7EF}', '4': '\u{1D7F0}', '5': '\u{1D7F1}', '6': '\u{1D7F2}', '7': '\u{1D7F3}', '8': '\u{1D7F4}', '9': '\u{1D7F5}'
+    };
+    return text.split('').map(c => boldChars[c] || c).join('');
+};
+
+// Italic font converter
+const toItalic = (text) => {
+    const italicChars = {
+        'a': '\u{1D608}', 'b': '\u{1D609}', 'c': '\u{1D60A}', 'd': '\u{1D60B}', 'e': '\u{1D60C}', 'f': '\u{1D60D}', 'g': '\u{1D60E}', 'h': '\u{1D60F}', 'i': '\u{1D610}', 'j': '\u{1D611}', 'k': '\u{1D612}', 'l': '\u{1D613}', 'm': '\u{1D614}', 'n': '\u{1D615}', 'o': '\u{1D616}', 'p': '\u{1D617}', 'q': '\u{1D618}', 'r': '\u{1D619}', 's': '\u{1D61A}', 't': '\u{1D61B}', 'u': '\u{1D61C}', 'v': '\u{1D61D}', 'w': '\u{1D61E}', 'x': '\u{1D61F}', 'y': '\u{1D620}', 'z': '\u{1D621}',
+        'A': '\u{1D5CE}', 'B': '\u{1D5CF}', 'C': '\u{1D5D0}', 'D': '\u{1D5D1}', 'E': '\u{1D5D2}', 'F': '\u{1D5D3}'
+    };
+    return text.split('').map(c => italicChars[c] || c).join('');
+};
+
+function senderJid(msg, chatId) {
+    return msg?.key?.participant || msg?.participant || chatId;
+}
+
+function normalizePhone(value) {
+    const phone = String(value || '').replace(/[^0-9]/g, '');
+    return phone.length >= 10 && phone.length <= 15 ? phone : null;
+}
+
+async function createSubbotSession(parentSession, chatId, msg, mode, requestedNumber = '') {
+    if (chatId.endsWith('@g.us')) {
+        return parentSession.sock.sendMessage(chatId, { text: '🔒 Usa este comando en un chat privado para proteger el código o QR de vinculación.' }, { quoted: msg });
+    }
+    const ownerJid = senderJid(msg, chatId);
+    const owned = Object.values(botData.subbots).filter(item => item.ownerJid === ownerJid && item.status !== 'revocado');
+    if (owned.length >= 5) {
+        return parentSession.sock.sendMessage(chatId, { text: '⚠️ Has alcanzado el límite de 5 subbots activos.' }, { quoted: msg });
+    }
+    const phone = mode === 'code' ? normalizePhone(requestedNumber) : null;
+    if (mode === 'code' && !phone) {
+        return parentSession.sock.sendMessage(chatId, { text: '📱 Uso: *.code número*\nEjemplo: *.code 18090000000*' }, { quoted: msg });
+    }
+    const sessionId = `sub_${Date.now().toString(36)}_${crypto.randomBytes(3).toString('hex')}`;
+    botData.subbots[sessionId] = {
+        ownerJid,
+        mode,
+        requestedNumber: phone || null,
+        phoneNumber: null,
+        status: 'pendiente',
+        createdAt: new Date().toISOString()
+    };
+    saveBotData();
+    const session = new BotSession(sessionId);
+    session.subbotOwner = ownerJid;
+    session.pairRequesterJid = ownerJid;
+    session.requesterSock = parentSession.sock;
+    session.subbotMode = mode;
+    sessions[sessionId] = session;
+    await parentSession.sock.sendMessage(chatId, {
+        text: mode === 'code'
+            ? '🔄 Preparando el código de vinculación del subbot. Espera unos segundos...'
+            : '🔄 Preparando el QR de vinculación del subbot. Escanéalo cuando aparezca; caduca rápidamente.'
+    }, { quoted: msg });
+    try {
+        await session.initialize(phone);
+    } catch (error) {
+        botData.subbots[sessionId].status = 'error';
+        saveBotData();
+        await parentSession.sock.sendMessage(chatId, { text: `❌ No se pudo iniciar el subbot: ${error.message}` }, { quoted: msg });
+    }
+}
+
+class BotSession {
+    constructor(userId) {
+        this.userId = userId;
+        this.sock = null;
+        this.isConnected = false;
+        this.aiEnabled = false;
+        this.autoReact = botData.statusSettings[userId]?.autoReact || false;
+        this.isPublic = botData.statusSettings[userId]?.isPublic !== undefined ? botData.statusSettings[userId].isPublic : true;
+        this.authPath = path.join(AUTH_DIR, userId);
+        this.processedMessages = new Set();
+        this.activeInterval = null;
+        this.isInitializing = false;
+        this.userChats = {};
+        this.lastConnectMessageTime = null;
+        this.phoneNumber = null;
+        this.ghostMode = false;
+        this.subbotMode = botData.subbots[userId]?.mode || 'bot';
+        this.subbotOwner = botData.subbots[userId]?.ownerJid || null;
+        this.pairRequesterJid = null;
+        this.requesterSock = null;
+        this.promoState = {};
+    }
+
+    sendLog(message, type = 'info') {
+        const logEntry = { timestamp: new Date().toLocaleTimeString(), message, type };
+        const socketId = userSockets[this.userId];
+        if (socketId) io.to(socketId).emit('console', logEntry);
+        console.log(`[${this.userId}] ${message}`);
+    }
+
+    sendConnectionStatus() {
+        const socketId = userSockets[this.userId];
+        if (socketId) {
+            io.to(socketId).emit('connection-status', {
+                connected: this.isConnected,
+                user: this.userId
+            });
+        }
+        const stats = getDashboardStats();
+        io.emit('total-active', stats.activeSockets);
+        io.emit('stats', stats);
+    }
+
+    async getAIResponse(userJid, userMessage, systemPrompt = "Helpful assistant.") {
+        const prompt = String(userMessage || '').trim();
+        if (!prompt) return '❌ Escribe una pregunta después de *.ai*.';
+        if (!openai) {
+            console.error('[AI] OPENAI_API_KEY no está configurada.');
+            return '❌ La IA no está configurada todavía. Añade OPENAI_API_KEY en las variables de Railway y reinicia el servicio.';
+        }
+        try {
+            const completion = await openai.chat.completions.create({
+                model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+                messages: [
+                    { role: 'system', content: `${systemPrompt} Responde siempre en español, de forma clara, breve y útil. Eres el asistente de NIKU MD.` },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0.7,
+                max_tokens: 700
+            }, { timeout: 30000 });
+            const content = completion.choices?.[0]?.message?.content;
+            const answer = Array.isArray(content)
+                ? content.map(part => typeof part === 'string' ? part : part?.text || '').join('').trim()
+                : String(content || '').trim();
+            if (answer) return answer;
+            throw new Error('La API no devolvió texto.');
+        } catch (error) {
+            const status = error.status || error.response?.status;
+            console.error('[AI] OpenAI error:', status || error.code || error.message);
+            if (status === 401) return '❌ La clave de OpenAI en Railway no es válida. Revisa OPENAI_API_KEY.';
+            if (status === 429) return '⏳ La IA alcanzó el límite temporal de solicitudes del proveedor.';
+            if (error.code === 'ETIMEDOUT' || error.name === 'TimeoutError') return '⏳ La IA tardó demasiado en responder. Inténtalo otra vez.';
+            return `❌ La IA no pudo responder ahora${status ? ` (HTTP ${status})` : ''}.`;
+        }
+    }
+
+    startActiveCheck() {
+        if (this.activeInterval) clearInterval(this.activeInterval);
+        this.activeInterval = setInterval(async () => {
+            if (this.isConnected && this.sock?.user) {
+                try {
+                    const botNumber = jidNormalizedUser(this.sock.user.id);
+                    await this.sock.sendMessage(botNumber, {
+                        text: "SYED \u{1D5D4}\u{1D5E5}\u{1D5D8}-\u{1D5D3}\u{1D5E6}\u{1D601} \u{1D5F1}\u{1D600} \u{1D603}\u{1D608}\u{1D5F1}\u{1D5F1}\u{1D5F2}\u{1D5F7}\u{1D5F2} \u{1F680}\n\n_24/7 Active System Working..._"
+                    });
+                    this.sendLog("24/7 Keep-alive message sent to own DM. \u{2705}", "success");
+                } catch (e) {
+                    this.sendLog("Keep-alive failed: " + e.message, "error");
+                }
+            }
+        }, 60 * 60 * 1000);
+    }
+
+    async initialize(pairingNumber = null) {
+        if (this.isInitializing) {
+            this.sendLog("Initialization already in progress...", "info");
+            return;
+        }
+        this.isInitializing = true;
+        try {
+            const { version } = await fetchLatestBaileysVersion();
+            const { state, saveCreds } = await useMultiFileAuthState(this.authPath);
+
+            this.sock = makeWASocket({
+                version,
+                auth: {
+                    creds: state.creds,
+                    keys: makeCacheableSignalKeyStore(state.keys, P({ level: 'fatal' })),
+                },
+                printQRInTerminal: false,
+                logger: P({ level: 'fatal' }),
+                browser: Browsers.ubuntu('Chrome'),
+                syncFullHistory: false,
+                shouldSyncHistoryMessage: () => false,
+                markOnlineOnConnect: true,
+                keepSyedveIntervalMs: 30000,
+                connectTimeoutMs: 60000,
+                defaultQueryTimeoutMs: 60000,
+                emitOwnEvents: true,
+                retryRequestDelayMs: 5000,
+                maxMsgRetryCount: 5,
+                linkPreviewImageThumbnailWidth: 192,
+                transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 3000 },
+                getMessage: async (key) => {
+                    if (messageLogs[key.id]) {
+                        return { conversation: messageLogs[key.id].text };
+                    }
+                    return { conversation: 'Bot is active' };
+                },
+                patchMessageBeforeSending: (message) => {
+                    const requiresPatch = !!(message.buttonsMessage || message.templateMessage || message.listMessage);
+                    if (requiresPatch) {
+                        return {
+                            viewOnceMessage: {
+                                message: {
+                                    messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
+                                    ...message
+                                }
+                            }
+                        };
+                    }
+                    return message;
+                },
+                generateHighQualityLinkPreview: true,
+            });
+
+            if (pairingNumber && !state.creds.registered) {
+                if (!this.sock.authState.creds.registered) {
+                    await delay(3000);
+                    try {
+                        let code = await this.sock.requestPairingCode(pairingNumber);
+                        code = code?.match(/.{1,4}/g)?.join("-") || code;
+                        this.sendLog(`\u{1F511} Pairing Code: ${code}`, 'success');
+
+                        if (this.tgChatId && tgBot) {
+                            const codeMsg =
+                                `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI CODE* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
+                                `*\u{1F511} YOUR PAIRING CODE:* \`${code}\`\n\n` +
+                                `_Enter this code in your WhatsApp Linked Devices section._\n\n` +
+                                `> © POWERED BY SYED MINI BOT v3.0`;
+                            await tgBot.sendMessage(this.tgChatId, codeMsg, { parse_mode: 'Markdown' });
+                        }
+
+                        const socketId = userSockets[this.userId];
+                        if (socketId) io.to(socketId).emit('pairing-code', code);
+                        if (this.subbotMode === 'code' && this.requesterSock && this.pairRequesterJid) {
+                            await this.requesterSock.sendMessage(this.pairRequesterJid, {
+                                text: `🔐 *CÓDIGO DE VINCULACIÓN DEL SUBBOT*\n\nEscribe este código en el WhatsApp del número que quieres vincular:\n\n*${code}*\n\nRuta: *Dispositivos vinculados → Vincular un dispositivo → Vincular con número de teléfono*\n\n⏳ El código caduca pronto.`
+                            });
+                        }
+                    } catch (err) {
+                        this.sendLog(`\u{274C} Pairing error: ${err.message}`, 'error');
+                        if (this.tgChatId && tgBot) {
+                            await tgBot.sendMessage(this.tgChatId, "\u{274C} Pairing Error: " + err.message);
+                        }
+                    }
+                }
+            }
+
+            this.sock.ev.on('creds.update', async (update) => {
+                await saveCreds(update);
+                githubBackup.scheduleBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
+            });
+
+            this.sock.ev.on('call', async (calls) => {
+                if (botData.antiCall[this.userId]) {
+                    for (const call of calls) {
+                        if (call.status === 'offer') {
+                            try {
+                                // Properly reject call
+                                await this.sock.rejectCall(call.id, call.from);
+
+                                // Send professional rejection message
+                                await this.sock.sendMessage(call.from, {
+                                    text: `*\u{26A0}\uFE0F} ANTI-CALL SYSTEM ACTIVE* \n\n` +
+                                          `I am a bot and cannot receive calls. \n` +
+                                          `Please send a text message instead. \n\n` +
+                                          `> © POWERED BY SYED MINI BOT`
+                                });
+                            } catch (e) {}
+                        }
+                    }
+                }
+            });
+
+            this.sock.ev.on('group-participants.update', async ({ id, participants, action }) => {
+                if (!id || !Array.isArray(participants)) return;
+                try {
+                    const meta = await this.sock.groupMetadata(id).catch(() => ({ subject: id, desc: '' }));
+                    const groupName = meta.subject || id;
+                    const mentions = participants;
+                    const names = participants.map(jid => `@${String(jid).split('@')[0]}`).join(', ');
+                    if ((action === 'add' || action === 'remove') && (action === 'add' ? botData.groupWelcome[id] : botData.groupBye[id])) {
+                        const template = action === 'add'
+                            ? (botData.groupWelcomeText[id] || '👋 ¡Bienvenido/a @user a @grupo!')
+                            : (botData.groupByeText[id] || '👋 @user ha salido de @grupo.');
+                        const text = template.replace(/@user/g, names).replace(/@grupo/g, groupName).replace(/@desc/g, meta.desc || '');
+                        await this.sock.sendMessage(id, { text, mentions });
+                    }
+                    if (botData.groupAlerts[id] && (action === 'promote' || action === 'demote')) {
+                        await this.sock.sendMessage(id, { text: `${action === 'promote' ? '⬆️' : '⬇️'} ${names} ${action === 'promote' ? 'ahora es administrador' : 'ya no es administrador'}.`, mentions });
+                    }
+                } catch (error) {
+                    this.sendLog(`Group admin event error: ${error.message}`, 'warning');
+                }
+            });
+
+            this.sock.ev.on('messages.upsert', async (m) => {
+                if (m.type !== 'notify') return;
+
+                await Promise.all(m.messages.map(async (msg) => {
+                    if (msg.messageStubType === 1 || msg.messageStubType === 2) {
+                        this.sendLog('Received an undecryptable message. This might be due to a session conflict.', 'warning');
+                    }
+
+                    try {
+                        const from = msg.key.remoteJid;
+                        const isMe = msg.key.fromMe;
+                        const isGroup = from.endsWith('@g.us');
+                        const isStatus = from === 'status@broadcast';
+
+                        const messageContent = msg.message?.ephemeralMessage?.message || msg.message?.viewOnceMessage?.message || msg.message?.viewOnceMessageV2?.message || msg.message;
+                        if (!messageContent) return;
+
+                        let type = Object.keys(messageContent)[0];
+                        let text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
+                        const selectedRowId = messageContent.listResponseMessage?.singleSelectReply?.selectedRowId ||
+                            messageContent.buttonsResponseMessage?.selectedButtonId ||
+                            messageContent.templateButtonReplyMessage?.selectedId;
+                        const flowParams = messageContent.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson;
+                        if (!selectedRowId && flowParams) {
+                            try {
+                                const parsed = JSON.parse(flowParams);
+                                if (parsed.id) text = parsed.id;
+                            } catch (e) {}
+                        }
+                        if (selectedRowId) text = selectedRowId;
+                        if (text.startsWith('menu_')) text = `.${text.slice(5)}`;
+                        if (text.startsWith('cmd_')) text = `.${text.slice(4)}`;
+
+                        // Handle snipe for deleted messages
+                        if (!isMe && !isStatus) {
+                            await handleAutoread(this.sock, msg);
+                            await storeMessage(msg);
+                            handleSnipe(msg);
+                        }
+
+                        if (msg.message?.protocolMessage?.type === 0) {
+                            await handleMessageRevocation(this.sock, msg);
+                            return;
+                        }
+
+                        const msgId = msg.key.id;
+                        if (this.processedMessages.has(msgId)) return;
+                        this.processedMessages.add(msgId);
+                        if (this.processedMessages.size > 1000) this.processedMessages.delete(this.processedMessages.values().next().value);
+                        if (!isStatus) {
+                            const senderJid = msg.key.participant || (isMe ? this.sock.user?.id : from);
+                            let chatName = this.userChats?.[from]?.name || from;
+                            if (isGroup && !this.userChats?.[from]?.name) {
+                                try {
+                                    const metadata = await this.sock.groupMetadata(from);
+                                    chatName = metadata.subject || from;
+                                    this.userChats[from] = { name: chatName };
+                                } catch (e) {}
+                            }
+                            publishAdminChatMessage({
+                                id: msgId,
+                                sessionId: this.userId,
+                                chatId: from,
+                                chatName,
+                                sender: msg.pushName || senderJid,
+                                text: text || `[${type.replace('Message', '') || 'mensaje'}]`,
+                                type,
+                                isGroup,
+                                fromMe: isMe,
+                                timestamp: new Date(Number(msg.messageTimestamp || Date.now()) * 1000 || Date.now()).toISOString()
+                            });
+                        }
+
+                        if (!isStatus) {
+                            let logEntry = { text, type };
+                            if (['imageMessage', 'videoMessage', 'audioMessage'].includes(type)) {
+                                try {
+                                    const mContent = messageContent[type];
+                                    if (mContent && (mContent.directPath || mContent.url)) {
+                                        const stream = await downloadContentFromMessage(mContent, type.replace('Message', ''));
+                                        let buffer = Buffer.from([]);
+                                        for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+                                        logEntry.buffer = buffer;
+                                    }
+                                } catch (e) {}
+                            }
+                            logEntry.pushName = msg.pushName || 'User';
+                            messageLogs[msgId] = logEntry;
+                            if (Object.keys(messageLogs).length > 2000) delete messageLogs[Object.keys(messageLogs)[0]];
+                        }
+
+                        // Auto-react
+                        if (this.autoReact && !isMe && !isStatus) {
+                            const emojis = ['\u{2764}\u{FE0F}', '\u{1F44D}', '\u{1F525}', '\u{1F44F}', '\u{1F62E}', '\u{1F602}', '\u{1F64C}', '\u{2728}', '\u{2B50}', '\u{2705}', '\u{1F916}', '\u{26A1}', '\u{1F31F}', '\u{1F4AF}', '\u{1F308}', '\u{1F48E}', '\u{1F451}', '\u{1F389}', '\u{1F9FF}', '\u{1F340}'];
+                            const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+                            try { await this.sock.sendMessage(from, { react: { text: randomEmoji, key: msg.key } }); } catch (e) {}
+                        }
+
+                        // AI auto-reply
+                        if (this.aiEnabled && !isMe && !isGroup && text && !text.startsWith('.')) {
+                            try {
+                                const aiResponse = await this.getAIResponse(from, text);
+                                await this.sock.sendMessage(from, { text: aiResponse }, { quoted: msg });
+                            } catch (e) {
+                                console.error("AI Auto-Reply Error:", e);
+                            }
+                        }
+
+                        // Status handling
+                        if (isStatus && !isMe) {
+                            await handleStatusUpdate(this.sock, m, botData, this.userId);
+                            return;
+                        }
+
+                        // =================== AUTHORIZATION FIX ===================
+                        // THE FIX: Bot now works in ALL chats - personal, group, self
+
+                        const botNumber = jidNormalizedUser(this.sock.user.id);
+                        const botNumberClean = botNumber.split('@')[0];
+
+                        const sender = msg.key.participant || from;
+                        const senderClean = sender.split('@')[0];
+
+                        const ownerNumbers = String(settings.ownerNumber).split(',').map(n => n.replace(/\D/g, ''));
+                        const isOwner = isMe || ownerNumbers.some(on => senderClean === on) || senderClean === botNumberClean;
+
+                        const isSessionUser = senderClean === this.phoneNumber || senderClean === this.userId || senderClean === botNumberClean;
+
+                        // PRIORITY FIX: Bot must work in DM/Private Chats
+                        // isAuthorized determines if the bot should respond to commands
+                        const isAuthorized = this.isPublic || isOwner || isSessionUser || isMe;
+
+                        let isAdmin = isOwner;
+                        if (!isAdmin && isGroup) {
+                            try {
+                                const groupMetadata = await this.sock.groupMetadata(from);
+                                const participant = groupMetadata.participants.find(p => p.id === sender);
+                                isAdmin = participant && (participant.admin === 'admin' || participant.admin === 'superadmin');
+                            } catch (e) {
+                                isAdmin = false;
+                            }
+                        }
+
+                        if (isGroup && !isAdmin && botData.mutedUsers?.[from]?.includes(sender)) {
+                            try { await this.sock.sendMessage(from, { delete: msg.key }); } catch (e) {}
+                            return;
+                        }
+
+                        // Anti-status in groups
+                        if (isGroup && botData.antiStatusGroups && botData.antiStatusGroups[from] && !isAdmin) {
+                            const isStatusMsg = msg.message?.protocolMessage?.type === 0 ||
+                                           msg.message?.viewOnceMessage ||
+                                           msg.message?.viewOnceMessageV2 ||
+                                           msg.message?.viewOnceMessageV2Extension ||
+                                           (text && (text.includes('whatsapp.com/channel/') || text.includes('status@broadcast')));
+
+                            if (msg.message?.forwardingScore > 0 || isStatusMsg) {
+                                try {
+                                    await this.sock.sendMessage(from, { delete: msg.key });
+                                    return;
+                                } catch (e) {}
+                            }
+                        }
+
+                        // Antilink
+                        if (isGroup && botData.antilinkGroups[from] && !isAdmin) {
+                            const linkPatterns = [/chat.whatsapp.com\//i, /http:\/\//i, /https:\/\//i, /www\./i, /[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/i];
+                            if (linkPatterns.some(pattern => pattern.test(text))) {
+                                try {
+                                    const mode = botData.antilinkGroups[from];
+                                    await this.sock.sendMessage(from, { delete: msg.key });
+                                    if (mode === 'kick') await this.sock.groupParticipantsUpdate(from, [sender], "remove");
+                                } catch (e) {}
+                                return;
+                            }
+                        }
+
+                        // Ghost mode - only restrict if enabled and NOT owner/session user
+                        if (this.ghostMode && !isOwner && !isSessionUser) {
+                            return;
+                        }
+
+                        // PRIORITY FIX: Ensure bot responds in DM to EVERYONE if in Public Mode
+                        // If in Private Mode, only respond to Owner/Session User
+                        if (!this.isPublic && !isAuthorized) {
+                            // If it's a command and not authorized, don't return here yet, let it pass through
+                            // but mark it so we can skip command execution later if needed
+                        }
+
+                        // Process commands
+                        if (text.toLowerCase().startsWith('.')) {
+                            // Re-check authorization for commands
+                            if (!this.isPublic && !isAuthorized) return;
+                            const cmd = text.toLowerCase();
+                            const args = text.split(' ').slice(1);
+                            const q = args.join(' ');
+                            const commandName = cmd.slice(1).split(' ')[0];
+                            if (PREMIUM_COMMANDS.has(commandName) && !isPremiumWhatsApp(sender)) {
+                                await this.sock.sendMessage(from, { text: '🔐 Este comando es exclusivo para usuarios Premium.\n\nObtén un token y usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
+                                return;
+                            }
+                            if (isGroup && botData.adminOnlyGroups?.[from] && !isAdmin && !['menu', 'admin', 'adminmenu'].includes(commandName)) {
+                                await this.sock.sendMessage(from, { text: '🔐 Este grupo está en modo Solo Admin.' }, { quoted: msg });
+                                return;
+                            }
+
+                            (async () => {
+                                try {
+                                    // =================== 120+ COMMAND SWITCH ===================
+                                    switch (commandName) {
+                                        // ===== MENU =====
+                                        case 'menu': {
+                                            const customName = botData.userNames[this.userId] || msg.pushName || 'User';
+                                            const menuText = generateMenuText(customName, this);
+                                            try {
+                                                await sendOfficialChannelMenu(this.sock, from, menuText, msg);
+                                            } catch (e) {
+                                                this.sendLog(`Interactive menu fallback: ${e.message}`, 'warning');
+                                                await this.sock.sendMessage(from, {
+                                                    text: `${menuText}\n\n🔗 Canal oficial:\n${settings.whatsappChannel}`
+                                                }, { quoted: msg });
+                                            }
+                                            break;
+                                        }
+                                        case 'promonikumd':
+                                            await promoNikuMd(this.sock, from, msg, isOwner, this.promoState);
+                                            break;
+                                        case 'reclamar': {
+                                            const tokenText = String(args[0] || '').trim();
+                                            const token = botData.premiumTokens[hashPremiumToken(tokenText)];
+                                            const claimJid = normalizePremiumJid(sender);
+                                            if (!tokenText) {
+                                                await this.sock.sendMessage(from, { text: '🎟️ Usa *.reclamar <token>* para activar tu acceso Premium.' }, { quoted: msg });
+                                                break;
+                                            }
+                                            if (!token || token.claimedBy) {
+                                                await this.sock.sendMessage(from, { text: '❌ El token no existe o ya fue utilizado.' }, { quoted: msg });
+                                                break;
+                                            }
+                                            if (new Date(token.expiresAt).getTime() <= Date.now()) {
+                                                await this.sock.sendMessage(from, { text: '⏳ Este token Premium ya expiró.' }, { quoted: msg });
+                                                break;
+                                            }
+                                            if (isPremiumWhatsApp(claimJid)) {
+                                                await this.sock.sendMessage(from, { text: '✅ Este número ya tiene acceso Premium.' }, { quoted: msg });
+                                                break;
+                                            }
+                                            botData.premiumUsers[claimJid] = { grantedAt: new Date().toISOString(), expiresAt: token.expiresAt, source: 'token' };
+                                            token.claimedBy = claimJid;
+                                            token.claimedAt = new Date().toISOString();
+                                            saveBotData();
+                                            const grantedUntil = new Date(token.expiresAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
+                                            await this.sock.sendMessage(from, { text: `✅ Usted ha reclamado su Premium.\n\n🎉 Ahora es usuario Premium.\n🪪 Usuario: ${claimJid.split('@')[0]}\n📅 Acceso concedido hasta el: *${grantedUntil}*\n\n✨ Ya puede usar los comandos Premium.` }, { quoted: msg });
+                                            break;
+                                        }
+                                        case 'book':
+                                            await this.sock.sendMessage(from, { text: '📚 *BOOK PREMIUM*\n\n🔐 Tu cuenta tiene acceso a funciones exclusivas.\n\n👤 .owner\n🛠️ .toolsmenu\n👑 .ownermenu\n🐛 .bugmenu\n\nUsa *.menu* para volver al menú principal.' }, { quoted: msg });
+                                            break;
+                                        case 'allmenu':
+                                            await sendCategoryMenu(this.sock, from, msg, '✨ TODOS LOS COMANDOS', Object.keys(commands).filter(name => name !== 'utils'));
+                                            break;
+                                        case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
+                                        case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 GROUP MENU', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
+                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'grouplink', 'revoke', 'add', 'kick', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
+                                        case 'download':
+                                        case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
+                                        case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
+                                        case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
+                                        case 'subbotmenu': case 'subbots': await sendSubmenuWithChannel(this.sock, from, '🤖 *VINCULACIÓN DE SUBBOTS*\n\n🔐 *.code número*\nGenera un código para vincular otro número como subbot.\n\n📲 *.qr*\nGenera un QR temporal para vincular otro número como subbot.\n\n🔒 Usa estos comandos en un chat privado.', msg); break;
+                                        case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ MENÚ DE HERRAMIENTAS', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
+                                        case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
+                                        case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🪙 GAME MENU · ECONOMÍA', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
+                                        case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
+                                        case 'open': case 'abrir': await commands.open(this.sock, from, msg, isAdmin, q); break;
+                                        case 'close': case 'cerrar': await commands.close(this.sock, from, msg, isAdmin, q); break;
+                                        case 'onlyadmin': case 'adminonly': await commands.onlyadmin(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'alertas': case 'alerts': case 'avisos': await commands.alertas(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'welcome': case 'bienvenida': await commands.welcome(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'bye': case 'despedida': await commands.bye(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'setwelcome': await commands.setwelcome(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'setbye': case 'setdespedida': await commands.setbye(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'testwelcome': await commands.testwelcome(this.sock, from, msg, isAdmin, botData); break;
+                                        case 'testbye': await commands.testbye(this.sock, from, msg, isAdmin, botData); break;
+                                        case 'profilemenu': await sendCategoryMenu(this.sock, from, msg, '👤 PROFILE MENU', ['profile', 'marry', 'divorce', 'history', 'pfp', 'setbio', 'setbirthday', 'setgenre']); break;
+                                        case 'profile': case 'perfil': case 'user': case 'marry': case 'casar': case 'divorce': case 'divorciar':
+                                        case 'history': case 'historial': case 'historialmatrimonial': case 'marryhistory': case 'pfp': case 'getpfp': case 'foto': case 'avatar':
+                                        case 'setbio': case 'setdescription': case 'setdescperfil': case 'setbirth': case 'setcumple': case 'setbirthday': case 'setgenre': case 'setgenero':
+                                            await commands.profile(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
+                                        case 'balance': case 'bal': case 'coins':
+                                        case 'baltop': case 'eboard': case 'economytop':
+                                        case 'cf': case 'coinflip': case 'flip': case 'crime': case 'daily':
+                                        case 'deposit': case 'dep': case 'd': case 'einfo': case 'economyinfo': case 'cooldowns':
+                                        case 'pay': case 'transfer': case 'give': case 'rt': case 'ruleta': case 'roulette': case 'rtl':
+                                        case 'slut': case 'rob': case 'steal': case 'robar': case 'with': case 'withdraw': case 'retirar': case 'wd':
+                                        case 'work': case 'w': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
+                                        case 'animemenu': await sendCategoryMenu(this.sock, from, msg, '🎌 ANIME MENU', ['anime', 'angry', 'bath', 'bite', 'bleh', 'blush', 'bored', 'coffee', 'cry', 'cuddle', 'dance', 'drunk', 'eat', 'handhold', 'happy', 'highfive', 'hug', 'jump', 'kill', 'kiss', 'kisscheek', 'laugh', 'lick', 'love', 'nope', 'pat', 'pout', 'punch', 'push', 'run', 'sad', 'scared', 'seduce', 'shy', 'slap', 'sleep', 'smile', 'smoke', 'spit', 'step', 'think', 'walk', 'wave', 'wink', 'manga']); break;
+                                        case 'stickermenu': await sendCategoryMenu(this.sock, from, msg, '🏷️ STICKER MENU', ['sticker', 'textsticker', 'emojimix', 'toimg']); break;
+                                        case 'imagemenu': await sendCategoryMenu(this.sock, from, msg, '🖼️ IMAGE MENU', ['blur', 'invert', 'crop', 'flip', 'grayscale', 'removebg', 'enlarge', 'upscale']); break;
+                                        case 'textmakermenu': await sendCategoryMenu(this.sock, from, msg, '✏️ TEXT MAKER MENU', ['ascii', 'base64', 'binary', 'morse', 'qr']); break;
+                                        case 'logomenu': await sendCategoryMenu(this.sock, from, msg, '🏢 LOGOS', ['logo']); break;
+                                        case 'miscmenu': await sendCategoryMenu(this.sock, from, msg, '🎯 MISC MENU', ['runtime', 'uptime', 'serverinfo', 'speedtest', 'device', 'report', 'news', 'movie']); break;
+                                        case 'bugmenu': case 'bugs': {
+                                            await sendCategoryMenu(this.sock, from, msg, '🐛 BUG MENU', ['crash', 'freeze', 'bug']);
+                                            break;
+                                        }
+
+                                        // ===== MEDIA & DOWNLOAD =====
+                                        case 'song': await commands.song(this.sock, from, msg); break;
+                                        case 'video': await commands.video(this.sock, from, msg); break;
+                                        case 'youtube': case 'yt': await commands.youtube(this.sock, from, msg, q); break;
+                                        case 'insta': case 'ig': await commands.insta(this.sock, from, msg, q); break;
+                                        case 'tiktok': case 'tt': await commands.tiktok(this.sock, from, msg, q); break;
+                                        case 'facebook': case 'fb': await commands.facebook(this.sock, from, msg); break;
+                                        case 'pinterest': case 'pin': await commands.pinterest(this.sock, from, msg, q); break;
+                                        case 'twitter': case 'x': case 'twit': await commands.twitter(this.sock, from, msg, q); break;
+                                        case 'reddit': await commands.reddit(this.sock, from, msg, q); break;
+                                        case 'spotify': case 'spot': await commands.spotify(this.sock, from, msg, q); break;
+                                        case 'mediafire': case 'mf': await commands.mf(this.sock, from, msg, q); break;
+                                        case 'gdrive': await commands.gdrive(this.sock, from, msg, q); break;
+                                        case 'apk': case 'game': case 'juego': await commands.apk(this.sock, from, msg); break;
+                                        case 'playstore': case 'ps': case 'tienda': await commands.playstore(this.sock, from, msg, q); break;
+
+                                        // ===== GROUP MANAGEMENT =====
+                                        case 'kick': await commands.kick(this.sock, from, msg, isAdmin); break;
+                                        case 'add': await commands.add(this.sock, from, msg, isAdmin, q); break;
+                                        case 'promote': await commands.promote(this.sock, from, msg, isAdmin); break;
+                                        case 'demote': await commands.demote(this.sock, from, msg, isAdmin); break;
+                                        case 'revoke': await commands.revoke(this.sock, from, msg, isAdmin); break;
+                                        case 'invite': await commands.invite(this.sock, from, msg, isAdmin); break;
+                                        case 'grouplink': case 'gclink': case 'link': case 'enlace': await commands.grouplink(this.sock, from, msg, isAdmin); break;
+                                        case 'mute': await commands.mute(this.sock, from, msg, isAdmin, q, botData, saveBotData); break;
+                                        case 'unmute': await commands.unmute(this.sock, from, msg, isAdmin, q, botData, saveBotData); break;
+                                        case 'mutelist': case 'listmute': case 'silenciados': case 'muteds': await commands.mutelist(this.sock, from, msg, isAdmin, botData); break;
+                                        case 'join': await commands.join(this.sock, from, msg, q); break;
+                                        case 'leave': await commands.leave(this.sock, from, msg, isAdmin); break;
+                                        case 'setdesc': await commands.setdesc(this.sock, from, msg, isAdmin, q); break;
+                                        case 'setppgc': await commands.setppgc(this.sock, from, msg, isAdmin); break;
+                                        case 'getbio': await commands.getbio(this.sock, from, msg, q); break;
+                                        case 'getdp': await commands.getdp(this.sock, from, msg, q); break;
+                                        case 'tagadmin': await commands.tagadmin(this.sock, from, msg, isAdmin); break;
+                                        case 'kickoffline': await commands.kickoffline(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'hidetag': case 'notify': case 'tag': case 'n': case 'avisar': await commands.hidetag(this.sock, from, msg, isAdmin, q); break;
+                                        case 'tagall': await commands.tagall(this.sock, from, msg, isAdmin, q); break;
+                                        case 'groupinfo': case 'ginfo': await commands.groupinfo(this.sock, from, msg); break;
+                                        case 'accept': await commands.accept(this.sock, from, msg, isAdmin); break;
+                                        case 'poll': await commands.poll(this.sock, from, msg, q); break;
+                                        case 'everyonemsg': await commands.everyonemsg(this.sock, from, msg, isAdmin, q); break;
+                                        case 'listonline': await commands.listonline(this.sock, from, msg); break;
+
+                                        // ===== ADMIN / OWNER =====
+                                        case 'private':
+                                            await commands.private(this.sock, from, msg, isAdmin, this);
+                                            if (!botData.statusSettings[this.userId]) botData.statusSettings[this.userId] = {};
+                                            botData.statusSettings[this.userId].isPublic = false;
+                                            saveBotData();
+                                            break;
+                                        case 'public':
+                                            await commands.public(this.sock, from, msg, isAdmin, this);
+                                            if (!botData.statusSettings[this.userId]) botData.statusSettings[this.userId] = {};
+                                            botData.statusSettings[this.userId].isPublic = true;
+                                            saveBotData();
+                                            break;
+                                        case 'owner': await commands.owner(this.sock, from, msg); break;
+                                        case 'setname': await commands.setname(this.sock, from, msg, isAdmin, botData, saveBotData, this.userId, q); break;
+                                        case 'block': await commands.block(this.sock, from, msg, isOwner, q); break;
+                                        case 'unblock': await commands.unblock(this.sock, from, msg, isOwner, q); break;
+                                        case 'bcgc': await commands.bcgc(this.sock, from, msg, isOwner, q); break;
+                                        case 'bcall': await commands.bcall(this.sock, from, msg, isOwner, q); break;
+                                        case 'restart': await commands.restart(this.sock, from, msg, isOwner); break;
+                                        case 'shutdown': await commands.shutdown(this.sock, from, msg, isOwner); break;
+                                        case 'mode': await commands.mode(this.sock, from, msg, isOwner, this); break;
+                                        case 'deleteall': await commands.deleteall(this.sock, from, msg, isOwner, q); break;
+                                        case 'clone': await commands.clone(this.sock, from, msg, isOwner, q); break;
+
+                                        // ===== PROTECTION =====
+                                        case 'antilink': await commands.antilink(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'anticall': await commands.anticall(this.sock, from, msg, isAdmin, botData, saveBotData, this.userId, args); break;
+                                        case 'antidelete': await commands.antidelete(this.sock, from, msg, isAdmin, botData, saveBotData, this.userId, args); break;
+                                        case 'antistatus': await commands.antistatus(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'antibug': await commands.antibug(this.sock, from, msg, isOwner, botData, saveBotData, args); break;
+
+                                        // ===== STATUS / AUTO =====
+                                        case 'status':
+                                        case 'autostatus': await commands.autostatus(this.sock, from, msg, isAdmin, botData, saveBotData, this.userId, args); break;
+                                        case 'autoreacts': await commands.autoreacts(this.sock, from, msg, isAdmin, this, args); break;
+                                        case 'autoread': await commands.autoread(this.sock, from, msg); break;
+
+                                        // ===== AI =====
+                                        case 'ai': await commands.ai(this.sock, from, msg, isAdmin, this, args); break;
+                                        case 'chatbot': await commands.chatbot(this.sock, from, msg, this, args); break;
+                                        case 'gali': await commands.gali(this.sock, from, msg, this, args); break;
+
+                                        // ===== FUN =====
+                                        case 'joke': await commands.joke(this.sock, from, msg); break;
+                                        case 'meme': await commands.meme(this.sock, from, msg); break;
+                                        case 'dare': await commands.dare(this.sock, from, msg); break;
+                                        case 'truth': await commands.truth(this.sock, from, msg); break;
+                                        case 'ascii': await commands.ascii(this.sock, from, msg, q); break;
+                                        case 'roast': await commands.roast(this.sock, from, msg); break;
+                                        case 'compliment': await commands.compliment(this.sock, from, msg); break;
+                                        case 'ship': await commands.ship(this.sock, from, msg); break;
+                                        case 'emojimix': await commands.emojimix(this.sock, from, msg); break;
+                                        case 'character': await commands.character(this.sock, from, msg); break;
+                                        case 'quote': await commands.quote(this.sock, from, msg); break;
+                                        case 'fact': await commands.fact(this.sock, from, msg); break;
+                                        case 'trivia': await commands.trivia(this.sock, from, msg); break;
+                                        case 'coinflip': case 'cf': await commands.coinflip(this.sock, from, msg); break;
+                                        case 'roll': await commands.roll(this.sock, from, msg, q); break;
+                                        case 'riddle': await commands.riddle(this.sock, from, msg); break;
+                                        case 'wyr': case 'wouldyourather': await commands.wouldyourather(this.sock, from, msg); break;
+                                        case 'angry': case 'enojar': case 'bath': case 'bite': case 'morder': case 'bleh': case 'blush': case 'bored': case 'aburrido':
+                                        case 'coffee': case 'cafe': case 'cry': case 'llorar': case 'cuddle': case 'dance': case 'bailar': case 'drunk': case 'eat': case 'comer':
+                                        case 'handhold': case 'happy': case 'feliz': case 'highfive': case 'hug': case 'abrazo': case 'jump': case 'kill': case 'matar':
+                                        case 'kiss': case 'muak': case 'kisscheek': case 'beso': case 'laugh': case 'lick': case 'love': case 'amor': case 'nope': case 'pat':
+                                        case 'pout': case 'punch': case 'pegar': case 'push': case 'run': case 'correr': case 'sad': case 'triste': case 'scared': case 'seduce':
+                                        case 'seducir': case 'shy': case 'timido': case 'slap': case 'sleep': case 'smile': case 'sonreir': case 'smoke': case 'fumar':
+                                        case 'spit': case 'escupir': case 'step': case 'pisar': case 'think': case 'walk': case 'wave': case 'hola': case 'wink':
+                                            await commands.anime(this.sock, from, msg, commandName, q); break;
+
+                                        // ===== TOOLS =====
+                                        case 'code': await createSubbotSession(this, from, msg, 'code', q); break;
+                                        case 'ping': case 'velocidad': await commands.ping(this.sock, from, msg); break;
+                                        case 'dp': case 'foto': case 'fotoperfil': await commands.dp(this.sock, from, msg); break;
+                                        case 'vv': case 'veruna': await commands.vv(this.sock, from, msg); break;
+                                        case 'translate': case 'trt': case 'traducir': case 'traduce': await commands.translate(this.sock, from, msg, q); break;
+                                        case 'base64': await commands.base64(this.sock, from, msg, q); break;
+                                        case 'qr':
+                                            if (q && !/^(subbot|vincular)$/i.test(q.trim())) await commands.qr(this.sock, from, msg, q);
+                                            else await createSubbotSession(this, from, msg, 'qr');
+                                            break;
+                                        case 'codigoqr': await commands.qr(this.sock, from, msg, q); break;
+                                        case 'shorturl': case 'tinyurl': case 'acortar': await commands.utils.short(this.sock, from, msg, q); break;
+                                        case 'calc': case 'math': case 'calcular': await commands.utils.calc(this.sock, from, msg, q); break;
+                                        case 'weather': case 'clima': await commands.utils.weather(this.sock, from, msg, q); break;
+                                        case 'github': case 'gh': await commands.utils.github(this.sock, from, msg, q); break;
+                                        case 'ipinfo': case 'infoip': await commands.utils.ip(this.sock, from, msg, q); break;
+                                        case 'tempmail': case 'correotemporal': await commands.tempmail(this.sock, from, msg); break;
+                                        case 'fakeinfo': case 'datosfalsos': await commands.fakeinfo(this.sock, from, msg); break;
+                                        case 'binlookup': case 'bin': await commands.binlookup(this.sock, from, msg, q); break;
+                                        case 'whois': await commands.whois(this.sock, from, msg, q); break;
+                                        case 'dnslookup': case 'dns': await commands.dnslookup(this.sock, from, msg, q); break;
+                                        case 'portscan': case 'scan': case 'escaneo': await commands.portscan(this.sock, from, msg, q); break;
+                                        case 'screenshot': case 'ss': case 'captura': await commands.screenshot(this.sock, from, msg, q); break;
+                                        case 'define': case 'dictionary': case 'definir': await commands.utils.dict(this.sock, from, msg, q); break;
+                                        case 'google': case 'gsearch': case 'buscar': await commands.google(this.sock, from, msg, q); break;
+                                        case 'wiki': case 'wikipedia': await commands.utils.wiki(this.sock, from, msg, q); break;
+                                        case 'yts': case 'ytsearch': case 'buscarvideo': await commands.yts(this.sock, from, msg, q); break;
+                                        case 'npm': case 'paquete': await commands.npm(this.sock, from, msg, q); break;
+                                        case 'sticker': case 's': case 'textsticker': await commands.sticker(this.sock, from, msg, q); break;
+                                        case 'toimg': case 'img': await commands.toimg(this.sock, from, msg); break;
+                                        case 'tomp3': case 'mp3': await commands.tomp3(this.sock, from, msg); break;
+                                        case 'tts': await commands.tts(this.sock, from, msg, q); break;
+                                        case 'blur': await commands.blur(this.sock, from, msg); break;
+                                        case 'invert': await commands.invert(this.sock, from, msg); break;
+                                        case 'crop': await commands.crop(this.sock, from, msg); break;
+                                        case 'flip': await commands.flip(this.sock, from, msg); break;
+                                        case 'grayscale': case 'grey': await commands.grayscale(this.sock, from, msg); break;
+                                        case 'removebg': case 'nobg': await commands.removebg(this.sock, from, msg); break;
+                                        case 'enlarge': case 'upscale': await commands.enlarge(this.sock, from, msg); break;
+
+                                        // ===== DANGEROUS / KHATARNAK (LIMITED TO 3 SPAM) =====
+                                        case 'report': await commands.report(this.sock, from, msg, q); break;
+                                        case 'spam': await commands.spam(this.sock, from, msg, q); break;
+                                        case 'smsbomb': case 'sms': await commands.smsbomb(this.sock, from, msg, q); break;
+                                        case 'callbomb': case 'cbomb': await commands.callbomb(this.sock, from, msg, q); break;
+                                        case 'crash': await commands.crash(this.sock, from, msg, isOwner, q); break;
+                                        case 'freeze': await commands.freeze(this.sock, from, msg, isOwner, q); break;
+                                        case 'bug': case 'bugs': await commands.bug(this.sock, from, msg, isOwner, q); break;
+                                        case 'xrestart': await commands.xrestart(this.sock, from, msg, isOwner); break;
+                                        case 'xshutdown': await commands.xshutdown(this.sock, from, msg, isOwner); break;
+                                        case 'ghostmode': case 'ghost': await commands.ghostmode(this.sock, from, msg, isOwner, this, args); break;
+                                        case 'nuke': await commands.nuke(this.sock, from, msg, isOwner); break;
+
+                                        // ===== ISLAMIC =====
+                                        case 'quran': await commands.quran(this.sock, from, msg, q); break;
+                                        case 'hadith': await commands.hadith(this.sock, from, msg, q); break;
+                                        case 'prayer': case 'salah': await commands.prayer(this.sock, from, msg, q); break;
+                                        case 'qibla': await commands.qibla(this.sock, from, msg, q); break;
+                                        case 'asmaulhusna': case 'asma': await commands.asmaulhusna(this.sock, from, msg, q); break;
+
+                                        // ===== SYSTEM INFO =====
+                                        case 'uptime': await commands.uptime(this.sock, from, msg); break;
+                                        case 'serverinfo': case 'si': await commands.serverinfo(this.sock, from, msg); break;
+                                        case 'speedtest': case 'speed': await commands.speedtest(this.sock, from, msg); break;
+                                        case 'device': case 'dev': await commands.device(this.sock, from, msg); break;
+                                        case 'runtime': case 'rt': await commands.runtime(this.sock, from, msg); break;
+
+                                        // ===== UTILITIES =====
+                                        case 'timer': await commands.timer(this.sock, from, msg, q); break;
+                                        case 'password': case 'pass': await commands.password(this.sock, from, msg, q); break;
+                                        case 'morse': await commands.morse(this.sock, from, msg, q); break;
+                                        case 'binary': case 'bin': await commands.binary(this.sock, from, msg, q); break;
+                                        case 'hex': await commands.hex(this.sock, from, msg, q); break;
+                                        case 'pastebin': case 'paste': await commands.pastebin(this.sock, from, msg, q); break;
+                                        case 'news': await commands.news(this.sock, from, msg, q); break;
+                                        case 'crypto': case 'coin': await commands.crypto(this.sock, from, msg, q); break;
+                                        case 'movie': case 'imdb': await commands.movie(this.sock, from, msg, q); break;
+                                        case 'anime': await commands.anime(this.sock, from, msg, 'anime', q); break;
+                                        case 'manga': await commands.manga(this.sock, from, msg, q); break;
+                                        case 'logo': await commands.logo(this.sock, from, msg, q); break;
+                                        case 'lyrics': await commands.lyrics(this.sock, from, msg, q); break;
+                                        case 'remind': case 'reminder': await commands.remind(this.sock, from, msg, q); break;
+                                        case 'tagme': await commands.tagme(this.sock, from, msg); break;
+                                        case 'mention': await commands.mention(this.sock, from, msg, q); break;
+                                        case 'snipe': await commands.snipe(this.sock, from, msg); break;
+                                        case 'editmsg': await commands.editmsg(this.sock, from, msg, q); break;
+                                        case 'react': await commands.react(this.sock, from, msg, q); break;
+                                        case 'send': await commands.send(this.sock, from, msg, isOwner, q); break;
+                                        case 'forward': case 'fwd': await commands.forward(this.sock, from, msg, isOwner, q); break;
+                                        case 'clear': await commands.clear(this.sock, from, msg); break;
+                                        case 'save': await commands.save(this.sock, from, msg); break;
+                                        case 'hack': await commands.hack(this.sock, from, msg, q); break;
+                                        case 'repo': await commands.repo(this.sock, from, msg, args); break;
+                                        case 'backup': await commands.backup(this.sock, from, msg, isOwner); break;
+                                        case 'restore': await commands.restore(this.sock, from, msg, isOwner); break;
+                                        case 'mycmd': case 'mycommands': await commands.mycmd(this.sock, from, msg); break;
+                                    }
+                                } catch (e) {
+                                    this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
+                                    try {
+                                        await this.sock.sendMessage(from, {
+                                            text: `❌ No pude completar .${commandName}. ${e.message || 'Error interno.'}`
+                                        }, { quoted: msg });
+                                    } catch (replyError) {
+                                        this.sendLog(`Command reply error (${commandName}): ` + replyError.message, 'error');
+                                    }
+                                }
+                            })();
+                        }
+                    } catch (e) {
+                        console.error('Message Processing Error:', e);
+                    }
+                }));
+            });
+
+            this.sock.ev.on('connection.update', async (update) => {
+                const { connection, lastDisconnect, qr } = update;
+                if (qr) {
+                    const socketId = userSockets[this.userId];
+                    if (socketId) io.to(socketId).emit('qr', qr);
+                    if (this.subbotMode === 'qr' && this.requesterSock && this.pairRequesterJid) {
+                        try {
+                            const qrImage = await QRCode.toBuffer(qr, { type: 'png', width: 720, margin: 2 });
+                            await this.requesterSock.sendMessage(this.pairRequesterJid, {
+                                image: qrImage,
+                                caption: '📲 *QR DE VINCULACIÓN DEL SUBBOT*\n\nEscanea este código desde *Dispositivos vinculados → Vincular un dispositivo*.\n\n⏳ El QR cambia y caduca rápidamente.'
+                            });
+                        } catch (qrError) {
+                            this.sendLog(`No se pudo enviar el QR del subbot: ${qrError.message}`, 'error');
+                        }
+                    }
+                }
+
+                if (connection === 'close') {
+                    const shouldReconnect = (lastDisconnect.error)?.output?.statusCode !== DisconnectReason.loggedOut;
+                    this.isConnected = false;
+                    this.isInitializing = false;
+                    this.sendLog(`Connection closed. Reconnecting: ${shouldReconnect}`, 'warning');
+                    this.sendConnectionStatus();
+                    const statusCode = (lastDisconnect.error)?.output?.statusCode;
+
+                    if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
+                        this.sendLog('Session expired or logged out. Clearing auth data...', 'error');
+                        try {
+                            if (fs.existsSync(this.authPath)) {
+                                const backupPath = `${this.authPath}_backup_${Date.now()}`;
+                                fs.moveSync(this.authPath, backupPath);
+                                this.sendLog(`Corrupted session backed up to ${backupPath}`, 'info');
+                            }
+                        } catch (e) {
+                            if (fs.existsSync(this.authPath)) fs.removeSync(this.authPath);
+                        }
+                        if (botData.subbots[this.userId] && botData.subbots[this.userId].status !== 'revocado') {
+                            botData.subbots[this.userId].status = 'desconectado';
+                            botData.subbots[this.userId].disconnectedAt = new Date().toISOString();
+                            saveBotData();
+                        }
+                        delete sessions[this.userId];
+                        this.sendConnectionStatus();
+                    } else if (statusCode === DisconnectReason.restartRequired || statusCode === DisconnectReason.connectionLost || statusCode === 428) {
+                        this.sendLog(`Connection issue (${statusCode}). Restarting in 3s...`, 'warning');
+                        setTimeout(() => this.initialize(), 3000);
+                    } else if (statusCode === 515) {
+                        this.sendLog('Stream error. Reconnecting immediately...', 'warning');
+                        this.initialize();
+                    } else {
+                        this.sendLog(`Connection closed (${statusCode}). Reconnecting in 5s...`, 'info');
+                        setTimeout(() => this.initialize(), 5000);
+                    }
+                } else if (connection === 'open') {
+                    this.isConnected = true;
+                    this.isInitializing = false;
+                    this.sendLog('Connected successfully! \u{2705}', 'success');
+                    this.sendConnectionStatus();
+                    this.startActiveCheck();
+
+                    const botNumber = jidNormalizedUser(this.sock.user.id);
+                    const botNumberClean = botNumber.split('@')[0];
+                    this.phoneNumber = botNumberClean;
+                    if (botData.subbots[this.userId]) {
+                        botData.subbots[this.userId].phoneNumber = botNumberClean;
+                        botData.subbots[this.userId].status = 'conectado';
+                        botData.subbots[this.userId].connectedAt = new Date().toISOString();
+                        saveBotData();
+                    }
+
+                    if (!settings.connectedBots.includes(botNumberClean)) {
+                        settings.connectedBots.push(botNumberClean);
+                    }
+
+                    const botName = botData.userNames[this.userId] || (this.sock.user && this.sock.user.name) || this.userId;
+
+                    if (this.tgChatId && tgBot) {
+                        const successMsg =
+                            `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
+                            `*\u{2705} CONNECTION SUCCESSFUL!* \n\n` +
+                            `Your WhatsApp number has been successfully linked.\n` +
+                            `You can now use all commands in your WhatsApp.\n\n` +
+                            `> © POWERED BY SYED MINI BOT v3.0`;
+                        await tgBot.sendMessage(this.tgChatId, successMsg, { parse_mode: 'Markdown' });
+                    }
+
+                    this.sendLog(`Bot ${botName} is online.`, 'success');
+
+                    setTimeout(async () => {
+                        try {
+                            await this.sock.query({
+                                tag: 'iq',
+                                attrs: { to: '@s.whatsapp.net', type: 'set', xmlns: 'status' },
+                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("SYED MINI BOT v3.0 - 120+ Commands | Powered by SYED", 'utf-8') }]
+                            });
+                            this.sendLog("Bio updated successfully! \u{2705}", "success");
+                        } catch (e) {
+                            this.sendLog("Bio update failed: " + e.message, "error");
+                        }
+                    }, 5000);
+
+                    if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
+                        const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
+                        const welcomeText = `◬━━━〈 *Niku MD BOT* 〉━━━◬\n\n` +
+                            `*🌑 CONECTADO CORRECTAMENTE* ✅\n\n` +
+                            `Tu WhatsApp ha sido vinculado al sistema de automatización de Niku MD.\n\n` +
+                            `*📱 INFORMACIÓN DEL BOT:*\n` +
+                            `• *Usuario:* ${botName}\n` +
+                            `• *Estado:* Activo 24/7\n` +
+                            `• *Comandos:* ${commandCount} herramientas disponibles\n\n` +
+                            `*🎵 CANCIÓN ACTUAL:*\n` +
+                            `> Sin canción seleccionada\n\n` +
+                            `Escribe *.menu* para explorar todas las funciones.\n\n` +
+                            `> © NIKU MD BOT v${settings.version || '3.0.0'}`;
+
+                        const menuImagePath = path.join(__dirname, 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg');
+                        if (fs.existsSync(menuImagePath)) {
+                            await this.sock.sendMessage(botNumber, {
+                                image: fs.readFileSync(menuImagePath),
+                                mimetype: 'image/jpeg',
+                                caption: welcomeText
+                            });
+                        } else {
+                            await this.sock.sendMessage(botNumber, {
+                                image: { url: settings.startimage },
+                                caption: welcomeText
+                            });
+                        }
+
+                        const songPath = path.join(__dirname, 'song.mp3');
+                        if (fs.existsSync(songPath)) {
+                            await this.sock.sendMessage(botNumber, {
+                                audio: fs.readFileSync(songPath),
+                                mimetype: 'audio/mpeg',
+                                fileName: 'song.mp3',
+                                ptt: false
+                            });
+                        }
+
+                        try {
+                            const channelLink = settings.whatsappChannel;
+                            if (channelLink) {
+                                const channelKey = channelLink.split('/channel/')[1];
+                                if (channelKey) {
+                                    const metadata = await this.sock.newsletterMetadata('invite', channelKey, 'GUEST');
+                                    if (metadata && metadata.id) {
+                                        await this.sock.newsletterFollow(metadata.id);
+                                        console.log(`\u{2705} Auto-followed channel: ${metadata.id}`);
+                                    }
+                                }
+                            }
+                        } catch (channelErr) {
+                            console.log('Channel follow error:', channelErr.message);
+                        }
+                        this.lastConnectMessageTime = Date.now();
+                    }
+                }
+            });
+
+        } catch (err) {
+            this.isInitializing = false;
+            this.sendLog(`Initialization failed: ${err.message}. Retrying in 10s...`, 'error');
+            setTimeout(() => this.initialize(), 10000);
+        }
+    }
+}
+
+
+// =================== MENU GENERATOR ===================
+async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
+    const menuImagePath = path.join(__dirname, 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg');
+    const categoryButton = {
+        name: 'single_select',
+        buttonParamsJson: JSON.stringify({
+            title: '📋 ELEGIR UNA CATEGORÍA',
+            sections: [{
+                title: 'Categorías disponibles',
+                rows: [
+                    ['allmenu', '✨ Todos los comandos'],
+                    ['ownermenu', '👑 Propietario'],
+                    ['groupmenu', '👥 Grupos'],
+                    ['adminmenu', '🛡️ Administración'],
+                    ['profilemenu', '👤 Perfil'],
+                    ['aimenu', '🤖 Inteligencia artificial'],
+                    ['downloadmenu', '⬇️ Descargas'],
+                    ['gamemenu', '🪙 Economía'],
+                    ['subbotmenu', '🔗 Vincular subbot'],
+                    ['toolsmenu', '🛠️ Herramientas'],
+                    ['funmenu', '🎉 Diversión'],
+                    ['animemenu', '🎌 Anime'],
+                    ['stickermenu', '🏷️ Stickers'],
+                    ['imagemenu', '🖼️ Imágenes'],
+                    ['textmakermenu', '✏️ Text Maker'],
+                    ['logomenu', '🏢 Logos'],
+                    ['miscmenu', '🎯 Misceláneos'],
+                    ['bugmenu', '🐛 Bugs']
+                ].map(([id, title]) => ({
+                    title,
+                    description: `Abrir ${title.replace(/^[^ ]+ /, '')}`,
+                    id: `menu_${id}`
+                }))
+            }]
+        })
+    };
+    const channelButton = {
+        name: 'cta_url',
+        buttonParamsJson: JSON.stringify({
+            display_text: 'Ver canal',
+            url: settings.whatsappChannel,
+            merchant_url: settings.whatsappChannel
+        })
+    };
+    const content = {
+        interactiveMessage: {
+            body: { text: caption },
+            footer: { text: 'NIKU MD • Comunidad oficial' },
+            nativeFlowMessage: {
+                buttons: [categoryButton, channelButton],
+                messageVersion: 1
+            }
+        }
+    };
+    if (fs.existsSync(menuImagePath)) {
+        const imageContent = await generateWAMessageContent({
+            image: fs.readFileSync(menuImagePath),
+            mimetype: 'image/jpeg'
+        }, { upload: sock.waUploadToServer });
+        content.interactiveMessage.header = {
+            title: 'NIKU MD MINI BOT',
+            hasMediaAttachment: true,
+            imageMessage: imageContent.imageMessage
+        };
+    }
+    const userJid = sock.user?.id;
+    const fullMessage = generateWAMessageFromContent(jid, content, {
+        logger: sock.logger,
+        userJid,
+        messageId: generateMessageIDV2(userJid),
+        timestamp: new Date()
+    });
+    const normalized = normalizeMessageContent(fullMessage.message);
+    const additionalNodes = [{
+        tag: 'biz',
+        attrs: {},
+        content: [{
+            tag: 'interactive',
+            attrs: { type: 'native_flow', v: '1' },
+            content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }]
+        }]
+    }];
+    if (!isJidGroup(jid)) additionalNodes.push({ tag: 'bot', attrs: { biz_bot: '1' } });
+    await sock.relayMessage(jid, fullMessage.message, {
+        messageId: fullMessage.key.id,
+        additionalNodes
+    });
+}
+
+const TOOL_DISPLAY_NAMES = {
+    ping: 'velocidad', dp: 'fotoperfil', vv: 'veruna', translate: 'traducir', base64: 'base64', qr: 'codigoqr',
+    shorturl: 'acortar', calc: 'calcular', weather: 'clima', github: 'github', ipinfo: 'infoip', tempmail: 'correotemporal',
+    fakeinfo: 'datosfalsos', binlookup: 'bin', whois: 'whois', dnslookup: 'dns', portscan: 'escaneo', screenshot: 'captura',
+    define: 'definir', google: 'buscar', wiki: 'wiki', yts: 'buscarvideo', playstore: 'tienda', npm: 'paquete'
+};
+
+async function sendCategoryMenu(sock, from, msg, title, names) {
+    const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
+    const animeAliases = commands.anime?.aliases || [];
+    const profileAliases = commands.profile?.aliases || [];
+    const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name));
+    if (!available.length) {
+        await sendSubmenuWithChannel(sock, from, `${title}\n\nNo hay comandos activos en esta categoría.`, msg);
+        return;
+    }
+    const width = 41;
+    const charWidth = (char) => {
+        const code = char.codePointAt(0);
+        if (code === 0x200d || (code >= 0xfe00 && code <= 0xfe0f) || (code >= 0x0300 && code <= 0x036f)) return 0;
+        if ((code >= 0x1f000 && code <= 0x1faff) || (code >= 0x2600 && code <= 0x27bf)) return 2;
+        return 1;
+    };
+    const visualWidth = (value) => [...String(value)].reduce((total, char) => total + charWidth(char), 0);
+    const fit = (value) => {
+        let result = '';
+        let used = 0;
+        for (const char of [...String(value)]) {
+            const next = charWidth(char);
+            if (used + next > width) break;
+            result += char;
+            used += next;
+        }
+        return result;
+    };
+    const center = (value) => {
+        const text = fit(value);
+        return `${' '.repeat(Math.max(0, Math.floor((width - visualWidth(text)) / 2)))}${text}`;
+    };
+    const lines = [
+        center(`『 ${title} 』`),
+        center('· · · ✦ · · ·'),
+        '',
+        ...available.map(name => center(`• .${TOOL_DISPLAY_NAMES[name] || name}`)),
+        '',
+        center('· · · ✦ · · ·'),
+        center(`✦ ${available.length} comando(s) disponibles ✦`)
+    ];
+    await sendSubmenuWithChannel(sock, from, ['```', lines.join('\n'), '```'].join('\n'), msg);
+}
+
+async function sendSubmenuWithChannel(sock, jid, text, quoted) {
+    const channelButton = {
+        name: 'cta_url',
+        buttonParamsJson: JSON.stringify({
+            display_text: 'Ver canal',
+            url: settings.whatsappChannel,
+            merchant_url: settings.whatsappChannel
+        })
+    };
+    const content = {
+        interactiveMessage: {
+            body: { text },
+            footer: { text: 'NIKU MD • Comunidad oficial' },
+            nativeFlowMessage: {
+                buttons: [channelButton],
+                messageVersion: 1
+            }
+        }
+    };
+    const userJid = sock.user?.id;
+    const fullMessage = generateWAMessageFromContent(jid, content, {
+        logger: sock.logger,
+        userJid,
+        messageId: generateMessageIDV2(userJid),
+        timestamp: new Date()
+    });
+    const additionalNodes = [{
+        tag: 'biz',
+        attrs: {},
+        content: [{
+            tag: 'interactive',
+            attrs: { type: 'native_flow', v: '1' },
+            content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }]
+        }]
+    }];
+    if (!isJidGroup(jid)) additionalNodes.push({ tag: 'bot', attrs: { biz_bot: '1' } });
+    try {
+        await sock.relayMessage(jid, fullMessage.message, {
+            messageId: fullMessage.key.id,
+            additionalNodes
+        });
+    } catch (error) {
+        console.error('Submenu interactive message failed:', error.message);
+        await sock.sendMessage(jid, {
+            text: `${text}\n\n📢 Canal oficial: ${settings.whatsappChannel}`
+        }, { quoted });
+    }
+}
+
+function generateMenuText(userName, session) {
+    const mode = session.isPublic ? 'Público' : 'Privado';
+    const prefix = settings.prefix || '.';
+    const botName = settings.botName || 'ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ';
+    const ownerName = settings.ownerName || 'ɴɪᴋᴜ_ʙʟᴀᴅᴇᴼᶠᶜ';
+    const version = settings.version || '3.0.0';
+    const lines = [
+        '─〔 💀 ɴɪᴋᴜ ᴍᴅ ᴍɪɴɪ ʙᴏᴛ 💀 〕─',
+        '',
+        '⚙️ ɪɴғᴏʀᴍᴀᴄɪóɴ ᴅᴇʟ ʙᴏᴛ',
+        '',
+        `🤖 ʙᴏᴛ: \`${botName}\``,
+        `👤 ᴘʀᴏᴘɪᴇᴛᴀʀɪᴏ: \`${ownerName}\``,
+        '👑 ᴄᴏ-ᴏᴡɴᴇʀ: `Bryan`',
+        `📦 ᴠᴇʀsɪóɴ: \`${version}\``,
+        `🌐 ᴍᴏᴅᴏ: \`${mode}\``,
+        '🔑 ᴘʀᴇғɪᴊᴏ: `Niku666ofc`',
+        '',
+        '『 MENÚ PRINCIPAL 』',
+        '',
+        `✨ \`${prefix}allmenu\` • \`Comandos\``,
+        `👑 \`${prefix}ownermenu\` • \`Creador\``,
+        `👥 \`${prefix}groupmenu\` • \`Grupos\``,
+        `🛡️ \`${prefix}adminmenu\` • \`Administración\``,
+        `👤 \`${prefix}profilemenu\` • \`Perfil\``,
+        `🤖 \`${prefix}aimenu\` • \`IA\``,
+        `⬇️ \`${prefix}download\` • \`Descargas\``,
+        `🪙 \`${prefix}gamemenu\` • \`Economía\``,
+        `🔗 \`${prefix}subbotmenu\` • \`Vincular subbot\``,
+        `🛠️ \`${prefix}toolsmenu\` • \`Herramientas\``,
+        `🎉 \`${prefix}funmenu\` • \`Diversión\``,
+        '',
+        '> NIKU MD • Comunidad oficial'
+    ];
+    return lines.join('\n');
+}
+
+// =================== SOCKET.IO ===================
+io.on('connection', (socket) => {
+    socket.emit('stats', getDashboardStats());
+
+    // Admin auth
+    socket.on('admin-auth', ({ username, password } = {}) => {
+        const now = Date.now();
+        if (socket.adminLockUntil && socket.adminLockUntil > now) {
+            socket.emit('admin-auth-fail');
+            return;
+        }
+        const adminUser = process.env.ADMIN_USERNAME || 'admin*';
+        const adminPass = process.env.ADMIN_PASSWORD || 'admin*1';
+        if (username === adminUser && password === adminPass) {
+            socket.authenticated = true;
+            socket.adminAttempts = 0;
+            adminSockets.add(socket);
+            socket.emit('admin-auth-success');
+            socket.emit('admin-chat-history', adminChatLogs.slice(-200));
+            socket.emit('admin-premium-data', premiumSnapshot());
+            socket.emit('admin-bots-data', botsSnapshot());
+        } else {
+            socket.adminAttempts = (socket.adminAttempts || 0) + 1;
+            if (socket.adminAttempts >= 5) {
+                socket.adminLockUntil = now + 60 * 1000;
+                socket.adminAttempts = 0;
+            }
+            socket.emit('admin-auth-fail');
+        }
+    });
+
+    socket.on('admin-premium-add', ({ jid } = {}) => {
+        if (!socket.authenticated) return;
+        const normalized = normalizePremiumJid(jid);
+        if (!normalized) {
+            socket.emit('admin-premium-status', { ok: false, message: 'Escribe un número válido con prefijo internacional.' });
+            return;
+        }
+        botData.premiumUsers[normalized] = { grantedAt: new Date().toISOString(), expiresAt: null, source: 'admin' };
+        saveBotData();
+        socket.emit('admin-premium-status', { ok: true, message: `Usuario Premium agregado: ${normalized.split('@')[0]}` });
+        socket.emit('admin-premium-data', premiumSnapshot());
+    });
+
+    socket.on('admin-premium-generate', ({ days } = {}) => {
+        if (!socket.authenticated) return;
+        const result = createPremiumToken(days);
+        socket.emit('admin-premium-token', result);
+        socket.emit('admin-premium-status', { ok: true, message: 'Token Premium generado. Cópialo y entrégaselo al usuario.' });
+        socket.emit('admin-premium-data', premiumSnapshot());
+    });
+
+    socket.on('admin-premium-data', () => {
+        if (!socket.authenticated) return;
+        socket.emit('admin-premium-data', premiumSnapshot());
+    });
+
+    socket.on('admin-promote-channel', async () => {
+        if (!socket.authenticated) return;
+        if (global.adminPromotionRunning) {
+            socket.emit('admin-promo-result', { error: 'Ya hay una promoción en curso.' });
+            return;
+        }
+        global.adminPromotionRunning = true;
+        socket.emit('admin-promo-status', { running: true, message: 'Promoción iniciada. Revisando grupos permitidos...' });
+        const totals = { sent: 0, skipped: 0, failed: 0, bots: 0 };
+        try {
+            for (const session of Object.values(sessions)) {
+                if (!session?.isConnected || !session.sock?.user) continue;
+                totals.bots++;
+                try {
+                    const state = session.promoState || (session.promoState = {});
+                    const result = await promoNikuMd.runPromotion(session.sock, state);
+                    totals.sent += result.sent;
+                    totals.skipped += result.skipped;
+                    totals.failed += result.failed;
+                } catch (error) {
+                    totals.failed++;
+                }
+            }
+            socket.emit('admin-promo-result', totals);
+        } finally {
+            global.adminPromotionRunning = false;
+            socket.emit('admin-promo-status', { running: false });
+        }
+    });
+
+    socket.on('admin-premium-remove-user', ({ jid } = {}) => {
+        if (!socket.authenticated) return;
+        const normalized = normalizePremiumJid(jid);
+        if (!normalized || !botData.premiumUsers[normalized]) {
+            socket.emit('admin-premium-status', { ok: false, message: 'No se encontró ese usuario Premium.' });
+            return;
+        }
+        delete botData.premiumUsers[normalized];
+        saveBotData();
+        socket.emit('admin-premium-status', { ok: true, message: `Premium retirado: ${normalized.split('@')[0]}` });
+        socket.emit('admin-premium-data', premiumSnapshot());
+    });
+
+    socket.on('admin-premium-remove-token', ({ id } = {}) => {
+        if (!socket.authenticated) return;
+        if (!id || !botData.premiumTokens[id]) {
+            socket.emit('admin-premium-status', { ok: false, message: 'No se encontró ese token.' });
+            return;
+        }
+        delete botData.premiumTokens[id];
+        saveBotData();
+        socket.emit('admin-premium-status', { ok: true, message: 'Token eliminado correctamente.' });
+        socket.emit('admin-premium-data', premiumSnapshot());
+    });
+
+    socket.on('set-user', (userId) => {
+        userSockets[userId] = socket.id;
+        if (!sessions[userId]) sessions[userId] = new BotSession(userId);
+        sessions[userId].sendConnectionStatus();
+        broadcastDashboardStats();
+    });
+
+    // Pair request - still available via web for web users
+    socket.on('pair-request', async ({ userId, number }) => {
+        if (sessions[userId]) {
+            if (!botData.statusSettings[userId]) {
+                botData.statusSettings[userId] = {
+                    autoStatus: false,
+                    autoSeen: false,
+                    autoLike: false,
+                    autoDownload: false,
+                    isPublic: true
+                };
+                saveBotData();
+            }
+            sessions[userId].tgChatId = null;
+            await sessions[userId].initialize(number);
+        } else {
+            sessions[userId] = new BotSession(userId);
+            if (!botData.statusSettings[userId]) {
+                botData.statusSettings[userId] = {
+                    autoStatus: false,
+                    autoSeen: false,
+                    autoLike: false,
+                    autoDownload: false,
+                    isPublic: true
+                };
+                saveBotData();
+            }
+            sessions[userId].tgChatId = null;
+            await sessions[userId].initialize(number);
+        }
+    });
+
+    // BROADCAST MESSAGE - Send to all connected users
+    socket.on('broadcast', async ({ message }) => {
+        if (!socket.authenticated) return;
+
+        const activeBots = getAllActiveSockets();
+        let totalSent = 0;
+        let totalChats = 0;
+
+        for (const bot of activeBots) {
+            try {
+                // Get all chats for this bot
+                const allChats = Object.keys(bot.sock.chats || {});
+                const personalChats = allChats.filter(jid => jid.endsWith('@s.whatsapp.net') || jid.endsWith('@g.us'));
+
+                for (const jid of personalChats) {
+                    try {
+                        await bot.sock.sendMessage(jid, {
+                            text: `\u{1F4E2} *BROADCAST MESSAGE* \u{1F4E2}\n\n${message}\n\n_From: SYED MINI Bot Admin_`
+                        });
+                        totalSent++;
+                    } catch (e) {}
+                }
+                totalChats += personalChats.length;
+            } catch (e) {
+                console.error('Broadcast error:', e.message);
+            }
+        }
+
+        // Save to history
+        botData.broadcastHistory.unshift({
+            message,
+            timestamp: new Date().toISOString(),
+            totalSent,
+            totalBots: activeBots.length
+        });
+        if (botData.broadcastHistory.length > 50) botData.broadcastHistory.pop();
+        saveBotData();
+
+        socket.emit('broadcast-result', { totalSent, totalBots: activeBots.length, totalChats });
+    });
+
+    // STOP BOT - Disconnect a specific bot
+    socket.on('stop-bot', async ({ sessionId }) => {
+        if (!socket.authenticated) return;
+
+        if (sessions[sessionId] && sessions[sessionId].sock) {
+            try {
+                await sessions[sessionId].sock.logout();
+                sessions[sessionId].isConnected = false;
+                if (botData.subbots[sessionId]) {
+                    botData.subbots[sessionId].status = 'revocado';
+                    botData.subbots[sessionId].revokedAt = new Date().toISOString();
+                    saveBotData();
+                }
+                delete sessions[sessionId];
+                socket.emit('bot-stopped', { sessionId, success: true });
+                socket.emit('admin-bots-data', botsSnapshot());
+            } catch (e) {
+                socket.emit('bot-stopped', { sessionId, success: false, error: e.message });
+            }
+        }
+    });
+
+    // STOP ALL BOTS
+    socket.on('stop-all-bots', async () => {
+        if (!socket.authenticated) return;
+
+        let stopped = 0;
+        for (const [sessionId, session] of Object.entries(sessions)) {
+            try {
+                if (session.sock) {
+                    await session.sock.logout();
+                    session.isConnected = false;
+                    if (botData.subbots[sessionId]) {
+                        botData.subbots[sessionId].status = 'revocado';
+                        botData.subbots[sessionId].revokedAt = new Date().toISOString();
+                    }
+                    stopped++;
+                }
+            } catch (e) {}
+        }
+        saveBotData();
+        socket.emit('all-bots-stopped', { stopped });
+    });
+
+    // GET CONNECTED BOTS LIST
+    socket.on('get-bots-list', () => {
+        if (!socket.authenticated) return;
+        socket.emit('bots-list', botsSnapshot());
+        socket.emit('admin-bots-data', botsSnapshot());
+    });
+
+    // GET BROADCAST HISTORY
+    socket.on('get-broadcast-history', () => {
+        if (!socket.authenticated) return;
+        socket.emit('broadcast-history', botData.broadcastHistory || []);
+    });
+
+    socket.on('disconnect', () => {
+        adminSockets.delete(socket);
+        for (const [userId, socketId] of Object.entries(userSockets)) {
+            if (socketId === socket.id) {
+                delete userSockets[userId];
+                break;
+            }
+        }
+        broadcastDashboardStats();
+    });
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, async () => {
+    console.log(`\u{1F311} niku666MDBOT v${settings.version} Server running on port ${PORT}`);
+    console.log(`\u{1F4E1} Total commands loaded: 120+`);
+    console.log(`\u{1F310} Web Dashboard: http://localhost:${PORT}`);
+    if (githubBackup.enabled()) {
+        try {
+            const restored = await githubBackup.restoreBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
+            if (restored) loadBotDataFromDisk();
+        } catch (error) {
+            console.error('[Backup] No se pudo restaurar el estado cifrado:', error.response?.data?.message || error.message);
+        }
+    } else {
+        console.log('[Backup] GitHub cifrado no configurado; usando el almacenamiento local persistente.');
+    }
+    await loadExistingSessions();
+    broadcastDashboardStats();
+});
+
+setInterval(broadcastDashboardStats, 5000).unref();
