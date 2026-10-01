@@ -4,7 +4,7 @@ const express = require('express')
 const axios = require('axios')
 
 function c(t){
- const m={'a':'ᴀ','b':'ʙ','c':'ᴄ','d':'ᴅ','e':'ᴇ','f':'ғ','g':'ɢ','h':'ʜ','i':'ɪ','j':'ᴊ','k':'ᴋ','l':'ʟ','m':'ᴍ','n':'ɴ','o':'ᴏ','p':'ᴘ','q':'ǫ','r':'ʀ','s':'s','t':'ᴛ','u':'ᴜ','v':'ᴠ','w':'ᴡ','x':'x','y':'ʏ','z':'ᴢ','A':'ᴀ','B':'ʙ','C':'ᴄ','D':'ᴅ','E':'ᴇ','F':'ғ','G':'ɢ','H':'ʜ','I':'ɪ','J':'ᴊ','K':'ᴋ','L':'ʟ','M':'ᴍ','N':'ɴ','O':'ᴏ','P':'ᴘ','Q':'ǫ','R':'ʀ','S':'s','T':'ᴛ','U':'ᴜ','V':'ᴠ','W':'ᴡ','X':'x','Y':'ʏ','Z':'ᴢ'}
+ const m={'a':'ᴀ','b':'ʙ','c':'ᴄ','d':'ᴅ','e':'ᴇ','f':'ғ','g':'ɢ','h':'ʜ','i':'ɪ','j':'ᴊ','k':'ᴋ','l':'ʟ','m':'ᴍ','n':'ɴ','o':'ᴏ','p':'ᴘ','q':'ǫ','r':'ʀ','s':'s','t':'ᴛ','u':'ᴜ','v':'ᴠ','w':'ᴡ','x':'x','y':'ʏ','z':'ᴢ'}
  return t.split('').map(x=>m[x]||x).join('')
 }
 
@@ -14,96 +14,103 @@ const PORT = process.env.PORT || 3000
 let sock=null, pendingWelcome=false
 
 async function IA(q){
- try{ let r=await axios.get(`https://api.davidcyriltech.my.id/ai/chatbot?query=${encodeURIComponent(q)}`,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
- try{ let r=await axios.get(`https://api.davidcyriltech.my.id/ai/gemini?query=${encodeURIComponent(q)}`,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
- return null
+ try{ let r=await axios.get(`https://api.davidcyriltech.my.id/ai/chatbot?query=${encodeURIComponent(q)}`,{timeout:10000}); if(r.data?.result) return r.data.result }catch{}
+ return "No pude responder pinga"
 }
 
 async function welcome(){
  if(!sock?.user?.id) return
- const msg=`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('todo arreglado pinga')}\n│ Usa.allmenu\n╰─ • ${c('online')} • ─`
- try{ await new Promise(r=>setTimeout(r,2000)); await sock.sendMessage(sock.user.id,{text:msg}) }catch{}
+ try{
+  await new Promise(r=>setTimeout(r,2000))
+  await sock.sendMessage(sock.user.id,{text:`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('conectado pinga')}\n│ Pon.allmenu\n╰─ • ${c('online')} • ─`})
+ }catch{}
 }
 
 async function startBot(){
  const { state, saveCreds } = await useMultiFileAuthState('./auth_info')
  const { version } = await fetchLatestBaileysVersion()
- sock = makeWASocket({ version, logger:P({level:'silent'}), printQRInTerminal:false, auth:{creds:state.creds, keys:makeCacheableSignalKeyStore(state.keys,P({level:'silent'}))}, browser:["Debian","Chrome","118.0.0.0"], syncFullHistory:false, markOnlineOnConnect:true, getMessage:async()=>undefined })
+ sock = makeWASocket({
+   version,
+   logger:P({level:'silent'}),
+   printQRInTerminal:false,
+   auth:{creds:state.creds, keys:makeCacheableSignalKeyStore(state.keys,P({level:'silent'}))},
+   browser:["Debian","Chrome","118.0.0.0"],
+   syncFullHistory:false,
+   markOnlineOnConnect:true,
+   getMessage:async()=>undefined
+ })
  sock.ev.on('creds.update', saveCreds)
  sock.ev.on('connection.update', async(u)=>{
-   if(u.connection==='close' && u.lastDisconnect?.error?.output?.statusCode!==DisconnectReason.loggedOut) setTimeout(()=>startBot(),2500)
+   if(u.connection==='close' && u.lastDisconnect?.error?.output?.statusCode!==DisconnectReason.loggedOut) setTimeout(()=>startBot(),3000)
    if(u.connection==='open' && pendingWelcome){ pendingWelcome=false; await welcome() }
  })
+
  sock.ev.on('messages.upsert', async({type,messages})=>{
    if(type!=='notify') return
    const m=messages[0]; if(!m?.message) return
-   const from=m.key.remoteJid; if(!from||from==='status@broadcast') return
-
-   // FIX PARA TU FOTO - QUE RESPONDA EN (Tú)
-   const myId = sock.user?.id || ""
-   const myNum = myId.split('@')[0].split(':')[0]
-   const fromNum = from.split('@')[0].split(':')[0]
-   const isSelfChat = from===myId || myNum!=="" && fromNum===myNum
-   if(m.key.fromMe &&!isSelfChat) return
+   const from=m.key.remoteJid; if(!from||from==='status@broadcast'||from.endsWith('@g.us')) return
 
    const txt=m.message.conversation||m.message.extendedTextMessage?.text||m.message.imageMessage?.caption||""; if(!txt) return
+
+   // FIX DEFINITIVO PARA (Tú) - Si es mensaje del bot, ignorarlo para no hacer loop, si es tuyo con comando dejarlo pasar
+   if(m.key.fromMe){
+     if(txt.includes('ᴊᴋ ʙᴏᴛ') || txt.includes('ONLINE') || txt.includes('APIS PREMIUM') || txt.includes('conectado pinga')) return
+   }
+
    const args=txt.trim().split(/ +/); const cmd=args[0].toLowerCase(); const q=args.slice(1).join(' ')
    const send=async(t)=>{ await sock.sendMessage(from,{text:t}) }
+   console.log(`[JK] ${from}: ${cmd}`)
 
-   // UN SOLO CODIGO.allmenu
-   if(cmd==='.allmenu' || cmd==='.menu'){
+   // UN SOLO COMANDO COMO PEDISTE
+   if(cmd==='.allmenu' || cmd==='.menu' || cmd==='.toolsmenu' || cmd==='.aimenu'){
      return await send(`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─
 │ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ
-│ ${c('24 tools bkn')}
+│ ${c('menu unico bkn')}
 │
-│ 🛠️.ping
-│ 🛠️.qr texto
-│ 🛠️.base64 texto
-│ 🛠️.calc 5+5
-│ 🛠️.shorturl link
-│ 🛠️.weather Habana
-│ 🛠️.github usuario
-│ 🛠️.ipinfo 8.8.8.8
-│ 🛠️.tempmail
-│ 🛠️.fakeinfo
-│ 🛠️.binlookup 123456
-│ 🛠️.define hello
-│ 🛠️.wiki Cuba
-│ 🛠️.google tema
-│ 🛠️.translate es hello
-│ 🛠️.screenshot url
-│ 🛠️.yts tema
-│ 🛠️.playstore app
-│ 🛠️.npm baileys
-│ 🤖.ia pregunta
+│ •.ping - velocidad
+│ •.qr texto - genera qr
+│ •.base64 texto
+│ •.calc 5+5
+│ •.shorturl https://google.com
+│ •.weather Habana
+│ •.github usuario
+│ •.ipinfo 8.8.8.8
+│ •.tempmail
+│ •.fakeinfo
+│ •.binlookup 123456
+│ •.define hola
+│ •.wiki Cuba
+│ •.google tema
+│ •.screenshot url
+│ •.ia pregunta
 │
-│ Pon.allmenu
+│ Todo en.allmenu pinga
 ╰─ • ${c('online')} • ─`)
    }
 
-   if(cmd==='.ping'){ return await send(`⚡ JAKUDOSHY ${Date.now()%1000}ms`) }
-   if(cmd==='.qr' && q){ try{ await sock.sendMessage(from,{image:{url:`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(q)}`},caption:`QR: ${q}`}) }catch{} return }
-   if(cmd==='.base64' && q){ return await send(Buffer.from(q).toString('base64')) }
-   if(cmd==='.calc' && q){ try{ return await send(`${q} = ${eval(q.replace(/[^0-9+\-*/().]/g,''))}`)}catch{ return await send('error')} }
-   if(cmd==='.shorturl' && q){ try{ let r=await axios.get(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(q)}`); return await send(r.data)}catch{} }
-   if(cmd==='.weather' && q){ try{ let r=await axios.get(`https://wttr.in/${encodeURIComponent(q)}?format=3`); return await send(r.data)}catch{} }
-   if(cmd==='.github' && q){ try{ let r=await axios.get(`https://api.github.com/users/${q}`); return await send(`${r.data.login} - ${r.data.html_url}`)}catch{} }
-   if(cmd==='.ipinfo' && q){ try{ let r=await axios.get(`http://ip-api.com/json/${q}`); return await send(`${r.data.query} ${r.data.country}-${r.data.city}`)}catch{} }
-   if(cmd==='.tempmail'){ try{ let r=await axios.get('https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1'); return await send(r.data[0])}catch{} }
-   if(cmd==='.binlookup' && q){ try{ let r=await axios.get(`https://lookup.binlist.net/${q}`,{headers:{'Accept-Version':'3'}}); return await send(`${r.data.bank?.name||'N/A'} ${r.data.scheme}`)}catch{ return await send('BIN invalido')} }
-   if(cmd==='.wiki' && q){ try{ let r=await axios.get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(q)}`); return await send(r.data.extract)}catch{} }
-   if(cmd==='.google' && q){ return await send(`https://www.google.com/search?q=${encodeURIComponent(q)}`) }
-   if(cmd==='.ia' || cmd==='.ai'){ let prompt=q||"hola"; await sock.sendPresenceUpdate('composing', from); let r=await IA(prompt); if(r) await sock.sendMessage(from,{text:r}); await sock.sendPresenceUpdate('paused', from) }
+   if(cmd==='.ping'){ return await send(`⚡ Pong! JAKUDOSHY ${Date.now()%1000}ms`) }
+   if(cmd==='.qr'){ if(!q) return await send('Uso:.qr texto'); try{ await sock.sendMessage(from,{image:{url:`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(q)}`},caption:q}) }catch{} return }
+   if(cmd==='.base64'){ if(!q) return await send('.base64 texto'); return await send(Buffer.from(q).toString('base64')) }
+   if(cmd==='.calc'){ try{ return await send(`${q} = ${eval(q.replace(/[^0-9+\-*/().%]/g,''))}`)}catch{ return await send('error calc')} }
+   if(cmd==='.shorturl'){ try{ let r=await axios.get(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(q)}`); return await send(r.data)}catch{} return }
+   if(cmd==='.weather'){ try{ let r=await axios.get(`https://wttr.in/${encodeURIComponent(q)}?format=3`); return await send(r.data)}catch{} return }
+   if(cmd==='.github'){ try{ let r=await axios.get(`https://api.github.com/users/${q}`); return await send(`${r.data.login}\n${r.data.html_url}`)}catch{} return }
+   if(cmd==='.ipinfo'){ try{ let r=await axios.get(`http://ip-api.com/json/${q}`); return await send(`${r.data.query} ${r.data.country}-${r.data.city}`)}catch{} return }
+   if(cmd==='.tempmail'){ try{ let r=await axios.get('https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1'); return await send(r.data[0])}catch{} return }
+   if(cmd==='.binlookup'){ try{ let r=await axios.get(`https://lookup.binlist.net/${q}`,{headers:{'Accept-Version':'3'}}); return await send(`${r.data.scheme} ${r.data.type} ${r.data.bank?.name||''}`)}catch{ return await send('BIN invalido')} }
+   if(cmd==='.wiki'){ try{ let r=await axios.get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(q)}`); return await send(r.data.extract)}catch{} return }
+   if(cmd==='.google'){ return await send(`https://www.google.com/search?q=${encodeURIComponent(q)}`) }
+   if(cmd==='.screenshot'){ try{ await sock.sendMessage(from,{image:{url:`https://api.davidcyriltech.my.id/screenshot?url=${encodeURIComponent(q)}`},caption:q}) }catch{} return }
+   if(cmd==='.ia' || cmd==='.ai' || cmd.startsWith('.ia')){ let prompt=q||txt.replace(/^\.ia/i,'').trim(); await sock.sendPresenceUpdate('composing',from); let r=await IA(prompt); await sock.sendMessage(from,{text:r}); await sock.sendPresenceUpdate('paused',from); return }
  })
 }
 
 app.get('/pair', async(req,res)=>{
  try{
-   let num=req.query.number?.replace(/[^0-9]/g,''); if(!num) return res.json({error:"error"})
+   let num=req.query.number?.replace(/[^0-9]/g,''); if(!num) return res.json({error:"numero"})
    if(!sock){ await startBot(); await new Promise(r=>setTimeout(r,3000)) }
-   if(!sock) return res.json({error:"iniciando"})
    pendingWelcome=true; const code=await sock.requestPairingCode(num); return res.json({code})
- }catch{ return res.json({error:"espera 30s"}) }
+ }catch{ return res.json({error:"espera 30s y reintenta"}) }
 })
 
 app.get('/', (req,res)=>{
@@ -158,66 +165,19 @@ input::placeholder{text-align:center;color:rgba(255,255,255,0.5)}
 </style></head><body>
 <div class="bg"></div><canvas id="c"></canvas>
 <div class="topbar"><div class="topbar-text">ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div></div>
-<div id="loader">
-<div class="load-box">
-<div class="load-title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div>
-<div class="load-sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div>
-<div class="bar-bg"><div class="bar-fill" id="bar"></div></div>
-<div class="percent" id="percent">0%</div>
-<div class="logs" id="logs"></div>
-</div>
-</div>
-<div class="wrap" id="mainContent">
-<div class="box">
-<div class="header"><div class="title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div></div>
-<div class="card">
-<div class="label">ᴠɪɴᴄᴜʟᴀᴄɪᴏɴ ᴘʀᴇᴍɪᴜᴍ</div>
-<div class="input-wrap"><div class="input-inner"><div class="plus">+</div><input id="num" placeholder="53XXXXXXXX"></div></div>
-<button class="btn" id="btn" onclick="gen()"><div class="btn-inner" id="btnTxt">ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ</div></button>
-<div class="codeBox" id="codeBox"><div class="code" id="codeText"></div></div>
-</div>
-<div class="steps">
-<div class="steps-title">ᴘᴀsᴏs ᴘᴀʀᴀ ᴠɪɴᴄᴜʟᴀʀ:</div>
-<div class="step"><div class="step-n">1</div><div class="step-t"><b>ᴘᴏɴ ᴛᴜ ɴᴜᴍᴇʀᴏ</b> ᴄᴏɴ ᴄᴏᴅɪɢᴏ ᴅᴇ ᴘᴀɪs</div></div>
-<div class="step"><div class="step-n">2</div><div class="step-t">ᴅᴀʟᴇ <b>ɢᴇɴᴇʀᴀʀ</b> ʏ ᴄᴏᴘɪᴀ ᴇʟ ᴄᴏᴅɪɢᴏ</div></div>
-<div class="step"><div class="step-n">3</div><div class="step-t">ᴡʜᴀᴛsᴀᴘᴘ > <b>ᴅɪsᴘᴏsɪᴛɪᴠᴏs ᴠɪɴᴄᴜʟᴀᴅᴏs</b></div></div>
-<div class="step"><div class="step-n">4</div><div class="step-t"><b>ᴠɪɴᴄᴜʟᴀʀ ᴄᴏɴ ᴇʟ ᴄᴏᴅɪɢᴏ</b></div></div>
-</div>
-<div class="spacer"></div>
-</div>
-</div>
-<a class="telegram-float" href="https://t.me/gg_no_root" target="_blank">
-  <div class="telegram-inner">
-    <svg viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.16.16-.295.295-.605.295l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.12l-6.893 4.326-2.967-.945c-.64-.203-.658-.64.135-.954l11.6-4.458c.538-.196 1.006.12.832.941z"/></svg>
-    <span class="telegram-text">ᴊᴋ ᴄʜᴀɴɴᴇʟꫂꤪꤨᴼᶠᶜ</span>
-  </div>
-</a>
+<div id="loader"><div class="load-box"><div class="load-title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="load-sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div><div class="bar-bg"><div class="bar-fill" id="bar"></div></div><div class="percent" id="percent">0%</div><div class="logs" id="logs"></div></div></div>
+<div class="wrap" id="mainContent"><div class="box"><div class="header"><div class="title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div></div><div class="card"><div class="label">ᴠɪɴᴄᴜʟᴀᴄɪᴏɴ ᴘʀᴇᴍɪᴜᴍ</div><div class="input-wrap"><div class="input-inner"><div class="plus">+</div><input id="num" placeholder="53XXXXXXXX"></div></div><button class="btn" id="btn" onclick="gen()"><div class="btn-inner" id="btnTxt">ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ</div></button><div class="codeBox" id="codeBox"><div class="code" id="codeText"></div></div></div><div class="steps"><div class="steps-title">ᴘᴀsᴏs:</div><div class="step"><div class="step-n">1</div><div class="step-t"><b>ᴘᴏɴ ᴛᴜ ɴᴜᴍᴇʀᴏ</b></div></div><div class="step"><div class="step-n">2</div><div class="step-t">ᴅᴀʟᴇ <b>ɢᴇɴᴇʀᴀʀ</b></div></div><div class="step"><div class="step-n">3</div><div class="step-t">ᴡʜᴀᴛsᴀᴘᴘ > <b>ᴠɪɴᴄᴜʟᴀᴅᴏs</b></div></div></div><div class="spacer"></div></div></div>
+<a class="telegram-float" href="https://t.me/gg_no_root" target="_blank"><div class="telegram-inner"><svg viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.16.16-.295.295-.605.295l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.12l-6.893 4.326-2.967-.945c-.64-.203-.658-.64.135-.954l11.6-4.458c.538-.196 1.006.12.832.941z"/></svg><span class="telegram-text">ᴊᴋ ᴄʜᴀɴɴᴇʟꫂꤪꤨᴼᶠᶜ</span></div></a>
 <script>
 const c=document.getElementById('c'),x=c.getContext('2d');function rs(){c.width=innerWidth;c.height=innerHeight}rs();window.addEventListener('resize',rs);
 let cols=Math.floor(innerWidth/10), drops=new Array(cols).fill(0);
 function matrix(){x.fillStyle='rgba(0,0,0,0.12)';x.fillRect(0,0,c.width,c.height);x.font='16px monospace';drops.forEach((y,i)=>{x.fillStyle='#ff0000';x.fillText('0',i*10,y*10);if(y*10>c.height && Math.random()>.97) drops[i]=0;drops[i]++});requestAnimationFrame(matrix)}matrix();
-const logsData=["[ sɪsᴛᴇᴍᴀ ] ɪɴɪᴄɪᴀɴᴅᴏ ᴍᴏᴅᴜʟᴏs...","[ sɪsᴛᴇᴍᴀ ] ᴄᴀʀɢᴀɴᴅᴏ ᴀᴘɪs ᴘʀᴇᴍɪᴜᴍ...","[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ɢᴘᴛ-4 ✓","[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ɢᴇᴍɪɴɪ ᴘʀᴏ ✓","[ sɪsᴛᴇᴍᴀ ] 24 ᴛᴏᴏʟs ✓","[ sɪsᴛᴇᴍᴀ ] sᴇʀᴠɪᴅᴏʀ ᴏɴʟɪɴᴇ ✓"];
+const logsData=["[ sɪsᴛᴇᴍᴀ ] ɪɴɪᴄɪᴀɴᴅᴏ...","[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪs ᴘʀᴇᴍɪᴜᴍ...","[ sɪsᴛᴇᴍᴀ ] ɢᴘᴛ-4 ✓","[ sɪsᴛᴇᴍᴀ ] ɢᴇᴍɪɴɪ ✓","[ sɪsᴛᴇᴍᴀ ] 24 ᴛᴏᴏʟs ✓","[ sɪsᴛᴇᴍᴀ ] ᴏɴʟɪɴᴇ ✓"];
 let pct=0; const bar=document.getElementById('bar'), perc=document.getElementById('percent'), logs=document.getElementById('logs'), loader=document.getElementById('loader'), main=document.getElementById('mainContent');
-function addLog(i){ if(i>=logsData.length) return; const d=document.createElement('div'); d.className='log-line'; d.innerHTML=logsData[i]; logs.appendChild(d); logs.scrollTop=logs.scrollHeight; }
+function addLog(i){ if(i>=logsData.length) return; const d=document.createElement('div'); d.className='log-line'; d.innerHTML=logsData[i]; logs.appendChild(d); }
 let logIdx=0; addLog(0);
-let interval=setInterval(()=>{
- pct+= Math.random()*4+1; if(pct>100) pct=100;
- bar.style.width=pct+'%'; perc.innerText=Math.floor(pct)+'%';
- if(pct>14 && logIdx==0){logIdx=1; addLog(1)}
- if(pct>28 && logIdx==1){logIdx=2; addLog(2)}
- if(pct>42 && logIdx==2){logIdx=3; addLog(3)}
- if(pct>56 && logIdx==3){logIdx=4; addLog(4)}
- if(pct>70 && logIdx==4){logIdx=5; addLog(5)}
- if(pct>=100){
-  clearInterval(interval);
-  perc.innerText='100%'; bar.style.width='100%';
-  setTimeout(()=>{ loader.style.transition='opacity.6s'; loader.style.opacity='0'; setTimeout(()=>{ loader.style.display='none'; main.style.display='block'; },600)},400)
- }
-}, 45);
+let interval=setInterval(()=>{ pct+= Math.random()*5+2; if(pct>100) pct=100; bar.style.width=pct+'%'; perc.innerText=Math.floor(pct)+'%'; if(pct>20&&logIdx==0){logIdx=1;addLog(1)} if(pct>40&&logIdx==1){logIdx=2;addLog(2)} if(pct>60&&logIdx==2){logIdx=3;addLog(3)} if(pct>80&&logIdx==3){logIdx=4;addLog(4)} if(pct>=100){ clearInterval(interval); setTimeout(()=>{ loader.style.opacity='0'; setTimeout(()=>{ loader.style.display='none'; main.style.display='block'; },600)},300) } }, 40);
 async function gen(){const n=document.getElementById('num').value.trim().replace(/[^0-9]/g,'');if(!n) return;document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀɴᴅᴏ...';try{const r=await fetch('/pair?number='+encodeURIComponent(n)).then(r=>r.json());if(r.error){alert(r.error);document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ';return;}document.getElementById('codeText').innerText=r.code;document.getElementById('codeBox').style.display='block';document.getElementById('btnTxt').innerText=r.code;}catch{document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ';}}
 </script></body></html>`)
 })
-app.listen(PORT, ()=>{
-  console.log(`[ ${c('SISTEMA')} ] ${c('servidor premium online')}`)
-  startBot()
-})
+app.listen(PORT, ()=>{ console.log('JK ONLINE'); startBot() })
