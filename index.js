@@ -4,14 +4,11 @@ const express = require('express')
 const axios = require('axios')
 const app = express()
 const PORT = process.env.PORT || 3000
-let sock=null, pendingWelcome=false
-
-function c(t){ const m={'a':'ᴀ','b':'ʙ','c':'ᴄ','d':'ᴅ','e':'ᴇ','f':'ғ','g':'ɢ','h':'ʜ','i':'ɪ','j':'ᴊ','k':'ᴋ','l':'ʟ','m':'ᴍ','n':'ɴ','o':'ᴏ','p':'ᴘ','q':'ǫ','r':'ʀ','s':'s','t':'ᴛ','u':'ᴜ','v':'ᴠ','w':'ᴡ','x':'x','y':'ʏ','z':'ᴢ'}; return t.split('').map(x=>m[x]||x).join('') }
+let sock=null
 
 async function IA(q){
- try{ const mm=q.match(/(\d+)\s*([\+\-\*\/])\s*(\d+)/); if(mm){ let a=+mm[1],b=+mm[3]; let r=mm[2]==='+'?a+b:mm[2]==='-'?a-b:mm[2]==='*'?a*b:a/b; return `${a} ${mm[2]} ${b} = ${r}` } }catch{}
+ try{ let m=q.match(/(\d+)\s*([\+\-\*\/])\s*(\d+)/); if(m){ let a=+m[1],b=+m[3],o=m[2]; let r=o=='+'?a+b:o=='-'?a-b:o=='*'?a*b:a/b; return `${a} ${o} ${b} = ${r}` } }catch{}
  try{ let r=await axios.get("https://api.davidcyriltech.my.id/ai/chatbot?query="+encodeURIComponent(q),{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
- try{ let r=await axios.get("https://api.davidcyriltech.my.id/ai/gemini?query="+encodeURIComponent(q),{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
  return q
 }
 
@@ -25,58 +22,34 @@ async function startBot(){
    if(type!=='notify') return
    const m=messages[0]; if(!m?.message) return
    const from=m.key.remoteJid; if(!from||from==='status@broadcast') return
-
-   // MECANISMO UNIVERSAL - NO LO TOQUES - ARREGLA TU +39 Y EL DE TODOS
-   const myRaw = sock.user?.id || ""
-   const myLid = myRaw.split(':')[0] + '@s.whatsapp.net'
-   const isSelfChat = from===myRaw || from===myLid
-   if(m.key.fromMe &&!isSelfChat) return
-
-   const txt=m.message.conversation||m.message.extendedTextMessage?.text||m.message.imageMessage?.caption||""; if(!txt) return
-   const args=txt.trim().split(/ +/); const cmd=args[0].toLowerCase(); const q=args.slice(1).join(' ')
+   const myRaw=sock.user?.id||""; const myLid=myRaw.split(':')[0]+'@s.whatsapp.net'
+   if(m.key.fromMe && from!==myRaw && from!==myLid) return
+   const txt=m.message.conversation||m.message.extendedTextMessage?.text||""; if(!txt) return
+   const cmd=txt.trim().split(/ +/)[0].toLowerCase(); const q=txt.trim().split(/ +/).slice(1).join(' ')
    const send=t=>sock.sendMessage(from,{text:t})
-
-   if(cmd==='.menu'||cmd==='.allmenu') return await send(`╭─ ᴊᴋ ʙᴏᴛ ᴊᴀᴋᴜᴅᴏѕʜʏ ─\n│.toolsmenu\n│.aimenu\n│.ia pregunta\n╰─ online`)
-
-   if(cmd==='.toolsmenu') return await send("TOOLS JAKUDOSHY\n.ping\n.qr texto\n.base64 texto\n.calc 2+2\n.shorturl url\n.weather ciudad\n.github user\n.ipinfo ip\n.tempmail\n.fakeinfo\n.binlookup bin\n.define palabra\n.wiki tema\n.google tema\n.translate texto\n.screenshot url\n.yts cancion\n.playstore app\n.npm pkg\n.trt es en hola")
-
-   if(cmd==='.aimenu') return await send(".ia.ai.gali.chatbot")
-
-   // TOOLS REALES
-   if(cmd==='.ping'){ let s=Date.now(); await send('pong'); return await send(`${Date.now()-s}ms`) }
-   if(cmd==='.qr'&&q) return await sock.sendMessage(from,{image:{url:`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(q)}`},caption:q})
-   if(cmd==='.base64'&&q) return await send(Buffer.from(q).toString('base64'))
-   if(cmd==='.calc'){ try{ return await send(`${q}=${eval(q.replace(/[^0-9+\-*/().]/g,''))}`)}catch{} }
-   if(cmd==='.shorturl'&&q){ try{ let r=await axios.get(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(q)}`); return await send(r.data)}catch{} }
-   if(cmd==='.weather'&&q){ try{ let r=await axios.get(`https://wttr.in/${encodeURIComponent(q)}?format=3`); return await send(r.data)}catch{} }
-   if(cmd==='.github'&&q){ try{ let r=await axios.get(`https://api.github.com/users/${q}`); return await send(`${r.data.login} repos:${r.data.public_repos}`)}catch{} }
-   if(cmd==='.ipinfo'&&q){ try{ let r=await axios.get(`http://ip-api.com/json/${q}`); return await send(`${r.data.query} ${r.data.country} ${r.data.city}`)}catch{} }
-   if(cmd==='.tempmail'){ try{ let r=await axios.get('https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1'); return await send(r.data[0])}catch{} }
-   if(cmd==='.fakeinfo'){ try{ let r=await axios.get('https://randomuser.me/api/'); let u=r.data.results[0]; return await send(`${u.name.first} ${u.email}`)}catch{} }
-   if(cmd==='.binlookup'&&q){ try{ let r=await axios.get(`https://lookup.binlist.net/${q}`,{headers:{'Accept-Version':'3'}}); return await send(`${q} ${r.data.scheme} ${r.data.country?.name}`)}catch{ return await send('bin malo')} }
-   if(cmd==='.define'&&q){ try{ let r=await axios.get(`https://api.dictionaryapi.dev/api/v2/entries/en/${q}`); return await send(r.data[0].meanings[0].definitions[0].definition)}catch{} }
-   if(cmd==='.wiki'&&q){ try{ let r=await axios.get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(q)}`); return await send(r.data.extract)}catch{} }
-   if(cmd==='.google'&&q) return await send(`https://www.google.com/search?q=${encodeURIComponent(q)}`)
-   if(cmd==='.screenshot'&&q){ try{ return await sock.sendMessage(from,{image:{url:`https://api.davidcyriltech.my.id/screenshot?url=${encodeURIComponent(q)}`}})}catch{} }
-
-   // IA
-   if(['.ia','.ai','.gali','.chatbot','.bot','.gpt'].includes(cmd)||txt.toLowerCase().startsWith('ia ')){
-     let prompt=txt.replace(/^\.(ia|ai|gali|chatbot|bot|gpt)/i,'').replace(/^ia /i,'').trim()||'Hola'
-     await sock.sendPresenceUpdate('composing', from)
-     let res=await IA(prompt)
-     await sock.sendMessage(from,{text:res})
-     await sock.sendPresenceUpdate('paused', from)
+   if(cmd==='.menu') return await send("JK BOT JAKUDOSHY\n.toolsmenu\n.ia pregunta\n.ping\n.qr")
+   if(cmd==='.toolsmenu') return await send(".ping.qr.base64.calc.shorturl.weather.github.ipinfo.tempmail.fakeinfo.binlookup.define.wiki.google.screenshot")
+   if(cmd==='.ping'){ let s=Date.now(); await send('pong'); return await send(Date.now()-s+'ms') }
+   if(cmd==='.qr'&&q) return await sock.sendMessage(from,{image:{url:`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(q)}`}})
+   if(cmd==='.calc'){ try{ return await send(eval(q.replace(/[^0-9+\-*/().]/g,''))+'')}catch{} }
+   if(['.ia','.ai','.gali'].includes(cmd)||txt.toLowerCase().startsWith('ia ')){
+     let pr=txt.replace(/^\.(ia|ai|gali)/i,'').replace(/^ia /i,'').trim(); let r=await IA(pr); await sock.sendMessage(from,{text:r})
    }
  })
 }
 
 app.get('/pair', async(req,res)=>{
- try{
-   let num=req.query.number?.replace(/[^0-9]/g,''); if(!num) return res.json({error:"no number"})
-   if(!sock){ await startBot(); await new Promise(r=>setTimeout(r,3000)) }
-   const code=await sock.requestPairingCode(num); return res.json({code})
- }catch(e){ return res.json({error:"espera 10s"}) }
+ let num=req.query.number?.replace(/[^0-9]/g,''); if(!num) return res.json({error:"pon numero"})
+ if(!sock){ await startBot(); await new Promise(r=>setTimeout(r,2000)) }
+ try{ let code=await sock.requestPairingCode(num); res.json({code}) }catch(e){ res.json({error:"espera 20s y prueba de nuevo"}) }
 })
 
-app.get('/', (req,res)=>{ res.send("JK BOT JAKUDOSHY - PRIVADO UNIVERSAL FIX") })
+app.get('/', (req,res)=>{
+ res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JK BOT</title>
+ <style>body{background:#000;color:#fff;font-family:monospace;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}.box{border:2px solid red;padding:20px;border-radius:16px;width:90%;max-width:400px;text-align:center;box-shadow:0 0 30px red} input{width:100%;padding:14px;background:#111;color:#fff;border:1px solid red;border-radius:10px;text-align:center;font-size:18px;margin-top:12px} button{width:100%;padding:14px;margin-top:12px;background:red;color:#fff;border:none;border-radius:10px;font-weight:900;cursor:pointer} #code{margin-top:14px;font-size:32px;letter-spacing:8px;font-weight:900}</style>
+ </head><body><div class="box"><h2>JK BOT JAKUDOSHY</h2><p>vinculacion premium</p><input id="num" placeholder="Ej: 39333XXXXXXX"><button onclick="gen()">GENERAR CODIGO</button><div id="code"></div><p style="font-size:12px;margin-top:12px">Pon numero con pais sin + <br> WhatsApp > Dispositivos vinculados > Vincular con codigo</p></div>
+ <script>async function gen(){ let n=document.getElementById('num').value.trim(); if(!n) return; document.getElementById('code').innerText='generando...'; let r=await fetch('/pair?number='+encodeURIComponent(n)).then(r=>r.json()); if(r.code) document.getElementById('code').innerText=r.code; else document.getElementById('code').innerText=r.error }</script>
+ </body></html>`)
+})
+
 app.listen(PORT, ()=>{ startBot(); console.log('online') })
