@@ -46,7 +46,6 @@ async function startBot(){
    if(u.connection==='close' && u.lastDisconnect?.error?.output?.statusCode!==DisconnectReason.loggedOut) setTimeout(()=>startBot(),2500)
    if(u.connection==='open' && pendingWelcome){ pendingWelcome=false; await welcome() }
  })
- // FIX ESPERANDO MENSAJE
  sock.ev.on('messages.upsert', async({type,messages})=>{
    if(type!=='notify') return
    const m=messages[0]; if(!m?.message || m.key.fromMe) return
@@ -67,7 +66,6 @@ async function startBot(){
 }
 
 app.use(express.json())
-// CODIGOS ILIMITADOS - SIN BLOQUEO
 app.get('/pair', async(req,res)=>{
  try{
    let num=req.query.number?.replace(/[^0-9]/g,''); if(!num) return res.json({error:"error"})
@@ -106,7 +104,7 @@ canvas{position:fixed;inset:0;opacity:.3}
 .input-inner{display:flex;align-items:center;background:#0a0000;border-radius:10px;padding:16px;gap:8px}
 .plus{color:#ff0000;font-size:22px;font-weight:900;user-select:none;font-family:'JetBrains Mono'}
 input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-size:18px;font-weight:900;text-align:center;font-family:'JetBrains Mono'}
-input::placeholder{color:rgba(255,255,255,0.5);text-align:center}
+input::placeholder{text-align:center;color:rgba(255,255,255,0.5)}
 .btn{width:100%;margin-top:14px;background:linear-gradient(135deg,#ff0000,#990000);padding:2px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 0 40px rgba(255,0,0,.6)}
 .btn-inner{background:#000;color:#fff;border-radius:10px;padding:16px;font-weight:900;font-size:13px;letter-spacing:2px;text-align:center}
 .codeBox{display:none;margin-top:14px;background:rgba(255,0,0,.12);border:2px solid #ff0000;border-radius:12px;padding:14px}
@@ -133,7 +131,7 @@ input::placeholder{color:rgba(255,255,255,0.5);text-align:center}
 <div class="header"><div class="title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div></div>
 <div class="card">
 <div class="label">ᴠɪɴᴄᴜʟᴀᴄɪᴏɴ ᴘʀᴇᴍɪᴜᴍ</div>
-<div class="input-wrap"><div class="input-inner"><div class="plus">+</div><input id="num" placeholder="53XXXXXXXX" style="text-align:center"></div></div>
+<div class="input-wrap"><div class="input-inner"><div class="plus">+</div><input id="num" placeholder="53XXXXXXXX"></div></div>
 <button class="btn" id="btn" onclick="gen()"><div class="btn-inner" id="btnTxt">ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ</div></button>
 <div class="codeBox" id="codeBox"><div class="code" id="codeText"></div></div>
 </div>
@@ -190,7 +188,7 @@ async function gen(){
    document.getElementById('codeText').innerText=r.code;
    document.getElementById('codeBox').style.display='block';
    document.getElementById('btnTxt').innerText=r.code;
-   setTimeout(()=>{document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴏᴛʀᴏ'},2500);
+   setTimeout(()=>{document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴏᴛʀᴏ'},2000);
  }catch{document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ';}
 }
 </script></body></html>`)
