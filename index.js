@@ -11,30 +11,41 @@ function c(t){
 console.log(`[ ${c('SISTEMA')} ] ${c('iniciando modulos...')}`)
 const app = express()
 const PORT = process.env.PORT || 3000
-let sock=null, lastCode=null, lastCodeTime=0, pendingWelcome=false
-console.log(`[ ${c('SISTEMA')} ] ${c('apis premium cargadas')}`)
+let sock=null, pendingWelcome=false
 
-const APIS = {
-  gpt: "https://api.davidcyriltech.my.id/ai/chatbot?query=",
-  gpt2: "https://api.azz.biz.id/api/ai/gpt?query=",
-  gpt3: "https://text.pollinations.ai/",
-  premium: "https://api.davidcyriltech.my.id/ai/gemini?query="
-}
-
+// IA FREE QUE RESPONDE TODO - COMO LOS BOTS DUROS
 async function IA_PREMIUM(txt){
- const q=encodeURIComponent(txt)
- try{ const r=await axios.get(APIS.gpt+q,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
- try{ const r=await axios.get(APIS.premium+q,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
- try{ const r=await axios.get(APIS.gpt2+q,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
- try{ const r=await axios.get(APIS.gpt3+q+"?model=openai",{timeout:10000}); if(typeof r.data==='string'&&r.data.length>4) return r.data }catch{}
- try{ const m2=txt.match(/(\d+)\s*([\+\-\*\/x])\s*(\d+)/i); if(m2){ let a=+m2[1],b=+m2[3],op=m2[2]; let res=op==='+'?a+b:op==='-'?a-b:op==='/'?a/b:a*b; return `${a} ${op} ${b} = ${res}` } }catch{}
- return txt
+ const q = encodeURIComponent(txt)
+ const APIS = [
+   `https://text.pollinations.ai/${q}`,
+   `https://api.davidcyriltech.my.id/ai/llama?query=${q}`,
+   `https://api.davidcyriltech.my.id/ai/metaai?query=${q}`,
+   `https://api.davidcyriltech.my.id/ai/deepseek?query=${q}`,
+   `https://api.davidcyriltech.my.id/ai/gemini?query=${q}`,
+   `https://api.davidcyriltech.my.id/ai/chatbot?query=${q}`,
+   `https://api.azz.biz.id/api/ai/blackbox?query=${q}`
+ ]
+ for(let url of APIS){
+   try{
+     const r = await axios.get(url, {timeout: 7000})
+     let res = r.data?.result || r.data?.response || r.data?.message || r.data
+     if(typeof res === 'string' && res.length > 2){
+       return res.trim()
+     }
+   }catch(e){ continue }
+ }
+ // ULTIMO RECURSO - CALCULO
+ try{
+   const m2=txt.match(/(\d+)\s*([\+\-\*\/x])\s*(\d+)/i)
+   if(m2){ let a=+m2[1],b=+m2[3],op=m2[2]; let res=op==='+'?a+b:op==='-'?a-b:op==='/'?a/b:a*b; return `${a} ${op} ${b} = ${res}` }
+ }catch{}
+ return `🤖 ${c('estoy activo')} bro, dime de nuevo: ${txt}`
 }
 
 async function welcome(){
  if(!sock?.user?.id) return
- const msg=`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('apis premium activas')}\n│ ${c('gg_no_root')}\n│.ia ${c('pregunta')}\n╰─ • ${c('online')} • ─`
- try{ await new Promise(r=>setTimeout(r,1500)); await sock.sendMessage(sock.user.id,{text:msg}) }catch{}
+ const msg=`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('ia al palo sin errores')}\n│.ia ${c('pregunta lo que quieras')}\n╰─ • ${c('online')} • ─`
+ try{ await new Promise(r=>setTimeout(r,1200)); await sock.sendMessage(sock.user.id,{text:msg}) }catch{}
 }
 
 async function startBot(){
@@ -46,21 +57,39 @@ async function startBot(){
    if(u.connection==='close' && u.lastDisconnect?.error?.output?.statusCode!==DisconnectReason.loggedOut) setTimeout(()=>startBot(),2500)
    if(u.connection==='open' && pendingWelcome){ pendingWelcome=false; await welcome() }
  })
+
+ // FIX DEFINITIVO - RESPONDE TODO SIN ERROR DE RELOJ
  sock.ev.on('messages.upsert', async({type,messages})=>{
    if(type!=='notify') return
-   const m=messages[0]; if(!m?.message || m.key.fromMe) return
-   const from=m.key.remoteJid; if(from==='status@broadcast') return
-   const txt=m.message.conversation||m.message.extendedTextMessage?.text||""; if(!txt) return
-   const low=txt.toLowerCase()
-   if(low==='.menu'){ return await sock.sendMessage(from,{text:`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('apis premium')}\n│.ia ${c('pregunta')}\n│.menu\n╰─ • ${c('online')} • ─`}) }
-   if(low.startsWith('.ia')||low.startsWith('.bot')||low.startsWith('.gpt')){
-     let q=txt.replace(/^\.(ia|bot|gpt)/i,'').trim(); if(!q) return
+   const m=messages[0]
+   if(!m?.message || m.key.fromMe) return
+   const from=m.key.remoteJid
+   if(!from || from==='status@broadcast') return
+
+   const txt = m.message.conversation || m.message.extendedTextMessage?.text || m.message.imageMessage?.caption || ""
+   if(!txt) return
+   const low = txt.toLowerCase().trim()
+
+   if(low==='.menu' || low==='menu' || low==='.help'){
+     return await sock.sendMessage(from,{text:`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('ia al palo')}\n│\n│ ✦.ia pregunta\n│ ✦.menu\n│ ✦.ping\n╰─ • ${c('online')} • ─`})
+   }
+   if(low==='.ping' || low==='ping'){
+     return await sock.sendMessage(from,{text:`⚡ ${c('online')} - ${c('ia al palo')}`})
+   }
+
+   // RESPONDE A.ia.bot.gpt ia
+   if(low.startsWith('.ia') || low.startsWith('.bot') || low.startsWith('.gpt') || low.startsWith('ia ') || low.startsWith('.ai')){
+     let q = txt.replace(/^\.(ia|bot|gpt|ai)|^(ia|bot)/i,'').trim()
+     if(!q) q = "Hola"
      try{
        await sock.sendPresenceUpdate('composing', from)
-       const r=await IA_PREMIUM(q)
-       await sock.sendMessage(from,{text:r})
+       const r = await IA_PREMIUM(q)
+       // SIN QUOTED PARA QUE NO DE ERROR ESPERANDO MENSAJE
+       await sock.sendMessage(from,{text: r})
        await sock.sendPresenceUpdate('paused', from)
-     }catch{}
+     }catch(e){
+       try{ await sock.sendMessage(from,{text: "❌ Error bro, intenta de nuevo"}) }catch{}
+     }
    }
  })
 }
@@ -70,19 +99,16 @@ app.get('/pair', async(req,res)=>{
  try{
    let num=req.query.number?.replace(/[^0-9]/g,''); if(!num) return res.json({error:"error"})
    if(!sock){ await startBot(); await new Promise(r=>setTimeout(r,3000)) }
-   pendingWelcome=true; const code=await sock.requestPairingCode(num); lastCode=code; lastCodeTime=Date.now(); return res.json({code})
- }catch{ return res.json({error:"espera"}) }
+   pendingWelcome=true; const code=await sock.requestPairingCode(num); return res.json({code})
+ }catch{ return res.json({error:"espera 5s"}) }
 })
 
 app.get('/', (req,res)=>{
 res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JK BOT PREMIUM</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{min-height:100vh;background:#000;font-family:'Outfit';overflow-y:auto;overflow-x:hidden}
-.bg{position:fixed;inset:0;background:radial-gradient(800px at 20% 10%, rgba(255,0,0,.35), transparent 60%), #000;z-index:0}
-canvas{position:fixed;inset:0;opacity:.3;z-index:1}
-/* HEADER FIJO ARRIBA */
+*{margin:0;padding:0;box-sizing:border-box}body{min-height:100vh;background:#000;font-family:'Outfit';overflow-y:auto;overflow-x:hidden}
+.bg{position:fixed;inset:0;background:radial-gradient(800px at 20% 10%, rgba(255,0,0,.35), transparent 60%), #000;z-index:0}canvas{position:fixed;inset:0;opacity:.3;z-index:1}
 .topbar{position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(0,0,0,0.9);backdrop-filter:blur(10px);border-bottom:2px solid #ff0000;box-shadow:0 0 30px rgba(255,0,0,.5);padding:12px;text-align:center}
 .topbar-text{font-size:18px;font-weight:900;letter-spacing:4px;color:#fff;text-shadow:0 0 15px #ff0000}
 .wrap{position:relative;z-index:3;width:100%;max-width:520px;padding:16px;margin:70px auto 100px auto}
@@ -119,7 +145,6 @@ input::placeholder{text-align:center;color:rgba(255,255,255,0.5)}
 .step-n{background:#ff0000;color:#000;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0}
 .step-t{color:#ccc;font-size:11px;line-height:20px;font-family:'JetBrains Mono'}
 .step-t b{color:#fff}
-/* TELEGRAM FLOTANTE */
 .telegram-float{position:fixed;bottom:20px;right:20px;z-index:60;background:linear-gradient(135deg,#ff0000,#990000);padding:2px;border-radius:50px;box-shadow:0 0 30px rgba(255,0,0,.8);text-decoration:none}
 .telegram-inner{background:#000;border-radius:50px;padding:10px 18px;display:flex;align-items:center;gap:8px}
 .telegram-inner svg{width:20px;height:20px;fill:#ff0000}
@@ -127,22 +152,11 @@ input::placeholder{text-align:center;color:rgba(255,255,255,0.5)}
 .spacer{height:100px}
 </style></head><body>
 <div class="bg"></div><canvas id="c"></canvas>
-
 <div class="topbar"><div class="topbar-text">ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div></div>
-
-<div id="loader">
-<div class="load-box">
-<div class="load-title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div>
-<div class="load-sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div>
-<div class="bar-bg"><div class="bar-fill" id="bar"></div></div>
-<div class="percent" id="percent">0%</div>
-<div class="logs" id="logs"></div>
-</div>
-</div>
-
+<div id="loader"><div class="load-box"><div class="load-title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="load-sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div><div class="bar-bg"><div class="bar-fill" id="bar"></div></div><div class="percent" id="percent">0%</div><div class="logs" id="logs"></div></div></div>
 <div class="wrap" id="mainContent">
 <div class="box">
-<div class="header"><div class="title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div></div>
+<div class="header"><div class="title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ • IA SIN ERRORES</div></div>
 <div class="card">
 <div class="label">ᴠɪɴᴄᴜʟᴀᴄɪᴏɴ ᴘʀᴇᴍɪᴜᴍ</div>
 <div class="input-wrap"><div class="input-inner"><div class="plus">+</div><input id="num" placeholder="53XXXXXXXX"></div></div>
@@ -150,60 +164,36 @@ input::placeholder{text-align:center;color:rgba(255,255,255,0.5)}
 <div class="codeBox" id="codeBox"><div class="code" id="codeText"></div></div>
 </div>
 <div class="steps">
-<div class="steps-title">ᴘᴀsᴏs ᴘᴀʀᴀ ᴠɪɴᴄᴜʟᴀʀ:</div>
-<div class="step"><div class="step-n">1</div><div class="step-t"><b>ᴘᴏɴ ᴛᴜ ɴᴜᴍᴇʀᴏ</b> ᴄᴏɴ ᴄᴏᴅɪɢᴏ ᴅᴇ ᴘᴀɪs</div></div>
-<div class="step"><div class="step-n">2</div><div class="step-t">ᴅᴀʟᴇ <b>ɢᴇɴᴇʀᴀʀ</b> ʏ ᴄᴏᴘɪᴀ ᴇʟ ᴄᴏᴅɪɢᴏ</div></div>
-<div class="step"><div class="step-n">3</div><div class="step-t">ᴡʜᴀᴛsᴀᴘᴘ > <b>ᴅɪsᴘᴏsɪᴛɪᴠᴏs ᴠɪɴᴄᴜʟᴀᴅᴏs</b></div></div>
-<div class="step"><div class="step-n">4</div><div class="step-t"><b>ᴠɪɴᴄᴜʟᴀʀ ᴄᴏɴ ᴇʟ ᴄᴏᴅɪɢᴏ</b></div></div>
+<div class="steps-title">ᴘᴀsᴏs:</div>
+<div class="step"><div class="step-n">1</div><div class="step-t"><b>ᴘᴏɴ ᴛᴜ ɴᴜᴍᴇʀᴏ</b> 53XXXXXXXX</div></div>
+<div class="step"><div class="step-n">2</div><div class="step-t">ᴅᴀʟᴇ <b>ɢᴇɴᴇʀᴀʀ</b></div></div>
+<div class="step"><div class="step-n">3</div><div class="step-t">ᴡᴀ > <b>ᴅɪsᴘᴏsɪᴛɪᴠᴏs</b></div></div>
+<div class="step"><div class="step-n">4</div><div class="step-t"><b>ᴠɪɴᴄᴜʟᴀʀ ᴄᴏɴ ᴄᴏᴅɪɢᴏ</b></div></div>
 </div>
 <div class="spacer"></div>
 </div>
 </div>
-
-<a class="telegram-float" href="https://t.me/gg_no_root" target="_blank">
-  <div class="telegram-inner">
-    <svg viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.16.16-.295.295-.605.295l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.12l-6.893 4.326-2.967-.945c-.64-.203-.658-.64.135-.954l11.6-4.458c.538-.196 1.006.12.832.941z"/></svg>
-    <span class="telegram-text">ᴊᴋ ᴄʜᴀɴɴᴇʟꫂꤪꤨᴼᶠᶜ</span>
-  </div>
-</a>
-
+<a class="telegram-float" href="https://t.me/gg_no_root" target="_blank"><div class="telegram-inner"><svg viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.16.16-.295.295-.605.295l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.12l-6.893 4.326-2.967-.945c-.64-.203-.658-.64.135-.954l11.6-4.458c.538-.196 1.006.12.832.941z"/></svg><span class="telegram-text">ᴊᴋ ᴄʜᴀɴɴᴇʟꫂꤪꤨᴼᶠᶜ</span></div></a>
 <script>
 const c=document.getElementById('c'),x=c.getContext('2d');function rs(){c.width=innerWidth;c.height=innerHeight}rs();window.addEventListener('resize',rs);
 let cols=Math.floor(innerWidth/10), drops=new Array(cols).fill(0);
 function matrix(){x.fillStyle='rgba(0,0,0,0.12)';x.fillRect(0,0,c.width,c.height);x.font='16px monospace';drops.forEach((y,i)=>{x.fillStyle='#ff0000';x.fillText('0',i*10,y*10);if(y*10>c.height && Math.random()>.97) drops[i]=0;drops[i]++});requestAnimationFrame(matrix)}matrix();
-const logsData=[
-"[ sɪsᴛᴇᴍᴀ ] ɪɴɪᴄɪᴀɴᴅᴏ ᴍᴏᴅᴜʟᴏs...",
-"[ sɪsᴛᴇᴍᴀ ] ᴄᴀʀɢᴀɴᴅᴏ ᴀᴘɪs ᴘʀᴇᴍɪᴜᴍ...",
-"[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ɢᴘᴛ-4 ✓",
-"[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ɢᴇᴍɪɴɪ ᴘʀᴏ ✓",
-"[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ᴘᴏʟʟɪɴᴀᴛɪᴏɴs ✓",
-"[ sɪsᴛᴇᴍᴀ ] ᴄᴀʀɢᴀɴᴅᴏ ʙᴀɪʟᴇʏs...",
-"[ sɪsᴛᴇᴍᴀ ] sᴇʀᴠɪᴅᴏʀ ᴏɴʟɪɴᴇ ✓",
-"[ sɪsᴛᴇᴍᴀ ] ᴘʀᴇᴍɪᴜᴍ ʟɪsᴛᴏ ✓"
-];
+const logsData=["[ sɪsᴛᴇᴍᴀ ] ɪɴɪᴄɪᴀɴᴅᴏ...","[ sɪsᴛᴇᴍᴀ ] ɪᴀ ғʀᴇᴇ ᴄᴀʀɢᴀᴅᴀ ✓","[ sɪsᴛᴇᴍᴀ ] sɪɴ ᴇʀʀᴏʀᴇs ✓","[ sɪsᴛᴇᴍᴀ ] ᴏɴʟɪɴᴇ ✓"];
 let pct=0; const bar=document.getElementById('bar'), perc=document.getElementById('percent'), logs=document.getElementById('logs'), loader=document.getElementById('loader'), main=document.getElementById('mainContent');
 function addLog(i){ if(i>=logsData.length) return; const d=document.createElement('div'); d.className='log-line'; d.innerHTML=logsData[i]; logs.appendChild(d); logs.scrollTop=logs.scrollHeight; }
 let logIdx=0; addLog(0);
 let interval=setInterval(()=>{
  pct+= Math.random()*4+1; if(pct>100) pct=100;
  bar.style.width=pct+'%'; perc.innerText=Math.floor(pct)+'%';
- if(pct>14 && logIdx==0){logIdx=1; addLog(1)}
- if(pct>28 && logIdx==1){logIdx=2; addLog(2)}
- if(pct>42 && logIdx==2){logIdx=3; addLog(3)}
- if(pct>56 && logIdx==3){logIdx=4; addLog(4)}
- if(pct>70 && logIdx==4){logIdx=5; addLog(5)}
- if(pct>85 && logIdx==5){logIdx=6; addLog(6)}
- if(pct>95 && logIdx==6){logIdx=7; addLog(7)}
+ if(pct>25 && logIdx==0){logIdx=1; addLog(1)}
+ if(pct>60 && logIdx==1){logIdx=2; addLog(2)}
+ if(pct>90 && logIdx==2){logIdx=3; addLog(3)}
  if(pct>=100){
-  clearInterval(interval);
-  perc.innerText='100%'; bar.style.width='100%';
+  clearInterval(interval); perc.innerText='100%'; bar.style.width='100%';
   setTimeout(()=>{ loader.style.transition='opacity.6s'; loader.style.opacity='0'; setTimeout(()=>{ loader.style.display='none'; main.style.display='block'; },600)},400)
  }
 }, 45);
 async function gen(){const n=document.getElementById('num').value.trim().replace(/[^0-9]/g,'');if(!n) return;const b=document.getElementById('btn');document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀɴᴅᴏ...';try{const r=await fetch('/pair?number='+encodeURIComponent(n)).then(r=>r.json());if(r.error){document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ';return;}document.getElementById('codeText').innerText=r.code;document.getElementById('codeBox').style.display='block';document.getElementById('btnTxt').innerText=r.code;setTimeout(()=>{document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴏᴛʀᴏ'},2500);}catch{document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ';}}
 </script></body></html>`)
 })
-app.listen(PORT, ()=>{
-  console.log(`[ ${c('SISTEMA')} ] ${c('servidor premium online')}`)
-  startBot()
-})
+app.listen(PORT, ()=>{ console.log(`[ ${c('SISTEMA')} ] ${c('servidor online - ia sin errores')}`); startBot() })
