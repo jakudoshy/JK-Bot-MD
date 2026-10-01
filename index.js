@@ -78,10 +78,14 @@ app.get('/', (req,res)=>{
 res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JK BOT PREMIUM</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#000;font-family:'Outfit';overflow:hidden}
-.bg{position:fixed;inset:0;background:radial-gradient(800px at 20% 10%, rgba(255,0,0,.35), transparent 60%), #000}
-canvas{position:fixed;inset:0;opacity:.3}
-.wrap{position:relative;z-index:3;width:100%;max-width:520px;padding:16px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;background:#000;font-family:'Outfit';overflow-y:auto;overflow-x:hidden}
+.bg{position:fixed;inset:0;background:radial-gradient(800px at 20% 10%, rgba(255,0,0,.35), transparent 60%), #000;z-index:0}
+canvas{position:fixed;inset:0;opacity:.3;z-index:1}
+/* HEADER FIJO ARRIBA */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(0,0,0,0.9);backdrop-filter:blur(10px);border-bottom:2px solid #ff0000;box-shadow:0 0 30px rgba(255,0,0,.5);padding:12px;text-align:center}
+.topbar-text{font-size:18px;font-weight:900;letter-spacing:4px;color:#fff;text-shadow:0 0 15px #ff0000}
+.wrap{position:relative;z-index:3;width:100%;max-width:520px;padding:16px;margin:70px auto 100px auto}
 .box{width:100%;background:linear-gradient(145deg, rgba(20,0,0,.98), rgba(0,0,0,.99));border-radius:24px;padding:22px;border:2px solid #ff0000;box-shadow:0 0 80px rgba(255,0,0,.5)}
 .header{text-align:center;padding:10px 0 16px;border-bottom:1px solid rgba(255,0,0,.3);margin-bottom:16px}
 .title{font-size:32px;font-weight:900;letter-spacing:3px;color:#fff;text-shadow:0 0 20px #ff0000}
@@ -115,8 +119,17 @@ input::placeholder{text-align:center;color:rgba(255,255,255,0.5)}
 .step-n{background:#ff0000;color:#000;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0}
 .step-t{color:#ccc;font-size:11px;line-height:20px;font-family:'JetBrains Mono'}
 .step-t b{color:#fff}
+/* TELEGRAM FLOTANTE */
+.telegram-float{position:fixed;bottom:20px;right:20px;z-index:60;background:linear-gradient(135deg,#ff0000,#990000);padding:2px;border-radius:50px;box-shadow:0 0 30px rgba(255,0,0,.8);text-decoration:none}
+.telegram-inner{background:#000;border-radius:50px;padding:10px 18px;display:flex;align-items:center;gap:8px}
+.telegram-inner svg{width:20px;height:20px;fill:#ff0000}
+.telegram-text{color:#fff;font-size:12px;font-weight:900;letter-spacing:1px;font-family:'JetBrains Mono'}
+.spacer{height:100px}
 </style></head><body>
 <div class="bg"></div><canvas id="c"></canvas>
+
+<div class="topbar"><div class="topbar-text">ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div></div>
+
 <div id="loader">
 <div class="load-box">
 <div class="load-title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div>
@@ -126,6 +139,7 @@ input::placeholder{text-align:center;color:rgba(255,255,255,0.5)}
 <div class="logs" id="logs"></div>
 </div>
 </div>
+
 <div class="wrap" id="mainContent">
 <div class="box">
 <div class="header"><div class="title">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div><div class="sub">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ</div></div>
@@ -142,10 +156,19 @@ input::placeholder{text-align:center;color:rgba(255,255,255,0.5)}
 <div class="step"><div class="step-n">3</div><div class="step-t">ᴡʜᴀᴛsᴀᴘᴘ > <b>ᴅɪsᴘᴏsɪᴛɪᴠᴏs ᴠɪɴᴄᴜʟᴀᴅᴏs</b></div></div>
 <div class="step"><div class="step-n">4</div><div class="step-t"><b>ᴠɪɴᴄᴜʟᴀʀ ᴄᴏɴ ᴇʟ ᴄᴏᴅɪɢᴏ</b></div></div>
 </div>
+<div class="spacer"></div>
 </div>
 </div>
+
+<a class="telegram-float" href="https://t.me/gg_no_root" target="_blank">
+  <div class="telegram-inner">
+    <svg viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.16.16-.295.295-.605.295l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.12l-6.893 4.326-2.967-.945c-.64-.203-.658-.64.135-.954l11.6-4.458c.538-.196 1.006.12.832.941z"/></svg>
+    <span class="telegram-text">ᴊᴋ ᴄʜᴀɴɴᴇʟꫂꤪꤨᴼᶠᶜ</span>
+  </div>
+</a>
+
 <script>
-const c=document.getElementById('c'),x=c.getContext('2d');function rs(){c.width=innerWidth;c.height=innerHeight}rs();
+const c=document.getElementById('c'),x=c.getContext('2d');function rs(){c.width=innerWidth;c.height=innerHeight}rs();window.addEventListener('resize',rs);
 let cols=Math.floor(innerWidth/10), drops=new Array(cols).fill(0);
 function matrix(){x.fillStyle='rgba(0,0,0,0.12)';x.fillRect(0,0,c.width,c.height);x.font='16px monospace';drops.forEach((y,i)=>{x.fillStyle='#ff0000';x.fillText('0',i*10,y*10);if(y*10>c.height && Math.random()>.97) drops[i]=0;drops[i]++});requestAnimationFrame(matrix)}matrix();
 const logsData=[
@@ -177,20 +200,7 @@ let interval=setInterval(()=>{
   setTimeout(()=>{ loader.style.transition='opacity.6s'; loader.style.opacity='0'; setTimeout(()=>{ loader.style.display='none'; main.style.display='block'; },600)},400)
  }
 }, 45);
-async function gen(){
- const n=document.getElementById('num').value.trim().replace(/[^0-9]/g,'');
- if(!n) return;
- const b=document.getElementById('btn');
- document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀɴᴅᴏ...';
- try{
-   const r=await fetch('/pair?number='+encodeURIComponent(n)).then(r=>r.json());
-   if(r.error){document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ';return;}
-   document.getElementById('codeText').innerText=r.code;
-   document.getElementById('codeBox').style.display='block';
-   document.getElementById('btnTxt').innerText=r.code;
-   setTimeout(()=>{document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴏᴛʀᴏ'},2000);
- }catch{document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ';}
-}
+async function gen(){const n=document.getElementById('num').value.trim().replace(/[^0-9]/g,'');if(!n) return;const b=document.getElementById('btn');document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀɴᴅᴏ...';try{const r=await fetch('/pair?number='+encodeURIComponent(n)).then(r=>r.json());if(r.error){document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ';return;}document.getElementById('codeText').innerText=r.code;document.getElementById('codeBox').style.display='block';document.getElementById('btnTxt').innerText=r.code;setTimeout(()=>{document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴏᴛʀᴏ'},2500);}catch{document.getElementById('btnTxt').innerText='ɢᴇɴᴇʀᴀʀ ᴄᴏᴅɪɢᴏ';}}
 </script></body></html>`)
 })
 app.listen(PORT, ()=>{
