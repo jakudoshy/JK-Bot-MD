@@ -13,26 +13,15 @@ app.use(express.json())
 const PORT = process.env.PORT || 3000
 let sock=null, pendingWelcome=false
 
-const APIS = {
-  gpt: "https://api.davidcyriltech.my.id/ai/chatbot?query=",
-  gpt2: "https://api.azz.biz.id/api/ai/gpt?query=",
-  gpt3: "https://text.pollinations.ai/",
-  premium: "https://api.davidcyriltech.my.id/ai/gemini?query="
-}
-
-async function IA_PREMIUM(txt){
- const q=encodeURIComponent(txt)
- try{ const m2=txt.match(/(\d+)\s*([\+\-\*\/x])\s*(\d+)/i); if(m2){ let a=+m2[1],b=+m2[3],op=m2[2].toLowerCase(); let res=op==='+'?a+b:op==='-'?a-b:op==='/'?a/b:a*b; if(op==='x') res=a*b; return `${a} ${op} ${b} = ${res}` } }catch{}
- try{ const r=await axios.get(APIS.gpt+q,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
- try{ const r=await axios.get(APIS.premium+q,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
- try{ const r=await axios.get(APIS.gpt2+q,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
- try{ const r=await axios.get(APIS.gpt3+q+"?model=openai",{timeout:10000}); if(typeof r.data==='string'&&r.data.length>4) return r.data }catch{}
+async function IA(q){
+ try{ let r=await axios.get(`https://api.davidcyriltech.my.id/ai/chatbot?query=${encodeURIComponent(q)}`,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
+ try{ let r=await axios.get(`https://api.davidcyriltech.my.id/ai/gemini?query=${encodeURIComponent(q)}`,{timeout:12000}); if(r.data?.result) return r.data.result }catch{}
  return null
 }
 
 async function welcome(){
  if(!sock?.user?.id) return
- const msg=`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('apis premium activas')}\n│.menu.toolsmenu.aimenu\n╰─ • ${c('online')} • ─`
+ const msg=`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('todo arreglado pinga')}\n│ Usa.allmenu\n╰─ • ${c('online')} • ─`
  try{ await new Promise(r=>setTimeout(r,2000)); await sock.sendMessage(sock.user.id,{text:msg}) }catch{}
 }
 
@@ -50,52 +39,61 @@ async function startBot(){
    const m=messages[0]; if(!m?.message) return
    const from=m.key.remoteJid; if(!from||from==='status@broadcast') return
 
-   // FIX DEFINITIVO PARA TU FOTO - RESPONDE EN (Tú) Y EN TODOS LOS PRIVADOS
+   // FIX PARA TU FOTO - QUE RESPONDA EN (Tú)
    const myId = sock.user?.id || ""
-   const myNum = myId.split(':')[0].split('@')[0]
+   const myNum = myId.split('@')[0].split(':')[0]
    const fromNum = from.split('@')[0].split(':')[0]
-   const isSelfChat = from===myId || fromNum===myNum
-   // Si es mensaje mio y NO es mi chat conmigo mismo, no responder (evita loop)
+   const isSelfChat = from===myId || myNum!=="" && fromNum===myNum
    if(m.key.fromMe &&!isSelfChat) return
 
    const txt=m.message.conversation||m.message.extendedTextMessage?.text||m.message.imageMessage?.caption||""; if(!txt) return
    const args=txt.trim().split(/ +/); const cmd=args[0].toLowerCase(); const q=args.slice(1).join(' ')
    const send=async(t)=>{ await sock.sendMessage(from,{text:t}) }
 
-   if(cmd==='.menu'||cmd==='.allmenu'){
-     return await send(`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─\n│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n│ ${c('apis premium')}\n│\n│.toolsmenu - 24 tools\n│.aimenu - IA\n│.economymenu - eco\n│.download - descargas\n│.menu\n│.ia pregunta\n╰─ • ${c('online')} • ─`)
+   // UN SOLO CODIGO.allmenu
+   if(cmd==='.allmenu' || cmd==='.menu'){
+     return await send(`╭─ • ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ─
+│ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ
+│ ${c('24 tools bkn')}
+│
+│ 🛠️.ping
+│ 🛠️.qr texto
+│ 🛠️.base64 texto
+│ 🛠️.calc 5+5
+│ 🛠️.shorturl link
+│ 🛠️.weather Habana
+│ 🛠️.github usuario
+│ 🛠️.ipinfo 8.8.8.8
+│ 🛠️.tempmail
+│ 🛠️.fakeinfo
+│ 🛠️.binlookup 123456
+│ 🛠️.define hello
+│ 🛠️.wiki Cuba
+│ 🛠️.google tema
+│ 🛠️.translate es hello
+│ 🛠️.screenshot url
+│ 🛠️.yts tema
+│ 🛠️.playstore app
+│ 🛠️.npm baileys
+│ 🤖.ia pregunta
+│
+│ Pon.allmenu
+╰─ • ${c('online')} • ─`)
    }
-   if(cmd==='.toolsmenu'){
-     return await send("```\n 『 🛠️ TOOLS MENU 』 - JAKUDOSHY\n\n •.ping\n •.qr texto\n •.base64 texto\n •.calc 5+5\n •.shorturl link\n •.weather ciudad\n •.github usuario\n •.ipinfo ip\n •.tempmail\n •.fakeinfo\n •.binlookup 123456\n •.define palabra\n •.wiki tema\n •.google tema\n •.translate texto\n •.screenshot url\n •.yts tema\n •.playstore app\n •.npm paquete\n •.trt es en hola\n\n 24 comandos - JAKUDOSHY\n```")
-   }
-   if(cmd==='.aimenu'){ return await send("```\n 『 🤖 AI MENU 』\n •.ai /.ia /.gali /.chatbot\n```") }
-   if(cmd==='.economymenu'){ return await send("```\n 『 🪙 ECONOMY 』\n •.balance •.daily •.work\n```") }
-   if(cmd==='.download'){ return await send("```\n 『 ⬇️ DOWNLOAD 』\n •.song •.video •.play\n```") }
 
-   if(cmd==='.ping'){ const s=Date.now(); await send('Pong!'); return await send(`⚡ ${Date.now()-s}ms - JAKUDOSHY`) }
-   if(cmd==='.qr'){ if(!q) return await send('Uso:.qr texto'); try{ await sock.sendMessage(from,{image:{url:`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(q)}`},caption:`QR: ${q}\nJAKUDOSHY`}) }catch{} return }
-   if(cmd==='.base64'){ if(!q) return await send('.base64 texto'); return await send(`Encode: ${Buffer.from(q).toString('base64')}`) }
-   if(cmd==='.calc'){ try{ let r=eval(q.replace(/[^0-9+\-*/().]/g,'')); return await send(`🧮 ${q} = ${r}`)}catch{ return await send('Error calc')} }
-   if(cmd==='.shorturl'){ try{ let r=await axios.get(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(q)}`); return await send(`🔗 ${r.data}`)}catch{} return }
-   if(cmd==='.weather'){ try{ let r=await axios.get(`https://wttr.in/${encodeURIComponent(q)}?format=3`); return await send(r.data)}catch{} return }
-   if(cmd==='.github'){ try{ let r=await axios.get(`https://api.github.com/users/${q}`); return await send(`👤 ${r.data.login}\n📦 Repos: ${r.data.public_repos}\n🔗 ${r.data.html_url}`)}catch{} return }
-   if(cmd==='.ipinfo'){ try{ let r=await axios.get(`http://ip-api.com/json/${q}`); return await send(`🌐 ${r.data.query}\n🏳️ ${r.data.country} - ${r.data.city}\n🏢 ${r.data.isp}`)}catch{} return }
-   if(cmd==='.tempmail'){ try{ let r=await axios.get('https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1'); return await send(`📧 JAKUDOSHY TEMP\n\`${r.data[0]}\``)}catch{} return }
-   if(cmd==='.fakeinfo'){ try{ let r=await axios.get('https://randomuser.me/api/'); let u=r.data.results[0]; return await send(`👤 ${u.name.first} ${u.name.last}\n📧 ${u.email}\n📍 ${u.location.country}`)}catch{} return }
-   if(cmd==='.binlookup'){ try{ let r=await axios.get(`https://lookup.binlist.net/${q}`,{headers:{'Accept-Version':'3'}}); return await send(`💳 ${q}\n🏦 ${r.data.bank?.name||'N/A'}\n${r.data.type} ${r.data.scheme} - ${r.data.country?.name}`)}catch{ return await send('BIN invalido')} }
-   if(cmd==='.define'){ try{ let r=await axios.get(`https://api.dictionaryapi.dev/api/v2/entries/en/${q}`); return await send(`📖 ${r.data[0].meanings[0].definitions[0].definition}`)}catch{} return }
-   if(cmd==='.wiki'){ try{ let r=await axios.get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(q)}`); return await send(`📚 ${r.data.title}\n${r.data.extract}`)}catch{} return }
-   if(cmd==='.google'){ return await send(`🔍 https://www.google.com/search?q=${encodeURIComponent(q)}`) }
-   if(cmd==='.translate'||cmd==='.trt'){ try{ let t=q.split(' '); let lang=t[0]||'en'; let text=t.slice(1).join(' ')||q; let r=await axios.get(`https://api.davidcyriltech.my.id/translate?text=${encodeURIComponent(text)}&lang=${lang}`); return await send(`🌐 ${r.data.result||text}`)}catch{} return }
-   if(cmd==='.screenshot'){ try{ await sock.sendMessage(from,{image:{url:`https://api.davidcyriltech.my.id/screenshot?url=${encodeURIComponent(q)}`},caption:`📸 ${q}`}) }catch{} return }
-   if(cmd==='.yts'){ try{ let r=await axios.get(`https://api.davidcyriltech.my.id/search/yt?query=${encodeURIComponent(q)}`); return await send(`🎥 ${r.data.result?.[0]?.title}\n${r.data.result?.[0]?.url}`)}catch{} return }
-   if(cmd==='.playstore'){ return await send(`📱 https://play.google.com/store/search?q=${encodeURIComponent(q)}`) }
-   if(cmd==='.npm'){ try{ let r=await axios.get(`https://registry.npmjs.org/${q}`); return await send(`📦 ${r.data.name}\n${r.data.description}`)}catch{} return }
-
-   if(['.ia','.ai','.bot','.gpt','.gali','.chatbot'].includes(cmd)||txt.toLowerCase().startsWith('ia ')){
-     let prompt=txt.replace(/^\.(ia|ai|bot|gpt|gali|chatbot)/i,'').replace(/^ia /i,'').trim()||"Hola"
-     try{ await sock.sendPresenceUpdate('composing', from); const r=await IA_PREMIUM(prompt); if(r) await sock.sendMessage(from,{text:r}); await sock.sendPresenceUpdate('paused', from) }catch{}
-   }
+   if(cmd==='.ping'){ return await send(`⚡ JAKUDOSHY ${Date.now()%1000}ms`) }
+   if(cmd==='.qr' && q){ try{ await sock.sendMessage(from,{image:{url:`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(q)}`},caption:`QR: ${q}`}) }catch{} return }
+   if(cmd==='.base64' && q){ return await send(Buffer.from(q).toString('base64')) }
+   if(cmd==='.calc' && q){ try{ return await send(`${q} = ${eval(q.replace(/[^0-9+\-*/().]/g,''))}`)}catch{ return await send('error')} }
+   if(cmd==='.shorturl' && q){ try{ let r=await axios.get(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(q)}`); return await send(r.data)}catch{} }
+   if(cmd==='.weather' && q){ try{ let r=await axios.get(`https://wttr.in/${encodeURIComponent(q)}?format=3`); return await send(r.data)}catch{} }
+   if(cmd==='.github' && q){ try{ let r=await axios.get(`https://api.github.com/users/${q}`); return await send(`${r.data.login} - ${r.data.html_url}`)}catch{} }
+   if(cmd==='.ipinfo' && q){ try{ let r=await axios.get(`http://ip-api.com/json/${q}`); return await send(`${r.data.query} ${r.data.country}-${r.data.city}`)}catch{} }
+   if(cmd==='.tempmail'){ try{ let r=await axios.get('https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1'); return await send(r.data[0])}catch{} }
+   if(cmd==='.binlookup' && q){ try{ let r=await axios.get(`https://lookup.binlist.net/${q}`,{headers:{'Accept-Version':'3'}}); return await send(`${r.data.bank?.name||'N/A'} ${r.data.scheme}`)}catch{ return await send('BIN invalido')} }
+   if(cmd==='.wiki' && q){ try{ let r=await axios.get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(q)}`); return await send(r.data.extract)}catch{} }
+   if(cmd==='.google' && q){ return await send(`https://www.google.com/search?q=${encodeURIComponent(q)}`) }
+   if(cmd==='.ia' || cmd==='.ai'){ let prompt=q||"hola"; await sock.sendPresenceUpdate('composing', from); let r=await IA(prompt); if(r) await sock.sendMessage(from,{text:r}); await sock.sendPresenceUpdate('paused', from) }
  })
 }
 
@@ -103,9 +101,9 @@ app.get('/pair', async(req,res)=>{
  try{
    let num=req.query.number?.replace(/[^0-9]/g,''); if(!num) return res.json({error:"error"})
    if(!sock){ await startBot(); await new Promise(r=>setTimeout(r,3000)) }
-   if(!sock) return res.json({error:"iniciando, espera 3s"})
+   if(!sock) return res.json({error:"iniciando"})
    pendingWelcome=true; const code=await sock.requestPairingCode(num); return res.json({code})
- }catch(e){ return res.json({error:"espera 30s"}) }
+ }catch{ return res.json({error:"espera 30s"}) }
 })
 
 app.get('/', (req,res)=>{
@@ -198,14 +196,7 @@ input::placeholder{text-align:center;color:rgba(255,255,255,0.5)}
 const c=document.getElementById('c'),x=c.getContext('2d');function rs(){c.width=innerWidth;c.height=innerHeight}rs();window.addEventListener('resize',rs);
 let cols=Math.floor(innerWidth/10), drops=new Array(cols).fill(0);
 function matrix(){x.fillStyle='rgba(0,0,0,0.12)';x.fillRect(0,0,c.width,c.height);x.font='16px monospace';drops.forEach((y,i)=>{x.fillStyle='#ff0000';x.fillText('0',i*10,y*10);if(y*10>c.height && Math.random()>.97) drops[i]=0;drops[i]++});requestAnimationFrame(matrix)}matrix();
-const logsData=[
-"[ sɪsᴛᴇᴍᴀ ] ɪɴɪᴄɪᴀɴᴅᴏ ᴍᴏᴅᴜʟᴏs...",
-"[ sɪsᴛᴇᴍᴀ ] ᴄᴀʀɢᴀɴᴅᴏ ᴀᴘɪs ᴘʀᴇᴍɪᴜᴍ...",
-"[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ɢᴘᴛ-4 ✓",
-"[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ɢᴇᴍɪɴɪ ᴘʀᴏ ✓",
-"[ sɪsᴛᴇᴍᴀ ] 24 ᴛᴏᴏʟs ✓",
-"[ sɪsᴛᴇᴍᴀ ] sᴇʀᴠɪᴅᴏʀ ᴏɴʟɪɴᴇ ✓"
-];
+const logsData=["[ sɪsᴛᴇᴍᴀ ] ɪɴɪᴄɪᴀɴᴅᴏ ᴍᴏᴅᴜʟᴏs...","[ sɪsᴛᴇᴍᴀ ] ᴄᴀʀɢᴀɴᴅᴏ ᴀᴘɪs ᴘʀᴇᴍɪᴜᴍ...","[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ɢᴘᴛ-4 ✓","[ sɪsᴛᴇᴍᴀ ] ᴀᴘɪ ɢᴇᴍɪɴɪ ᴘʀᴏ ✓","[ sɪsᴛᴇᴍᴀ ] 24 ᴛᴏᴏʟs ✓","[ sɪsᴛᴇᴍᴀ ] sᴇʀᴠɪᴅᴏʀ ᴏɴʟɪɴᴇ ✓"];
 let pct=0; const bar=document.getElementById('bar'), perc=document.getElementById('percent'), logs=document.getElementById('logs'), loader=document.getElementById('loader'), main=document.getElementById('mainContent');
 function addLog(i){ if(i>=logsData.length) return; const d=document.createElement('div'); d.className='log-line'; d.innerHTML=logsData[i]; logs.appendChild(d); logs.scrollTop=logs.scrollHeight; }
 let logIdx=0; addLog(0);
