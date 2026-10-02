@@ -2201,7 +2201,7 @@ io.on('connection', (socket) => {
             totalRecipients: uniqueRecipients.size,
             totalBots: activeBots.length,
             failures,
-            message: totalRecipients ? `Difusión completada: ${totalSent} enviados, ${totalFailed} fallidos.` : 'No hay usuarios privados registrados con una sesión activa.'
+            message: uniqueRecipients.size ? `Difusión completada: ${totalSent} enviados, ${totalFailed} fallidos.` : 'No hay usuarios privados registrados con una sesión activa.'
         });
     });
 
