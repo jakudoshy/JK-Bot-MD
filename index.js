@@ -344,7 +344,14 @@ function premiumEntryActive(entry) {
 function isPremiumWhatsApp(chatId) {
     const normalized = normalizePremiumJid(chatId);
     if (!normalized) return false;
-    return premiumEntryActive(botData.premiumUsers?.[normalized]);
+    const exact = botData.premiumUsers?.[normalized];
+    if (premiumEntryActive(exact)) return true;
+    // Accept device-qualified WhatsApp JIDs while keeping one canonical stored number.
+    const digits = normalized.split('@')[0].split(':')[0];
+    return Object.entries(botData.premiumUsers || {}).some(([jid, entry]) => {
+        const storedDigits = String(jid).split('@')[0].split(':')[0].replace(/\D/g, '');
+        return storedDigits === digits && premiumEntryActive(entry);
+    });
 }
 
 function hashPremiumToken(token) {
