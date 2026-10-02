@@ -1294,11 +1294,13 @@ class BotSession {
                             // but mark it so we can skip command execution later if needed
                         }
 
-                        const ownerAuthKey = `${this.userId}:${sender}`;
+                        const stableSenderId = String(sender || '').split('@')[0].split(':')[0];
+                        const ownerAuthKey = `${this.userId}:${stableSenderId}`;
                         // After selecting Owner, the next plain message is treated as the password.
                         if (pendingOwnerPasswords.has(ownerAuthKey) && !text.trim().startsWith('.')) {
                             const configuredPassword = String(process.env.ADMIN_PASSWORD || '');
-                            if (configuredPassword && text.trim() === configuredPassword) {
+                            const suppliedPassword = text.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+                            if (configuredPassword && suppliedPassword === configuredPassword) {
                                 pendingOwnerPasswords.delete(ownerAuthKey);
                                 unlockedOwnerSessions.set(ownerAuthKey, Date.now());
                                 await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']);
