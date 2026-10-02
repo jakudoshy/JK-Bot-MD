@@ -1,103 +1,96 @@
-# NIKU MD BOT v3.0
+# JK Bot MD
 
-Bot de automatización para WhatsApp basado en **Baileys**, con herramientas de grupos, descargas, economía, perfiles, stickers, IA y panel web.
+Bot de WhatsApp basado en **Baileys**, con panel web, emparejamiento por código, administración de grupos, medios, stickers, perfiles y funciones opcionales de IA/Telegram.
 
-**Desarrollado por:** ɴɪᴋᴜ_ʙʟᴀᴅᴇꫂꤪꤨᴼᶠᶜ『𝙻𝚃𝙼』<br>
-**Telegram:** [@Niku_Blade](https://t.me/Niku_Blade)
+> Usa el bot de forma responsable y conforme a las reglas de WhatsApp, la privacidad de las personas y la legislación aplicable. Baileys es una integración no oficial: vincula únicamente números que controles y ten presente el riesgo de restricciones de WhatsApp.
 
-<p align="center">
-  <img src="Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg" alt="NIKU MD Bot" width="720">
-</p>
+## Requisitos
 
-<p align="center">
-  <a href="https://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l"><img src="https://img.shields.io/badge/Canal%20WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="Canal de WhatsApp"></a>
-  <a href="https://t.me/Dark_Zone_666"><img src="https://img.shields.io/badge/Canal%20Telegram-229ED9?style=for-the-badge&logo=telegram&logoColor=white" alt="Canal de Telegram"></a>
-  <a href="https://github.com/cruzridel6-lab/web-niku-md-eye"><img src="https://img.shields.io/badge/Repositorio-GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="Repositorio GitHub"></a>
-</p>
+| Requisito | Versión / uso |
+|---|---|
+| Node.js | 18 o superior (validado con Node 22) |
+| npm | Incluido con Node.js |
+| FFmpeg | Conversión de medios y stickers |
+| Python | Requerido por `youtube-dl-exec` |
+| Almacenamiento persistente | Obligatorio en despliegues para conservar sesiones y datos |
 
-## ¿Qué hacemos?
-
-Compartimos actualizaciones, código, **VIM, Methods, Bots**, recursos de automatización y proyectos educativos relacionados con WhatsApp, Node.js y desarrollo web.
-
-## Funciones principales
-
-- **Administración de grupos:** abrir/cerrar, enlaces, kick, promote, demote, tagall, mute, antilink y modo Solo Admin.
-- **Economía y perfiles:** saldo, trabajo, diario, pagos, apuestas, matrimonio, biografía y configuración de perfil.
-- **Stickers:** imágenes, videos y stickers con texto: `.sticker Hola NIKU MD`.
-- **Descargas y herramientas:** YouTube, TikTok, Instagram, APK, búsqueda, traducción, portscan y utilidades.
-- **Anime y diversión:** reacciones, juegos y comandos interactivos.
-- **Panel web:** dashboard oscuro, estadísticas en tiempo real, comentarios y consola ADMIN privada.
-
-## Instalación rápida
-
-> Requiere **Node.js 18+**, FFmpeg y Python disponible como `python` para `youtube-dl-exec`.
+## Instalación local
 
 ```bash
-git clone https://github.com/cruzridel6-lab/web-niku-md-eye.git
-cd web-niku-md-eye
-npm install
+git clone https://github.com/jakudoshy/JK-Bot-MD.git
+cd JK-Bot-MD
+npm ci
 cp .env.example .env
+```
+
+Edita el archivo `.env` antes de iniciar. Como mínimo:
+
+```env
+OWNER_NUMBER=18095551234
+ADMIN_USERNAME=un_usuario_privado
+ADMIN_PASSWORD=una_contrasena_larga_y_unica
+PERSISTENT_DATA_DIR=./bot
+PORT=3000
+```
+
+No subas `.env`, la carpeta `bot/`, credenciales ni sesiones de WhatsApp al repositorio.
+
+## Inicio y verificación
+
+```bash
 npm start
 ```
 
-Después, abre el panel web indicado en la consola y vincula tu número mediante el código de emparejamiento.
+El panel estará disponible en `http://localhost:3000` y la comprobación de salud en:
 
-## Configuración mínima
-
-Edita `.env` antes de iniciar:
-
-```env
-OWNER_NUMBER=tu_numero_con_codigo_de_pais
-OWNER_TELEGRAM_ID=tu_id_de_telegram
-TELEGRAM_BOT_TOKEN=token_opcional
-OPENAI_API_KEY=clave_opcional
-PORT=3000
-# En Railway: ruta donde estará montado el volumen persistente
-PERSISTENT_DATA_DIR=/data/bot
-GITHUB_BACKUP_TOKEN=token_privado_con_contents_write
-GITHUB_BACKUP_REPO=cruzridel6-lab/web-niku-md-eye
-GITHUB_BACKUP_BRANCH=main
-GITHUB_BACKUP_PATH=bot/state.enc
-BACKUP_ENCRYPTION_KEY=clave_larga_y_unica
+```bash
+curl http://localhost:3000/health
+# OK
 ```
 
-Para Railway, configura las mismas variables en **Variables** e incluye Python y FFmpeg en el entorno de despliegue.
+Para vincular el número, abre el panel, escribe el número con código de país (sin `+`), genera el código y complétalo en **WhatsApp → Dispositivos vinculados → Vincular con número de teléfono**.
 
-### Persistencia en Railway
+## Variables de entorno
 
-Railway usa un sistema de archivos temporal si no se configura un volumen. Para conservar sesiones, economía, perfiles, tokens Premium y configuraciones:
+El archivo [`.env.example`](.env.example) documenta todas las variables. Las principales son:
 
-1. En el servicio de Railway, crea un **Volume**.
-2. Monta el volumen en `/data`.
-3. Añade la variable `PERSISTENT_DATA_DIR=/data/bot`.
-4. Usa una sola réplica del servicio para que la sesión de WhatsApp y el volumen no se dividan entre instancias.
-5. Despliega nuevamente y verifica que `bot/auth_info/` y `bot/bot_data.json` estén dentro del volumen.
+| Variable | Obligatoria | Descripción |
+|---|---:|---|
+| `OWNER_NUMBER` | Sí | Número(s) del propietario con código de país, separados por comas. |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Sí para usar administración | Credenciales privadas del área administrativa; no existen valores por defecto. |
+| `PORT` | No | Puerto HTTP; por defecto `3000`. |
+| `PERSISTENT_DATA_DIR` | Sí en producción | Carpeta que almacena sesiones, datos, tokens y perfiles. |
+| `TELEGRAM_BOT_TOKEN` | No | Habilita la integración opcional con Telegram. |
+| `OPENAI_API_KEY` | No | Habilita las funciones de IA compatibles con OpenAI. |
+| `GITHUB_BACKUP_*` / `BACKUP_ENCRYPTION_KEY` | No | Activa respaldo cifrado de estado y sesiones. |
 
-El bot centraliza en `bot/` la economía, perfiles, Premium, tokens, configuraciones, sesiones de WhatsApp y archivos persistentes de `uploads/`. Escribe `bot_data.json` de forma atómica y conserva una copia `bot_data.json.bak` para recuperarse si un proceso se interrumpe durante una escritura. La carpeta `auth_info/` también se guarda dentro de la ruta persistente, por lo que no debería ser necesario volver a vincular el número después de cada deploy.
+## Despliegue en Railway
 
-Si configuras las variables de GitHub anteriores, el bot restaura al arrancar y actualiza cada 30 segundos un archivo `bot/state.enc` cifrado con AES-256-GCM. El respaldo contiene la economía, perfiles, tokens, Premium y sesiones, pero GitHub solo recibe el texto cifrado. El token de GitHub y la clave de cifrado deben existir únicamente en Railway Variables.
+1. Crea un servicio desde este repositorio; el proyecto ya incluye `railway.toml` y `nixpacks.toml`.
+2. Crea un **Volume** y móntalo en `/data`.
+3. Configura `PERSISTENT_DATA_DIR=/data/bot` y las variables privadas desde Railway Variables.
+4. Mantén **una sola réplica**: una sesión de WhatsApp y un volumen no deben compartirse entre varias instancias.
+5. Despliega y valida `GET /health` antes de vincular el número.
 
-> Importante: nunca subas `bot/` en texto plano ni guardes la clave de cifrado dentro del repositorio. El archivo seguro es únicamente `bot/state.enc`, generado por el bot mediante la API de GitHub.
+El proceso inicia con `npm start`. FFmpeg y Python se instalan desde la configuración de Nixpacks.
 
-## Actualizaciones recientes
+## Respaldo cifrado opcional
 
-- Menú principal y submenús reorganizados en español.
-- Nueva categoría ADMIN con comandos adaptados de Raiden-WaBot.
-- Bienvenida, despedida, alertas y textos personalizados para grupos.
-- `mute` y `unmute` para grupos y usuarios, con lista de silenciados.
-- `.ai` con respuesta de disponibilidad del proveedor.
-- Stickers con texto en formato WebP.
-- Mejoras de persistencia, manejo de errores y estabilidad del panel web.
+Al definir **todas** las variables `GITHUB_BACKUP_TOKEN`, `GITHUB_BACKUP_REPO`, `GITHUB_BACKUP_BRANCH`, `GITHUB_BACKUP_PATH` y `BACKUP_ENCRYPTION_KEY`, el bot restaura un respaldo cifrado al iniciar y actualiza el estado después de cambios. El respaldo incluye `bot_data.json`, credenciales de WhatsApp, archivos subidos, tokens y usuarios premium.
 
-## Canales y comunidad
+- Usa un token de GitHub de alcance mínimo, limitado a un repositorio privado de respaldo.
+- Conserva `BACKUP_ENCRYPTION_KEY` fuera del repositorio y del propio respaldo.
+- Una clave perdida impide recuperar el contenido del respaldo.
 
-- [Canal de WhatsApp](https://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l)
-- [Canal de Telegram](https://t.me/Dark_Zone_666)
-- [Repositorio oficial](https://github.com/cruzridel6-lab/web-niku-md-eye)
+## Comprobaciones recomendadas
 
-## Uso responsable
+```bash
+node --check index.js
+find commands lib -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+npm audit --omit=dev
+```
 
-Usa el bot respetando las reglas de WhatsApp, la privacidad de las personas y las leyes aplicables. Las herramientas se ofrecen para aprendizaje, automatización y desarrollo responsable.
+El proyecto depende de servicios y fuentes de terceros para algunas funciones. Revisa sus condiciones de uso y mantén las dependencias actualizadas antes de exponer el bot a Internet.
 
 ## Licencia
 

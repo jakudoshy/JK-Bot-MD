@@ -28,17 +28,17 @@ const PREMIUM_COMMANDS = new Set([
 const BOT_NAME = 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ';
 const MOD_NAME = 'ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ';
 const CHANNEL = 'https://t.me/gg_no_root';
-const ADMIN_USER = 'admin*';
-const ADMIN_PASS = 'admin*1';
+const ADMIN_USER = String(process.env.ADMIN_USERNAME || '').trim();
+const ADMIN_PASS = String(process.env.ADMIN_PASSWORD || '');
 
-const PREMIUM_FILE = path.join(__dirname, 'premium.json');
-const TOKENS_FILE = path.join(__dirname, 'tokens.json');
+let PREMIUM_FILE;
+let TOKENS_FILE;
 function loadJSON(p,d){ try{ if(!fs.existsSync(p)) return d; return JSON.parse(fs.readFileSync(p,'utf8')); }catch{ return d } }
-function saveJSON(p,d){ fs.writeFileSync(p, JSON.stringify(d,null,2)); }
-let premiumReal = loadJSON(PREMIUM_FILE,{});
-let tokensReal = loadJSON(TOKENS_FILE,{});
+function saveJSON(p,d){ const temp = `${p}.${process.pid}.${Date.now()}.tmp`; fs.ensureDirSync(path.dirname(p)); fs.writeFileSync(temp, JSON.stringify(d,null,2)); fs.renameSync(temp,p); githubBackup.scheduleBackup(backupOptions()); }
+let premiumReal = {};
+let tokensReal = {};
 function isPremiumReal(n){ const d=premiumReal[n]; if(!d) return false; if(Date.now()>d.expires){ delete premiumReal[n]; saveJSON(PREMIUM_FILE,premiumReal); return false; } return true; }
-function genTokenReal(days=30){ const code='JK-'+Math.random().toString(36).substring(2,8).toUpperCase()+'-'+days+'D'; tokensReal[code]={days:parseInt(days),used:false,created:Date.now()}; saveJSON(TOKENS_FILE,tokensReal); return code; }
+function genTokenReal(days=30){ const safeDays = Math.max(1,Math.min(3650,Number.parseInt(days,10)||30)); const code='JK-'+Math.random().toString(36).substring(2,8).toUpperCase()+'-'+safeDays+'D'; tokensReal[code]={days:safeDays,used:false,created:Date.now()}; saveJSON(TOKENS_FILE,tokensReal); return code; }
 function redeemReal(num,token){ token=token.trim().toUpperCase(); const t=tokensReal[token]; if(!t) return {ok:false,msg:'Token no existe'}; if(t.used) return {ok:false,msg:'Token ya usado'}; const add=t.days*86400000; if(premiumReal[num] && premiumReal[num].expires>Date.now()){ premiumReal[num].expires+=add; }else{ premiumReal[num]={expires:Date.now()+add,since:Date.now()}; } tokensReal[token].used=true; tokensReal[token].usedBy=num; saveJSON(PREMIUM_FILE,premiumReal); saveJSON(TOKENS_FILE,tokensReal); return {ok:true,days:t.days,expires:premiumReal[num].expires}; }
 
 // Import all commands - MISMO MECANISMO
@@ -65,7 +65,7 @@ const app = express();
 const server = http.createServer(app);
 
 const tgToken = process.env.TELEGRAM_BOT_TOKEN;
-const tgBot = tgToken? new TelegramBot(tgToken, { polling: { interval: 3000, autoStart: true, params: { timeout: 10 } } }) : null;
+const tgBot = tgToken? new TelegramBot(tgToken, { polling: { interval: 3000, autoStart: false, params: { timeout: 10 } } }) : null;
 if (tgBot) {
     tgBot.on('polling_error', (error) => {
         if (error.message && (error.message.includes('409') || error.message.includes('Conflict'))) tgBot.stopPolling();
@@ -108,7 +108,7 @@ if (tgBot) {
     tgBot.on('message', async (msg) => {
         const chatId = msg.chat.id; const text = msg.text; if (!text || text.startsWith('/')) return;
         if (/^\d+$/.test(text)) {
-            const userId = chatId.toString(); if (!sessions[userId]) { sessions[userId] = new BotSession(userId); }
+            const userId = `tg_${chatId}`; if (!sessions[userId]) { sessions[userId] = new BotSession(userId); }
             if (!botData.statusSettings[userId]) { botData.statusSettings[userId] = { autoStatus: false, autoSeen: false, autoLike: false, autoDownload: false, isPublic: false }; saveBotData(); }
             const initMsg = `╭─「 ${BOT_NAME} PAIRING 」─\n│ 🔄 Solicitando codigo...\n│ Numero: ${text}\n│ Espera unos segundos...\n╰─「 ${MOD_NAME} 」`;
             await tgBot.sendMessage(chatId, initMsg, { parse_mode: 'Markdown' });
@@ -120,7 +120,7 @@ if (tgBot) {
 const io = socketIo(server, { cors: { origin: "*" }, transports: ['websocket', 'polling'] });
 let openai = null;
 if (process.env.OPENAI_API_KEY) { try { openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, baseURL: process.env.AI_BASE_URL || "https://api.openai.com/v1" }); } catch (e) {} }
-app.use(express.json()); app.use(express.urlencoded({ extended: true })); app.use(express.static(path.join(__dirname), { index: false }));
+app.use(express.json({ limit: '256kb' })); app.use(express.urlencoded({ extended: true, limit: '256kb' })); app.use(express.static(path.join(__dirname), { index: false }));
 const INDEX_TEMPLATE = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 const BANNER_FILE = 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg';
 function sendIndexWithPreview(req, res) { const protocol = req.get('x-forwarded-proto') || req.protocol || 'https'; const imageUrl = `${protocol.split(',')[0].trim()}://${req.get('host')}/${BANNER_FILE}`; res.type('html').send(INDEX_TEMPLATE.replaceAll('__NIKU_OG_IMAGE__', imageUrl)); }
@@ -132,12 +132,18 @@ const LEGACY_DATA_DIR = path.resolve(__dirname, 'data'); const LEGACY_AUTH_DIR =
 const PERSISTENT_DIR = path.resolve(process.env.PERSISTENT_DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'bot'));
 const AUTH_DIR = path.join(PERSISTENT_DIR, 'auth_info'); const UPLOADS_DIR = path.join(PERSISTENT_DIR, 'uploads');
 const DATA_FILE = path.join(PERSISTENT_DIR, 'bot_data.json'); const DATA_BACKUP = `${DATA_FILE}.bak`; const DATA_TEMP = `${DATA_FILE}.tmp`;
+PREMIUM_FILE = path.join(PERSISTENT_DIR, 'premium.json'); TOKENS_FILE = path.join(PERSISTENT_DIR, 'tokens.json');
+const LEGACY_PREMIUM_FILE = path.join(__dirname, 'premium.json'); const LEGACY_TOKENS_FILE = path.join(__dirname, 'tokens.json');
 fs.ensureDirSync(PERSISTENT_DIR); fs.ensureDirSync(AUTH_DIR); fs.ensureDirSync(UPLOADS_DIR);
 if (PERSISTENT_DIR!== LEGACY_DATA_DIR) { const legacyDataFile = path.join(LEGACY_DATA_DIR, 'bot_data.json'); if (!fs.existsSync(DATA_FILE) && fs.existsSync(legacyDataFile)) fs.copyFileSync(legacyDataFile, DATA_FILE); if (fs.existsSync(LEGACY_AUTH_DIR)) { for (const userId of fs.readdirSync(LEGACY_AUTH_DIR)) { const source = path.join(LEGACY_AUTH_DIR, userId); const target = path.join(AUTH_DIR, userId); if (!fs.existsSync(target)) fs.copySync(source, target); } } }
+if (!fs.existsSync(PREMIUM_FILE) && fs.existsSync(LEGACY_PREMIUM_FILE)) fs.copyFileSync(LEGACY_PREMIUM_FILE, PREMIUM_FILE);
+if (!fs.existsSync(TOKENS_FILE) && fs.existsSync(LEGACY_TOKENS_FILE)) fs.copyFileSync(LEGACY_TOKENS_FILE, TOKENS_FILE);
 let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, subbots: {} };
 function loadBotDataFromDisk() { for (const candidate of [DATA_FILE, DATA_BACKUP]) { if (!fs.existsSync(candidate)) continue; try { botData = fs.readJsonSync(candidate); break; } catch (e) {} } if (!botData || typeof botData!== 'object' || Array.isArray(botData)) botData = {}; if (!Array.isArray(botData.comments)) botData.comments = []; if (!botData.economy || typeof botData.economy!== 'object') botData.economy = {}; if (!botData.profiles || typeof botData.profiles!== 'object') botData.profiles = {}; if (!botData.premiumUsers || typeof botData.premiumUsers!== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {}; if (!botData.premiumTokens || typeof botData.premiumTokens!== 'object') botData.premiumTokens = {}; if (!botData.subbots || typeof botData.subbots!== 'object' || Array.isArray(botData.subbots)) botData.subbots = {}; if (!botData.adminOnlyGroups || typeof botData.adminOnlyGroups!== 'object') botData.adminOnlyGroups = {}; for (const key of ['groupAlerts', 'groupWelcome', 'groupBye', 'groupWelcomeText', 'groupByeText', 'mutedUsers']) { if (!botData[key] || typeof botData[key]!== 'object') botData[key] = {}; } }
-loadBotDataFromDisk();
-function saveBotData() { fs.ensureDirSync(PERSISTENT_DIR); fs.writeJsonSync(DATA_TEMP, botData, { spaces: 2 }); if (fs.existsSync(DATA_FILE)) fs.copyFileSync(DATA_FILE, DATA_BACKUP); fs.renameSync(DATA_TEMP, DATA_FILE); githubBackup.scheduleBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR }); }
+function loadRuntimeState() { loadBotDataFromDisk(); premiumReal = loadJSON(PREMIUM_FILE,{}); tokensReal = loadJSON(TOKENS_FILE,{}); }
+function backupOptions() { return { dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR, extraFiles: { 'premium.json': PREMIUM_FILE, 'tokens.json': TOKENS_FILE } }; }
+loadRuntimeState();
+function saveBotData() { fs.ensureDirSync(PERSISTENT_DIR); fs.writeJsonSync(DATA_TEMP, botData, { spaces: 2 }); if (fs.existsSync(DATA_FILE)) fs.copyFileSync(DATA_FILE, DATA_BACKUP); fs.renameSync(DATA_TEMP, DATA_FILE); githubBackup.scheduleBackup(backupOptions()); }
 const sessions = {}; const userSockets = {}; const messageLogs = {}; const adminSockets = new Set(); const adminChatLogs = [];
 function publishAdminChatMessage(entry) { const cleanEntry = { id: entry.id, sessionId: entry.sessionId, chatId: entry.chatId, chatName: entry.chatName || entry.chatId, sender: entry.sender || 'Desconocido', text: entry.text || '', type: entry.type || 'conversation', isGroup: Boolean(entry.isGroup), fromMe: Boolean(entry.fromMe), timestamp: entry.timestamp || new Date().toISOString() }; adminChatLogs.push(cleanEntry); if (adminChatLogs.length > 200) adminChatLogs.shift(); for (const adminSocket of adminSockets) { if (adminSocket.connected) adminSocket.emit('admin-chat-message', cleanEntry); } }
 function getDashboardStats() { const connectedSessions = Object.values(sessions).filter(session => session.isConnected && session.sock?.user); return { activeSockets: connectedSessions.length, totalUsers: connectedSessions.length, connectedUsers: connectedSessions.length, pendingUsers: Object.keys(sessions).length - connectedSessions.length, bots: publicBotsSnapshot(), updatedAt: new Date().toISOString() }; }
@@ -150,9 +156,12 @@ const toBold = (text) => { const boldChars = { 'a': '\u{1D5EE}', 'b': '\u{1D5EF}
 
 function senderJid(msg, chatId) { return msg?.key?.participant || msg?.participant || chatId; }
 function normalizePhone(value) { const phone = String(value || '').replace(/[^0-9]/g, ''); return phone.length >= 10 && phone.length <= 15? phone : null; }
+function isValidSessionId(value) { const sessionId = String(value || ''); return /^user_[a-z0-9]{9}$/i.test(sessionId) || /^tg_-?\d+$/.test(sessionId); }
+function hasDashboardCredentials(user, pass) { return Boolean(ADMIN_USER && ADMIN_PASS && String(user) === ADMIN_USER && String(pass) === ADMIN_PASS); }
 
 class BotSession {
     constructor(userId) {
+        if (!isValidSessionId(userId)) throw new Error('Identificador de sesión inválido');
         this.userId = userId; this.sock = null; this.isConnected = false; this.aiEnabled = false; this.autoReact = botData.statusSettings[userId]?.autoReact || false; this.isPublic = botData.statusSettings[userId]?.isPublic!== undefined? botData.statusSettings[userId].isPublic : true; this.authPath = path.join(AUTH_DIR, userId); this.processedMessages = new Set(); this.activeInterval = null; this.isInitializing = false; this.userChats = {}; this.lastConnectMessageTime = null; this.phoneNumber = null; this.ghostMode = false; this.subbotMode = botData.subbots[userId]?.mode || 'bot'; this.subbotOwner = botData.subbots[userId]?.ownerJid || null; this.pairRequesterJid = null; this.requesterSock = null; this.promoState = {};
     }
     sendLog(message, type = 'info') { const logEntry = { timestamp: new Date().toLocaleTimeString(), message, type }; const socketId = userSockets[this.userId]; if (socketId) io.to(socketId).emit('console', logEntry); console.log(`[${this.userId}] ${message}`); }
@@ -194,7 +203,7 @@ class BotSession {
                 }
             }
 
-            this.sock.ev.on('creds.update', async (update) => { await saveCreds(update); githubBackup.scheduleBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR }); });
+            this.sock.ev.on('creds.update', async (update) => { await saveCreds(update); githubBackup.scheduleBackup(backupOptions()); });
             this.sock.ev.on('call', async (calls) => {
                 if (botData.antiCall[this.userId]) {
                     for (const call of calls) {
@@ -308,19 +317,26 @@ class BotSession {
 
 // Socket web - ADMIN CON LOGIN admin* / admin*1
 io.on('connection', (socket) => {
-    socket.on('set-user', (userId) => { userSockets[userId] = socket.id; sessions[userId] = sessions[userId] || new BotSession(userId); });
+    socket.on('set-user', (userId) => { if (!isValidSessionId(userId)) return socket.emit('pair-error', 'Sesión inválida'); userSockets[userId] = socket.id; sessions[userId] = sessions[userId] || new BotSession(userId); });
     socket.on('pair-request', async ({ userId, number }) => {
-        const clean = number.replace(/\D/g, ''); if (!sessions[userId]) sessions[userId] = new BotSession(userId); sessions[userId].tgChatId = null; await sessions[userId].initialize(clean);
+        const clean = normalizePhone(number); if (!isValidSessionId(userId) || !clean) return socket.emit('pair-error', 'Número o sesión inválidos'); if (!sessions[userId]) sessions[userId] = new BotSession(userId); sessions[userId].tgChatId = null; await sessions[userId].initialize(clean);
     });
     socket.on('request-stats', () => { socket.emit('stats', getDashboardStats()); socket.emit('premium-users', premiumReal); });
     socket.on('admin-generate-token', ({ user, pass, days }) => {
-        if (user!== ADMIN_USER || pass!== ADMIN_PASS) return socket.emit('admin-error', 'No autorizado');
+        if (!hasDashboardCredentials(user, pass)) return socket.emit('admin-error', 'No autorizado');
         const token = genTokenReal(days || 30); socket.emit('token-generated', { token, days: days || 30 }); io.emit('premium-users', premiumReal);
     });
     socket.on('admin-login', ({ user, pass }) => {
-        if (user === ADMIN_USER && pass === ADMIN_PASS) { adminSockets.add(socket); socket.authenticated = true; socket.emit('admin-auth-ok'); socket.emit('premium-users', premiumReal); socket.emit('admin-bots-data', botsSnapshot()); } else socket.emit('admin-auth-error');
+        if (hasDashboardCredentials(user, pass)) { adminSockets.add(socket); socket.authenticated = true; socket.emit('admin-auth-ok'); socket.emit('premium-users', premiumReal); socket.emit('admin-bots-data', botsSnapshot()); } else socket.emit('admin-auth-error');
     });
+    socket.on('disconnect', () => { adminSockets.delete(socket); });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => { console.log(`${BOT_NAME} corriendo en ${PORT}`); });
+async function start() {
+    try { await githubBackup.restoreBackup(backupOptions()); loadRuntimeState(); }
+    catch (error) { console.error('[Backup] No se pudo restaurar el respaldo remoto:', error.response?.data?.message || error.message); }
+    if (tgBot) { try { await tgBot.startPolling(); } catch (error) { console.error('[Telegram] No se pudo iniciar el polling:', error.message); } }
+    server.listen(PORT, () => { console.log(`${BOT_NAME} corriendo en ${PORT}`); });
+}
+start().catch(error => { console.error('No se pudo iniciar el bot:', error.message); process.exitCode = 1; });
