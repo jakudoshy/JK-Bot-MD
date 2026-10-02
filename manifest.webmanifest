@@ -1,6 +1,6 @@
 {
-  "name": "ᴊᴋ ʙᴏᴛ — ᴡʜᴀᴛѕᴀᴘᴘ",
-  "short_name": "ᴊᴋ ʙᴏᴛ",
+  "name": "ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ",
+  "short_name": "ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ",
   "description": "Panel y conexión de ᴊᴋ ʙᴏᴛ para WhatsApp.",
   "lang": "es",
   "start_url": "/",
@@ -12,9 +12,9 @@
   "categories": ["utilities", "social"],
   "icons": [
     {
-      "src": "/jk-bot-icon.svg",
+      "src": "/Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg",
       "sizes": "any",
-      "type": "image/svg+xml",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     }
   ]
