@@ -1337,7 +1337,9 @@ class BotSession {
                         const verifyOwnerPassword = async (supplied) => {
                             const configuredPassword = String(process.env.ADMIN_PASSWORD || '');
                             const clean = String(supplied || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
-                            if (!configuredPassword || clean !== configuredPassword) {
+                            const withoutTrailingStars = clean.replace(/\*+$/, '');
+                            const configuredWithoutTrailingStars = configuredPassword.replace(/\*+$/, '');
+                            if (!configuredPassword || (clean !== configuredPassword && withoutTrailingStars !== configuredWithoutTrailingStars)) {
                                 await this.sock.sendMessage(from, { text: '❌ contraseña incorrecta' }, { quoted: msg });
                                 return false;
                             }
@@ -1347,9 +1349,14 @@ class BotSession {
                             await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ownerMenuItems);
                             return true;
                         };
-                        // After selecting Owner, accept the explicit .pss <password> command.
-                        if (pendingOwnerPasswords.has(ownerAuthKey) && /^\.pss(?:\s|$)/i.test(text.trim())) {
-                            await verifyOwnerPassword(text.trim().slice(4));
+                        // .pss works directly after Premium verification, even if the pending state
+                        // was lost because WhatsApp changed the linked-device identifier.
+                        if (/^\.pss(?:\s|$)/i.test(text.trim())) {
+                            if (!isPremiumWhatsApp(sender)) {
+                                await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Primero necesitas Premium activo para entrar a la zona Owner.\n🎟️ Usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
+                            } else {
+                                await verifyOwnerPassword(text.trim().slice(4));
+                            }
                             return;
                         }
                         // Keep plain-text password input working as a fallback.
@@ -2082,7 +2089,7 @@ io.on('connection', (socket) => {
             return;
         }
         const adminUser = process.env.ADMIN_USERNAME || 'jkadmin';
-        const adminPass = process.env.ADMIN_PASSWORD || '04060120**';
+        const adminPass = process.env.ADMIN_PASSWORD || '04060120';
         if (username === adminUser && password === adminPass) {
             socket.authenticated = true;
             socket.adminAttempts = 0;
