@@ -76,22 +76,6 @@
   .particles{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;}
   .particle{position:absolute;background:var(--green);border-radius:50%;opacity:0;animation:drift linear infinite;box-shadow:0 0 6px var(--green);}
   @keyframes drift{0%{transform:translateY(100vh);opacity:0;}10%{opacity:.7;}90%{opacity:.4;}100%{transform:translateY(-10vh);opacity:0;}}
-
-  /* ---------- Boot sequence overlay ---------- */
-  #boot{position:fixed;inset:0;z-index:999;background:radial-gradient(circle at 50% 45%,#0b1c17 0,#010301 58%);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;}
-  .boot-panel{width:min(680px,calc(100% - 34px));padding:26px 24px 22px;border:1px solid rgba(111,247,210,.25);border-radius:18px;background:rgba(2,9,7,.82);box-shadow:0 0 50px rgba(57,255,20,.08);}
-  .boot-brand{display:flex;justify-content:space-between;gap:12px;color:var(--text);font-size:.76rem;letter-spacing:.12em;margin-bottom:14px;}
-  .boot-brand strong{color:var(--green);}
-  #boot pre{min-height:160px;color:var(--green);font-size:.78rem;line-height:1.65;white-space:pre-wrap;margin:0;text-shadow:0 0 8px rgba(57,255,20,.5);}
-  .boot-progress{height:9px;border-radius:99px;overflow:hidden;background:rgba(111,247,210,.1);border:1px solid rgba(111,247,210,.24);}
-  .boot-progress-bar{height:100%;width:0;background:linear-gradient(90deg,#35d5b3,#b4ffe8);box-shadow:0 0 16px rgba(111,247,210,.7);transition:width .25s ease;}
-  .boot-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:11px;color:var(--muted);font-size:.72rem;}
-  #bootPercent{color:var(--green);font-weight:700;}
-  #boot .cursor{display:inline-block;width:8px;height:16px;background:var(--green);animation:blink 1s step-end infinite;vertical-align:middle;}
-  @keyframes blink{50%{opacity:0;}}
-  #boot.hide{animation:bootOut .5s ease forwards;}
-  @keyframes bootOut{to{opacity:0;visibility:hidden;}}
-
   /* ---------- Modal ---------- */
   .modal{
     position:fixed;inset:0;background:rgba(1,4,1,.85);backdrop-filter:blur(8px);
@@ -386,12 +370,12 @@
   #adminConsole{display:none;}
   #adminNavLink{display:none;}
   body.admin-route #adminNavLink{display:inline-flex;}
-  #admin.panel{display:none;}
-  body.admin-route #admin.panel{display:block;}
-  body.admin-route #boot,body.admin-route .hero-banner,body.admin-route .banner-nav,body.admin-route header,body.admin-route main>section:not(#admin),body.admin-route footer,body.admin-route #audioHint,body.admin-route #channelModal{display:none!important;}
+  #admin.panel{display:block;}
+
+
   body.admin-route nav{position:relative;}
   body.admin-route main{max-width:1100px;min-height:calc(100vh - 74px);padding-top:38px;}
-  body.admin-route #admin.panel{margin-top:0;min-height:calc(100vh - 130px);}
+
   .console-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;color:var(--muted);font-size:.75rem;}
   .console-live{color:var(--green);font-weight:700;}
   .console-output{height:360px;overflow:auto;border:1px solid var(--border);border-radius:14px;background:#050811;padding:12px;font-family:'Share Tech Mono',monospace;font-size:.74rem;}
@@ -455,12 +439,13 @@
   .menu-toggle{position:fixed;top:16px;right:18px;z-index:700;display:grid;gap:5px;width:42px;height:38px;padding:9px 10px;border:1px solid rgba(99,245,209,.35);border-radius:9px;background:rgba(8,10,22,.88);cursor:pointer;box-shadow:0 0 18px rgba(99,245,209,.12)}.menu-toggle span{display:block;height:2px;background:var(--green);box-shadow:0 0 7px var(--green);transition:.25s}.menu-toggle:hover{border-color:var(--green)}.menu-drawer{position:fixed;top:64px;right:18px;z-index:699;width:min(280px,calc(100vw - 36px));display:grid;gap:4px;padding:12px;border:1px solid var(--border);border-radius:14px;background:rgba(7,10,22,.97);box-shadow:0 18px 45px rgba(0,0,0,.45),0 0 28px rgba(99,245,209,.1);opacity:0;visibility:hidden;transform:translateY(-10px);transition:.25s}.menu-drawer.open{opacity:1;visibility:visible;transform:none}.menu-drawer-head{display:flex;justify-content:space-between;align-items:center;padding:6px 6px 10px;color:var(--green);border-bottom:1px solid var(--border);font-size:.75rem}.menu-drawer-head button{border:0;background:none;color:var(--muted);font-size:1.3rem;cursor:pointer}.menu-drawer a{padding:12px 8px;color:var(--text);text-decoration:none;border-bottom:1px solid rgba(130,155,255,.12);font-size:.76rem}.menu-drawer a:hover{color:var(--green);background:var(--green-glass)}
   .admin-broadcast-input{width:100%;resize:vertical;min-height:90px;margin-bottom:10px;border:1px solid var(--border);border-radius:10px;background:rgba(0,0,0,.22);color:var(--text);font:inherit;font-size:.78rem;padding:11px 12px;outline:none}.admin-broadcast-input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(111,247,210,.1)}
 </style>
+<style id="jk-red-neon-theme">
+:root{--bg:#020001;--bg-panel:rgba(13,1,4,.94);--bg-panel-2:rgba(7,0,2,.98);--grid:rgba(255,0,31,.09);--green:#ff1238;--green-dim:#d90028;--green-deep:#47000e;--green-glass:rgba(255,0,31,.12);--border:rgba(255,28,58,.48);--text:#fff5f6;--muted:#b18b91;--amber:#ffb0ba;--danger:#ff4060;--violet:#ff5570}
+html,body{background:#020001!important;color:#fff5f6!important}body{background:radial-gradient(circle at 50% -10%,rgba(255,0,31,.24),transparent 42%),linear-gradient(135deg,#020001,#0b0004 52%,#010001)!important}body:after{background-image:linear-gradient(rgba(255,0,31,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,0,31,.07) 1px,transparent 1px)!important;background-size:38px 38px!important}.grid-bg{background-image:linear-gradient(rgba(255,0,31,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,0,31,.08) 1px,transparent 1px)!important}.glow-orb{background:radial-gradient(circle,rgba(255,0,31,.22),rgba(180,0,30,.1) 30%,transparent 68%)!important}.particle{background:#ff3655!important;box-shadow:0 0 8px #ff1238,0 0 18px rgba(255,0,31,.75)!important}.scanlines{opacity:.22!important}.panel,.admin-card,.admin-kpi,#adminLoginBox,.modal-content{background:linear-gradient(145deg,rgba(20,0,6,.94),rgba(4,0,2,.96))!important;border-color:rgba(255,18,56,.5)!important;box-shadow:0 0 24px rgba(255,0,31,.13)!important}.btn{border-color:#ff1638!important;color:#fff!important;background:linear-gradient(110deg,#160005,#050001)!important;box-shadow:0 0 18px rgba(255,0,31,.3)!important}.btn:hover{background:linear-gradient(110deg,#4a000e,#120003)!important;box-shadow:0 0 34px rgba(255,0,31,.75)!important}.menu-toggle{border-color:#ff1638!important;background:#050001!important;box-shadow:0 0 20px rgba(255,0,31,.4)!important}.menu-toggle span{background:#ff3655!important;box-shadow:0 0 8px #ff1238!important}.menu-drawer{background:rgba(8,0,3,.98)!important;border-color:#ff1638!important;box-shadow:0 18px 45px rgba(0,0,0,.6),0 0 30px rgba(255,0,31,.3)!important}.menu-drawer-head,.menu-drawer a:hover{color:#ff4b66!important}.hero-banner{border-color:rgba(255,18,56,.55)!important;box-shadow:0 20px 70px rgba(255,0,31,.2)!important}.banner-nav a:hover{border-color:#ff1638!important;background:rgba(255,0,31,.12)!important}.banner-nav a i,.eyebrow,.panel h2,.admin-kicker,.admin-section-tag,.stat-value,.premium-admin h3{color:#ff405c!important}.pulse{background:#ff1638!important;box-shadow:0 0 12px #ff1638!important}.code-box,.input-group input,.premium-card input,.premium-card select,.admin-broadcast-input{border-color:#ff1638!important;background:#050001!important;box-shadow:inset 0 0 14px rgba(255,0,31,.08)!important}.code-box{color:#fff!important;box-shadow:0 0 28px rgba(255,0,31,.55)!important}.admin-bot-status.connected,.console-live{color:#ff7386!important}.channel-item,.official-card,.feature-item,.step-card{border-color:rgba(255,18,56,.35)!important;background:rgba(16,0,4,.6)!important}.channel-item:hover,.official-card:hover{border-color:#ff1638!important;background:rgba(255,0,31,.1)!important}
+</style>
 </head>
 <body>
-<div id="boot">
-  <div class="boot-panel">
-    <div class="boot-brand"><strong>JK BOT // SISTEMA</strong><span>INICIO SEGURO</span></div>
-    <pre id="bootText"></pre>
+<pre id="bootText"></pre>
     <div class="boot-progress" aria-label="Progreso de carga"><div class="boot-progress-bar" id="bootProgress"></div></div>
     <div class="boot-meta"><span id="bootStatus">Preparando el panel...</span><span id="bootPercent">0%</span></div>
   </div>
@@ -480,7 +465,6 @@
     <div class="modal-body">
       <p>// Únete al canal oficial de Telegram para recibir novedades y soporte del bot.</p>
       <div class="channel-list">
-        <a href="https://t.me/gg_no_root" target="_blank" rel="noopener" class="channel-item"><i class="fab fa-whatsapp"></i><span><strong>Canal oficial de WhatsApp</strong><small>Novedades y actualizaciones</small></span><b class="channel-join">Ver canal</b></a>
         <a href="https://t.me/gg_no_root" target="_blank" rel="noopener" class="channel-item"><i class="fab fa-telegram-plane"></i><span><strong>Canal oficial de Telegram</strong><small>Noticias y soporte</small></span><b class="channel-join">Unirse</b></a>
       </div>
       <button class="btn" id="confirmFollow"><i class="fas fa-check"></i> Ya me uní · Continuar</button>
@@ -498,7 +482,7 @@
   </div>
 </nav>
 <button id="menuToggle" class="menu-toggle" type="button" aria-label="Abrir menú" aria-expanded="false"><span></span><span></span><span></span></button>
-<div id="menuDrawer" class="menu-drawer" aria-hidden="true"><div class="menu-drawer-head"><strong>JK // MENÚ</strong><button id="menuClose" type="button" aria-label="Cerrar menú">×</button></div><a href="#connect">Vincular WhatsApp</a><a href="#links">Canal de Telegram</a><a href="/admin">Panel administrativo</a></div>
+<div id="menuDrawer" class="menu-drawer" aria-hidden="true"><div class="menu-drawer-head"><strong>JK // MENÚ</strong><button id="menuClose" type="button" aria-label="Cerrar menú">×</button></div><a href="#connect">Vincular WhatsApp</a><a href="#links">Canal de Telegram</a><a href="#admin">Panel administrativo</a></div>
 
 <div class="hero-banner" role="img" aria-label="Banner oficial de JK BOT">
   <img src="Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg" alt="Banner oficial de JK BOT BOT">
@@ -507,7 +491,7 @@
   <a href="#features"><i class="fas fa-star"></i> Funciones</a>
   <a href="#connect"><i class="fas fa-link"></i> Conectar</a>
   <a href="#links"><i class="fas fa-broadcast-tower"></i> Canales</a>
-  <a id="adminNavLink" href="/admin"><i class="fas fa-shield-halved"></i> Admin</a>
+
 </div>
 <header>
   <div class="eyebrow" id="nodeStatus"><span class="pulse"></span> SESIÓN LISTA // NODO EN LÍNEA</div>
@@ -586,7 +570,6 @@
   <section id="links" class="panel" data-label="./canales-oficiales">
     <h2><i class="fas fa-broadcast-tower"></i> Canal oficial</h2>
     <div class="link-grid">
-      <a class="official-card" href="https://t.me/gg_no_root" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i><span><strong>WhatsApp oficial</strong><span>Ver canal y recibir novedades</span></span><b class="channel-join">Ver canal</b></a>
       <a class="official-card" href="https://t.me/gg_no_root" target="_blank" rel="noopener"><i class="fab fa-telegram-plane"></i><span><strong>Telegram oficial</strong><span>Noticias, soporte y avisos</span></span><i class="fas fa-arrow-up-right-from-square join-arrow"></i></a>
     </div>
   </section>
@@ -667,48 +650,6 @@
 <div id="toast">¡CÓDIGO COPIADO!</div>
 <script src="/socket.io/socket.io.js"></script>
 <script>
-/* ---------------- Boot sequence ---------------- */
-const bootLines = [
-  "iniciando núcleo de ᴊᴋ ʙᴏᴛ // ᴏғᴄ...",
-  "cargando módulos de automatización... OK",
-  "verificando el puente seguro de WhatsApp... OK",
-  "preparando conexión en tiempo real... OK",
-  "sincronizando sesiones activas y estadísticas... OK",
-  "cargando canales oficiales y herramientas... OK",
-  "interfaz minimalista lista. bienvenido al panel."
-];
-const bootEl = document.getElementById('bootText');
-const bootProgress = document.getElementById('bootProgress');
-const bootPercent = document.getElementById('bootPercent');
-const bootStatus = document.getElementById('bootStatus');
-function typeBoot(){
-  if(li >= bootLines.length){
-    bootProgress.style.width = '100%';
-    bootPercent.textContent = '100%';
-    bootStatus.textContent = 'Carga completada · entrando...';
-    setTimeout(()=>{
-      document.getElementById('boot').classList.add('hide');
-      bootFinished = true;
-    }, 850);
-    return;
-  }
-  const line = bootLines[li];
-  if(ci <= line.length){
-    bootEl.innerText = bootLines.slice(0,li).join('\n') + (li>0?'\n':'') + line.slice(0,ci) + ' ';
-    bootEl.innerHTML = bootEl.innerText.replace(/\n/g,'<br>') + '<span class="cursor"></span>';
-    const percent = Math.min(96, Math.round(((li + ci / Math.max(line.length, 1)) / bootLines.length) * 100));
-    bootProgress.style.width = percent + '%';
-    bootPercent.textContent = percent + '%';
-    bootStatus.textContent = li < 2 ? 'Inicializando módulos...' : li < 5 ? 'Sincronizando servicios...' : 'Finalizando configuración...';
-    ci++;
-    setTimeout(typeBoot, 28);
-  } else {
-    li++; ci = 0;
-    setTimeout(typeBoot, 260);
-  }
-}
-typeBoot();
-
 /* ---------------- Particles ---------------- */
 const pWrap = document.getElementById('particles');
 for(let i=0;i<40;i++){
@@ -792,17 +733,8 @@ const adminLogout = document.getElementById('adminLogout');
 const adminBotsList = document.getElementById('adminBotsList');
 const adminPromoButton = document.getElementById('adminPromoButton');
 const adminMessages = new Map();
-function updateAdminRoute(){
-  const isAdminRoute = window.location.hash.toLowerCase() === '#admin' || window.location.pathname.toLowerCase() === '/admin';
-  document.body.classList.toggle('admin-route', isAdminRoute);
-  if(!isAdminRoute){
-    adminLoginBox.style.display='block';
-    adminConsole.style.display='none';
-    adminStatus.textContent='';
-  }
-}
+function updateAdminRoute(){document.body.classList.remove('admin-route');}
 updateAdminRoute();
-window.addEventListener('hashchange', updateAdminRoute);
 function renderAdminChatMessage(entry){
   if(!entry?.id || adminMessages.has(entry.id)) return;
   adminMessages.set(entry.id,entry);

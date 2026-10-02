@@ -333,9 +333,6 @@ function premiumEntryActive(entry) {
 function isPremiumWhatsApp(chatId) {
     const normalized = normalizePremiumJid(chatId);
     if (!normalized) return false;
-    const number = normalized.split('@')[0];
-    const owners = String(settings.ownerNumber || '').split(',').map(value => value.replace(/\D/g, '')).filter(Boolean);
-    if (owners.includes(number)) return true;
     return premiumEntryActive(botData.premiumUsers?.[normalized]);
 }
 
