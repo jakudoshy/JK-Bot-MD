@@ -451,15 +451,16 @@ html,body{background:#020001!important;color:#fff5f6!important}body{background:r
 .jk-matrix-rain{position:fixed;inset:0;z-index:-2;opacity:.13;pointer-events:none;mix-blend-mode:screen}
 </style>
 <style id="jk-boot-theme">
-.jk-boot{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,rgba(100,0,14,.2),transparent 48%),#020001;color:#ffdce1;font-family:monospace;transition:opacity .35s,visibility .35s}.jk-boot.is-done{opacity:0;visibility:hidden;pointer-events:none}.jk-boot-inner{width:min(660px,calc(100% - 32px));padding:24px;border:1px solid #ff1238;background:linear-gradient(145deg,rgba(21,0,6,.97),rgba(3,0,2,.99));box-shadow:0 0 28px rgba(255,0,31,.3),inset 0 0 35px rgba(255,0,31,.07);position:relative}.jk-boot-inner:before{content:"// SECURE HANDSHAKE";position:absolute;right:18px;top:-8px;padding:0 6px;background:#020001;color:#ff4562;font-size:10px;letter-spacing:.16em}.jk-boot-top,.jk-boot-meta{display:flex;justify-content:space-between;gap:14px;font-size:11px;letter-spacing:.12em}.jk-boot-top{padding-bottom:15px;border-bottom:1px solid rgba(255,18,56,.3);color:#ff3e5b}.jk-boot-top span,.jk-boot-meta{color:#ae6873}.jk-boot-log{min-height:120px;padding:17px 0;color:#ff8b9b;font-size:12px;line-height:1.8;text-shadow:0 0 8px rgba(255,0,31,.5)}.jk-boot-log .ok{color:#fff}.jk-boot-bar{height:5px;background:#230008;overflow:hidden}.jk-boot-bar i{display:block;width:0;height:100%;background:linear-gradient(90deg,#9d001e,#ff1238,#ff8291);box-shadow:0 0 15px #ff1238;transition:width .1s}.jk-boot-meta{padding-top:10px;font-size:10px}.jk-boot-meta span:last-child{color:#ff4562;font-weight:700}
+.jk-boot{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,rgba(100,0,14,.2),transparent 48%),#020001;color:#ffdce1;font-family:monospace;transition:opacity .35s,visibility .35s}.jk-boot.is-done{opacity:0;visibility:hidden;pointer-events:none}.jk-boot-inner{width:min(660px,calc(100% - 32px));padding:24px;border:1px solid #ff1238;background:linear-gradient(145deg,rgba(21,0,6,.97),rgba(3,0,2,.99));box-shadow:0 0 28px rgba(255,0,31,.3),inset 0 0 35px rgba(255,0,31,.07);position:relative}.jk-boot-inner:before{content:"// SECURE HANDSHAKE";position:absolute;right:18px;top:-8px;padding:0 6px;background:#020001;color:#ff4562;font-size:10px;letter-spacing:.16em}.jk-boot-top,.jk-boot-meta{display:flex;justify-content:space-between;gap:14px;font-size:11px;letter-spacing:.12em}.jk-boot-top{padding-bottom:15px;border-bottom:1px solid rgba(255,18,56,.3);color:#ff3e5b}.jk-boot-top span,.jk-boot-meta{color:#ae6873}.jk-boot-log{min-height:120px;padding:17px 0;color:#ff8b9b;font-size:12px;line-height:1.8;text-shadow:0 0 8px rgba(255,0,31,.5)}.jk-boot-log .ok{color:#fff}.jk-boot-bar{height:5px;background:#230008;overflow:hidden}.jk-boot-bar i{display:block;width:0;height:100%;background:linear-gradient(90deg,#9d001e,#ff1238,#ff8291);box-shadow:0 0 15px #ff1238;transition:width .1s}.jk-boot-meta{padding-top:10px;font-size:10px}
+
 </style>
 </head>
 <body>
-<div id="jkBoot" class="jk-boot" role="status" aria-label="Iniciando JK BOT"><div class="jk-boot-inner"><div class="jk-boot-top"><strong>ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ</strong><span>RED CORE v4.0.0</span></div><div id="jkBootLog" class="jk-boot-log"></div><div class="jk-boot-bar"><i id="jkBootBar"></i></div><div class="jk-boot-meta"><span id="jkBootStatus">INICIALIZANDO NODO...</span><span id="jkBootPercent">0%</span></div></div></div>
+<div id="jkBoot" class="jk-boot" role="status" aria-label="Iniciando JK BOT"><div class="jk-boot-inner"><div class="jk-boot-top"><strong>ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ</strong><span>RED CORE</span></div><div id="jkBootLog" class="jk-boot-log"></div><div class="jk-boot-bar"><i id="jkBootBar"></i></div><div class="jk-boot-meta"><span id="jkBootStatus">INICIALIZANDO NODO...</span></div></div></div>
 <div class="scanlines"></div>
 <div class="grid-bg"></div>
 <div class="glow-orb"></div>
-<div class="particles" id="particles"></div><div class="hack-hud" aria-hidden="true"><span>JK://SECURE_NODE</span><span id="hackClock">00:00:00</span></div>
+<div class="particles" id="particles"></div><div class="hack-hud" aria-hidden="true"><span>JK://SECURE_NODE</span></div>
 
 <!-- Official channels modal -->
 <div id="channelModal" class="modal">
@@ -561,7 +562,7 @@ html,body{background:#020001!important;color:#fff5f6!important}body{background:r
         <i class="fas fa-phone"></i>
         <input type="tel" id="phone" placeholder="Ej.: 5491112345678 (con código de país)">
       </div>
-      <button class="btn" id="requestPairing"><i class="fas fa-key"></i> Solicitar código</button>
+      <button class="btn" id="requestPairing"><i class="fas fa-key"></i> Código real</button>
     </div>
 
     <div id="status"></div>
@@ -657,9 +658,9 @@ html,body{background:#020001!important;color:#fff5f6!important}body{background:r
 <script src="/socket.io/socket.io.js"></script>
 <script>
 /* ---------------- Hacker boot + particles ---------------- */
-const jkBoot=document.getElementById('jkBoot'),jkBootLog=document.getElementById('jkBootLog'),jkBootBar=document.getElementById('jkBootBar'),jkBootStatus=document.getElementById('jkBootStatus'),jkBootPercent=document.getElementById('jkBootPercent');const jkBootLines=['> mounting red core modules... OK','> validating secure WhatsApp bridge... OK','> loading live socket telemetry... OK','> premium gate: token-only access... OK','> system ready // access granted'];let jkBootIndex=0;function runJkBoot(){if(!jkBoot||jkBootIndex>=jkBootLines.length){if(jkBoot){jkBootBar.style.width='100%';jkBootPercent.textContent='100%';jkBootStatus.textContent='NODO EN LÍNEA';setTimeout(()=>jkBoot.classList.add('is-done'),260)}return}const line=document.createElement('div');line.className='ok';line.textContent=jkBootLines[jkBootIndex++];jkBootLog.appendChild(line);const pct=Math.round((jkBootIndex/jkBootLines.length)*100);jkBootBar.style.width=pct+'%';jkBootPercent.textContent=pct+'%';jkBootStatus.textContent=jkBootIndex<3?'SINCRONIZANDO...':'VERIFICANDO...';setTimeout(runJkBoot,150)}runJkBoot();
+const jkBoot=document.getElementById('jkBoot'),jkBootLog=document.getElementById('jkBootLog'),jkBootBar=document.getElementById('jkBootBar'),jkBootStatus=document.getElementById('jkBootStatus');const jkBootLines=['> mounting red core modules... OK','> validating secure WhatsApp bridge... OK','> loading live socket telemetry... OK','> premium gate: token-only access... OK','> system ready // access granted'];let jkBootIndex=0;function runJkBoot(){if(!jkBoot||jkBootIndex>=jkBootLines.length){if(jkBoot){jkBootBar.style.width='100%';jkBootStatus.textContent='NODO EN LÍNEA';setTimeout(()=>jkBoot.classList.add('is-done'),260)}return}const line=document.createElement('div');line.className='ok';line.textContent=jkBootLines[jkBootIndex++];jkBootLog.appendChild(line);const pct=Math.round((jkBootIndex/jkBootLines.length)*100);jkBootBar.style.width=pct+'%';jkBootStatus.textContent=jkBootIndex<3?'SINCRONIZANDO...':'VERIFICANDO...';setTimeout(runJkBoot,150)}runJkBoot();
 
-const matrixCanvas=document.createElement('canvas');matrixCanvas.className='jk-matrix-rain';document.body.appendChild(matrixCanvas);const matrixCtx=matrixCanvas.getContext('2d');let matrixDrops=[];function resizeJkMatrix(){matrixCanvas.width=innerWidth;matrixCanvas.height=innerHeight;matrixDrops=Array.from({length:Math.ceil(innerWidth/18)},()=>Math.random()*-30)}function drawJkMatrix(){matrixCtx.fillStyle='rgba(2,0,1,.12)';matrixCtx.fillRect(0,0,matrixCanvas.width,matrixCanvas.height);matrixCtx.fillStyle='rgba(255,18,56,.52)';matrixCtx.font='12px monospace';matrixDrops.forEach((y,i)=>{matrixCtx.fillText(Math.random()>.5?'1':'0',i*18,y*14);if(y*14>matrixCanvas.height&&Math.random()>.975)matrixDrops[i]=0;matrixDrops[i]+=.7})}resizeJkMatrix();addEventListener('resize',resizeJkMatrix);setInterval(drawJkMatrix,85);const hackClock=document.getElementById('hackClock');setInterval(()=>{if(hackClock)hackClock.textContent=new Date().toLocaleTimeString('en-GB',{hour12:false})},1000);
+const matrixCanvas=document.createElement('canvas');matrixCanvas.className='jk-matrix-rain';document.body.appendChild(matrixCanvas);const matrixCtx=matrixCanvas.getContext('2d');let matrixDrops=[];function resizeJkMatrix(){matrixCanvas.width=innerWidth;matrixCanvas.height=innerHeight;matrixDrops=Array.from({length:Math.ceil(innerWidth/18)},()=>Math.random()*-30)}function drawJkMatrix(){matrixCtx.fillStyle='rgba(2,0,1,.12)';matrixCtx.fillRect(0,0,matrixCanvas.width,matrixCanvas.height);matrixCtx.fillStyle='rgba(255,18,56,.52)';matrixCtx.font='12px monospace';matrixDrops.forEach((y,i)=>{matrixCtx.fillText(Math.random()>.5?'1':'0',i*18,y*14);if(y*14>matrixCanvas.height&&Math.random()>.975)matrixDrops[i]=0;matrixDrops[i]+=.7})}resizeJkMatrix();addEventListener('resize',resizeJkMatrix);setInterval(drawJkMatrix,85);
 const pWrap = document.getElementById('particles');
 for(let i=0;i<40;i++){
   const p = document.createElement('div');
@@ -925,7 +926,7 @@ requestBtn.addEventListener('click', ()=>{
 
 socket.on('pairing-code', (code)=>{
   requestBtn.disabled = false;
-  requestBtn.innerHTML = '<i class="fas fa-key"></i> Solicitar código';
+  requestBtn.innerHTML = '<i class="fas fa-key"></i> Código real';
   setStatus('Código generado. Vincula WhatsApp durante los próximos 60 segundos.', 'success');
   codeWrap.style.display = 'block';
   pairingCode.innerText = code;
@@ -933,7 +934,7 @@ socket.on('pairing-code', (code)=>{
 
 socket.on('pair-error', (msg)=>{
   requestBtn.disabled = false;
-  requestBtn.innerHTML = '<i class="fas fa-key"></i> Solicitar código';
+  requestBtn.innerHTML = '<i class="fas fa-key"></i> Código real';
   setStatus(msg || 'No se pudo generar el código. Inténtalo de nuevo.', 'error');
 });
 

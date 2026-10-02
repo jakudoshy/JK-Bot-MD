@@ -2148,6 +2148,7 @@ io.on('connection', (socket) => {
         }
     });
 
+
     // BROADCAST MESSAGE - Send to all connected users
     socket.on('broadcast', async ({ message }) => {
         if (!socket.authenticated) return;
