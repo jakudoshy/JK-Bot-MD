@@ -987,13 +987,30 @@ class BotSession {
             installWhatsAppBrand(this.sock);
 
             if (pairingNumber && !state.creds.registered) {
-                if (!this.sock.authState.creds.registered) {
-                    await delay(3000);
-                    try {
-                        let code = await this.sock.requestPairingCode(pairingNumber);
-                        if (!code || typeof code !== 'string') throw new Error('WhatsApp no devolvió un código. Espera unos segundos y vuelve a intentarlo.');
-                        code = code.replace(/[^A-Za-z0-9]/g, '').match(/.{1,4}/g)?.join('-') || code;
-                        this.sendLog(`\u{1F511} Pairing Code: ${code}`, 'success');
+                const pairingSocketId = userSockets[this.userId];
+                if (pairingSocketId) io.to(pairingSocketId).emit('pairing-started', 'Conectando con WhatsApp para solicitar un código real...');
+                try {
+                    // The WhatsApp transport can take longer than the old fixed 3-second delay.
+                    // Retry the real Baileys request while the socket becomes ready, never inventing a code.
+                    let code;
+                    let lastError;
+                    for (let attempt = 1; attempt <= 4 && !code; attempt += 1) {
+                        try {
+                            await delay(attempt === 1 ? 1200 : 2500);
+                            code = await Promise.race([
+                                this.sock.requestPairingCode(pairingNumber),
+                                new Promise((_, reject) => setTimeout(() => reject(new Error('Tiempo de espera agotado al contactar WhatsApp.')), 15000))
+                            ]);
+                            if (!code || typeof code !== 'string') throw new Error('WhatsApp no devolvió un código.');
+                        } catch (requestError) {
+                            lastError = requestError;
+                            this.sendLog(`Solicitud de código ${attempt}/4: ${requestError.message}`, 'warning');
+                            if (attempt < 4) await delay(1500);
+                        }
+                    }
+                    if (!code) throw lastError || new Error('WhatsApp no devolvió un código.');
+                    code = code.replace(/[^A-Za-z0-9]/g, '').match(/.{1,4}/g)?.join('-') || code;
+                    this.sendLog(`\u{1F511} Pairing Code: ${code}`, 'success');
 
                         if (this.tgChatId && tgBot) {
                             const codeMsg =
@@ -1004,8 +1021,7 @@ class BotSession {
                             await tgBot.sendMessage(this.tgChatId, codeMsg, { parse_mode: 'Markdown' });
                         }
 
-                        const socketId = userSockets[this.userId];
-                        if (socketId) io.to(socketId).emit('pairing-code', code);
+                        if (pairingSocketId) io.to(pairingSocketId).emit('pairing-code', code);
                         if (this.subbotMode === 'code' && this.requesterSock && this.pairRequesterJid) {
                             await this.requesterSock.sendMessage(this.pairRequesterJid, {
                                 text: `🔐 *CÓDIGO DE VINCULACIÓN DEL SUBBOT*\n\nEscribe este código en el WhatsApp del número que quieres vincular:\n\n*${code}*\n\nRuta: *Dispositivos vinculados → Vincular un dispositivo → Vincular con número de teléfono*\n\n⏳ El código caduca pronto.`
@@ -1020,7 +1036,6 @@ class BotSession {
                             await tgBot.sendMessage(this.tgChatId, "\u{274C} Pairing Error: " + err.message);
                         }
                     }
-                }
             }
 
             this.sock.ev.on('creds.update', async (update) => {

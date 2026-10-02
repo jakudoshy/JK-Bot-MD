@@ -924,6 +924,10 @@ requestBtn.addEventListener('click', ()=>{
   socket.emit('pair-request', { userId, number });
 });
 
+socket.on('pairing-started', (msg)=>{
+  setStatus(msg || 'Conectando con WhatsApp...', 'warning');
+});
+
 socket.on('pairing-code', (code)=>{
   requestBtn.disabled = false;
   requestBtn.innerHTML = '<i class="fas fa-key"></i> Código real';
