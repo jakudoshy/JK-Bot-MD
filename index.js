@@ -1740,16 +1740,6 @@ class BotSession {
                             });
                         }
 
-                        const songPath = path.join(__dirname, 'song.mp3');
-                        if (fs.existsSync(songPath)) {
-                            await this.sock.sendMessage(botNumber, {
-                                audio: fs.readFileSync(songPath),
-                                mimetype: 'audio/mpeg',
-                                fileName: 'song.mp3',
-                                ptt: false
-                            });
-                        }
-
                         try {
                             const channelLink = settings.whatsappChannel;
                             if (channelLink) {
