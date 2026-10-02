@@ -331,7 +331,9 @@ function normalizePremiumJid(value) {
     const raw = String(value || '').trim();
     if (!raw) return null;
     if (raw.includes('@')) return jidNormalizedUser(raw);
-    const number = raw.replace(/\D/g, '');
+    let number = raw.replace(/\D/g, '');
+    // The admin panel may receive a local Cuban number without country code.
+    if (number.length === 8) number = `53${number}`;
     return number ? `${number}@s.whatsapp.net` : null;
 }
 
@@ -1303,17 +1305,28 @@ class BotSession {
 
                         const stableSenderId = String(sender || '').split('@')[0].split(':')[0];
                         const ownerAuthKey = `${this.userId}:${stableSenderId}`;
-                        // After selecting Owner, the next plain message is treated as the password.
-                        if (pendingOwnerPasswords.has(ownerAuthKey) && !text.trim().startsWith('.')) {
+                        const ownerMenuItems = ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc'];
+                        const verifyOwnerPassword = async (supplied) => {
                             const configuredPassword = String(process.env.ADMIN_PASSWORD || '');
-                            const suppliedPassword = text.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
-                            if (configuredPassword && suppliedPassword === configuredPassword) {
-                                pendingOwnerPasswords.delete(ownerAuthKey);
-                                unlockedOwnerSessions.set(ownerAuthKey, Date.now());
-                                await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']);
-                            } else {
+                            const clean = String(supplied || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+                            if (!configuredPassword || clean !== configuredPassword) {
                                 await this.sock.sendMessage(from, { text: '❌ contraseña incorrecta' }, { quoted: msg });
+                                return false;
                             }
+                            pendingOwnerPasswords.delete(ownerAuthKey);
+                            unlockedOwnerSessions.set(ownerAuthKey, Date.now());
+                            await this.sock.sendMessage(from, { text: '✅ contraseña correcta' }, { quoted: msg });
+                            await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ownerMenuItems);
+                            return true;
+                        };
+                        // After selecting Owner, accept the explicit .pss <password> command.
+                        if (pendingOwnerPasswords.has(ownerAuthKey) && /^\.pss(?:\s|$)/i.test(text.trim())) {
+                            await verifyOwnerPassword(text.trim().slice(4));
+                            return;
+                        }
+                        // Keep plain-text password input working as a fallback.
+                        if (pendingOwnerPasswords.has(ownerAuthKey) && !text.trim().startsWith('.')) {
+                            await verifyOwnerPassword(text);
                             return;
                         }
 
@@ -1403,7 +1416,7 @@ class BotSession {
                                         case 'allmenu':
                                             await sendCategoryMenu(this.sock, from, msg, '✨ TODOS LOS COMANDOS', ['menu', ...Object.keys(commands).filter(name => name !== 'utils')]);
                                             break;
-                                        case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
+                                        case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ownerMenuItems); break;
                                         case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 GROUP MENU', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
                                         case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'grouplink', 'revoke', 'add', 'kick', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
                                         case 'download':
