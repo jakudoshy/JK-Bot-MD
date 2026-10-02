@@ -1,4 +1,4 @@
-const COIN = '🪙 Niku Coin';
+const COIN = '🪙 JK Coin';
 const MIN_BET = 200;
 
 const ALIASES = {

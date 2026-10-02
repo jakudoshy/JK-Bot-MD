@@ -89,7 +89,7 @@ module.exports = async function(sock, chatId, msg) {
                                           `🕐 *Fecha:* ${new Date(fullMsg.createdAt).toLocaleString()}\n\n` +
                                           (otp ? `🔐 *CÓDIGO OTP DETECTADO:* \`${otp}\`\n\n` : '') +
                                           `📝 *Vista previa:*\n${fullMsg.intro || fullMsg.text?.substring(0, 500) || 'Sin contenido'}\n\n` +
-                                          `_Desarrollado por NIKU MD_`;
+                                          `_Desarrollado por ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ_`;
 
                         await sock.sendMessage(chatId, { text: forwardText });
                         session.seenMessages.push(message.id);
@@ -98,14 +98,14 @@ module.exports = async function(sock, chatId, msg) {
             }
 
             // Show current email info
-            const text = `📧 *CORREO TEMPORAL DE NIKU MD* 📧\n\n` +
+            const text = `📧 *CORREO TEMPORAL DE ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ* 📧\n\n` +
                          `✅ Correo activo:\n` +
                          `\`${session.email}\`\n\n` +
                          `📨 Correos totales: ${messages.length}\n` +
                          `🔔 Correos nuevos: ${newMessages.length}\n\n` +
                          `⏳ Buscando códigos OTP cada 30 segundos...\n` +
                          `🔄 Escribe .tempmail otra vez para revisar nuevos correos\n\n` +
-                         `_Desarrollado por NIKU MD_`;
+                         `_Desarrollado por ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ_`;
 
             await sock.sendMessage(chatId, { text }, { quoted: msg });
             return;
@@ -124,14 +124,14 @@ module.exports = async function(sock, chatId, msg) {
             seenMessages: []
         };
 
-        const text = `📧 *CORREO TEMPORAL DE NIKU MD CREATED* 📧\n\n` +
+        const text = `📧 *CORREO TEMPORAL DE ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ CREATED* 📧\n\n` +
                      `✅ *Correo:*\n` +
                      `\`${account.email}\`\n\n` +
                      `⏳ Válido durante 10 minutos\n` +
                      `🔔 Los códigos y correos nuevos se mostrarán en este chat\n\n` +
                      `📝 Usa este correo para recibir códigos OTP\n` +
                      `🔄 Escribe .tempmail otra vez para revisar nuevos correos\n\n` +
-                     `_Desarrollado por NIKU MD_`;
+                     `_Desarrollado por ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ_`;
 
         await sock.sendMessage(chatId, { text }, { quoted: msg });
 
@@ -177,7 +177,7 @@ function startEmailChecker(sock, chatId, userId) {
                                       `🕐 *Fecha:* ${new Date(fullMsg.createdAt).toLocaleString()}\n\n` +
                                       (otp ? `🔐 *CÓDIGO OTP DETECTADO:* \`${otp}\`\n\n` : '') +
                                       `📝 *Vista previa:*\n${fullMsg.intro || fullMsg.text?.substring(0, 500) || 'Sin contenido'}\n\n` +
-                                      `_Desarrollado por NIKU MD_`;
+                                      `_Desarrollado por ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ_`;
 
                     await sock.sendMessage(chatId, { text: forwardText });
                     session.seenMessages.push(message.id);

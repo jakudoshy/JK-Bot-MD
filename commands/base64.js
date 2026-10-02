@@ -18,19 +18,19 @@ module.exports = async function(sock, chatId, msg, q) {
         if (action === 'enc' || action === 'encode') {
             result = Buffer.from(text).toString('base64');
             await sock.sendMessage(chatId, {
-                text: `🔐 *CODIFICADOR BASE64 DE NIKU MD* 🔐\n\n` +
+                text: `🔐 *CODIFICADOR BASE64 DE ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ* 🔐\n\n` +
                       `📝 *Original:* ${text}\n` +
                       `🔒 *Codificado:*\n\`${result}\`\n\n` +
-                      `_Desarrollado por NIKU MD_`
+                      `_Desarrollado por ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ_`
             }, { quoted: msg });
         } else if (action === 'dec' || action === 'decode') {
             try {
                 result = Buffer.from(text, 'base64').toString('utf8');
                 await sock.sendMessage(chatId, {
-                    text: `🔓 *DECODIFICADOR BASE64 DE NIKU MD* 🔓\n\n` +
+                    text: `🔓 *DECODIFICADOR BASE64 DE ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ* 🔓\n\n` +
                           `🔒 *Codificado:* ${text}\n` +
                           `📝 *Decodificado:*\n\`${result}\`\n\n` +
-                          `_Desarrollado por NIKU MD_`
+                          `_Desarrollado por ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ_`
                 }, { quoted: msg });
             } catch (e) {
                 await sock.sendMessage(chatId, { text: '❌ ¡La cadena Base64 no es válida!' }, { quoted: msg });

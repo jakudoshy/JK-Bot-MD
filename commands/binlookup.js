@@ -23,14 +23,14 @@ module.exports = async function(sock, chatId, msg, q) {
         const country = countries[parseInt(bin[2]) % countries.length];
         const bank = banks[parseInt(bin[3]) % banks.length];
 
-        const text = `💳 *CONSULTA BIN DE NIKU MD* 💳\n\n` +
+        const text = `💳 *CONSULTA BIN DE ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ* 💳\n\n` +
                      `🔢 *BIN:* ${bin}\n` +
                      `🏦 *Marca:* ${scheme}\n` +
                      `💰 *Tipo:* ${type}\n` +
                      `🏛️ *Banco:* ${bank}\n` +
                      `🌍 *País:* ${country}\n\n` +
                      `⚠️ Solo para fines educativos.\n\n` +
-                     `_Desarrollado por NIKU MD_`;
+                     `_Desarrollado por ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ_`;
 
         await sock.sendMessage(chatId, { text }, { quoted: msg });
     } catch (err) {

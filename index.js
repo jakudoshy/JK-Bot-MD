@@ -59,7 +59,7 @@ const commands = {
 const { handleAutoread } = require('./commands/autoread');
 const { handleStatusUpdate } = require('./commands/autostatus');
 const { storeMessage, handleMessageRevocation, handleSnipe } = require('./commands/antidelete');
-const promoNikuMd = require('./commands/promonikumd');
+const promoJkBot = require('./commands/promo-jk-bot');
 
 const app = express();
 const server = http.createServer(app);
@@ -123,7 +123,7 @@ if (process.env.OPENAI_API_KEY) { try { openai = new OpenAI({ apiKey: process.en
 app.use(express.json({ limit: '256kb' })); app.use(express.urlencoded({ extended: true, limit: '256kb' })); app.use(express.static(path.join(__dirname), { index: false }));
 const INDEX_TEMPLATE = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 const BANNER_FILE = 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg';
-function sendIndexWithPreview(req, res) { const protocol = req.get('x-forwarded-proto') || req.protocol || 'https'; const imageUrl = `${protocol.split(',')[0].trim()}://${req.get('host')}/${BANNER_FILE}`; res.type('html').send(INDEX_TEMPLATE.replaceAll('__NIKU_OG_IMAGE__', imageUrl)); }
+function sendIndexWithPreview(req, res) { const protocol = req.get('x-forwarded-proto') || req.protocol || 'https'; const imageUrl = `${protocol.split(',')[0].trim()}://${req.get('host')}/${BANNER_FILE}`; res.type('html').send(INDEX_TEMPLATE.replaceAll('__JK_OG_IMAGE__', imageUrl)); }
 app.get('/', (req, res) => { sendIndexWithPreview(req, res); });
 app.get('/admin', (req, res) => { sendIndexWithPreview(req, res); });
 app.get('/health', (req, res) => { res.status(200).send('OK'); });
@@ -311,11 +311,11 @@ class BotSession {
                     } catch (e) {}
                 }));
             });
-        } catch (e) { this.sendLog('Init error: ' + e.message, 'error'); } finally { this.isInitializing = false; }
+        } catch (e) { this.sendLog('Init error: ' + e.message, 'error'); const socketId = userSockets[this.userId]; if (socketId) io.to(socketId).emit('pair-error', `No se pudo vincular: ${e.message}`); } finally { this.isInitializing = false; }
     }
 }
 
-// Socket web - ADMIN CON LOGIN admin* / admin*1
+// Socket web: vinculación pública y administración autenticada.
 io.on('connection', (socket) => {
     socket.on('set-user', (userId) => { if (!isValidSessionId(userId)) return socket.emit('pair-error', 'Sesión inválida'); userSockets[userId] = socket.id; sessions[userId] = sessions[userId] || new BotSession(userId); });
     socket.on('pair-request', async ({ userId, number }) => {
@@ -323,8 +323,9 @@ io.on('connection', (socket) => {
     });
     socket.on('request-stats', () => { socket.emit('stats', getDashboardStats()); socket.emit('premium-users', premiumReal); });
     socket.on('admin-generate-token', ({ user, pass, days }) => {
-        if (!hasDashboardCredentials(user, pass)) return socket.emit('admin-error', 'No autorizado');
-        const token = genTokenReal(days || 30); socket.emit('token-generated', { token, days: days || 30 }); io.emit('premium-users', premiumReal);
+        if (!socket.authenticated || !hasDashboardCredentials(user, pass)) return socket.emit('admin-error', 'Sesión administrativa no autorizada');
+        const safeDays = Math.max(1, Math.min(3650, Number.parseInt(days, 10) || 30));
+        const token = genTokenReal(safeDays); socket.emit('token-generated', { token, days: safeDays }); io.emit('premium-users', premiumReal);
     });
     socket.on('admin-login', ({ user, pass }) => {
         if (hasDashboardCredentials(user, pass)) { adminSockets.add(socket); socket.authenticated = true; socket.emit('admin-auth-ok'); socket.emit('premium-users', premiumReal); socket.emit('admin-bots-data', botsSnapshot()); } else socket.emit('admin-auth-error');

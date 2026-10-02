@@ -1,4 +1,4 @@
-const DEFAULT_MESSAGE = `📢 *NIKUBOT MD*\n\n🤖 Novedades, actualizaciones y herramientas para tu WhatsApp.\n\n🔗 *Únete al canal oficial:*\nhttps://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l\n\n✨ ¡No te pierdas nada!`;
+const DEFAULT_MESSAGE = `📢 *ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ*\n\n🤖 Novedades, actualizaciones y herramientas para tu WhatsApp.\n\n🔗 *Únete al canal oficial:*\nhttps://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l\n\n✨ ¡No te pierdas nada!`;
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -45,7 +45,7 @@ async function runPromotion(sock, state = {}) {
     }
 }
 
-module.exports = async function promoNikuMd(sock, from, msg, isOwner, state = {}) {
+module.exports = async function promoJkBot(sock, from, msg, isOwner, state = {}) {
     const reply = text => sock.sendMessage(from, { text }, { quoted: msg });
     if (!isOwner) return reply('🔒 Este comando está reservado para el propietario del bot.');
     try {

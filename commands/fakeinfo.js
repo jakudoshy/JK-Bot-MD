@@ -15,7 +15,7 @@ module.exports = async function(sock, chatId, msg) {
         const age = Math.floor(Math.random() * 30) + 18;
         const email = `${fn.toLowerCase()}.${ln.toLowerCase()}${Math.floor(Math.random() * 999)}@gmail.com`;
 
-        const text = `🎭 *GENERADOR DE DATOS FALSOS DE NIKU MD* 🎭\n\n` +
+        const text = `🎭 *GENERADOR DE DATOS FALSOS DE ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ* 🎭\n\n` +
                      `👤 *Nombre:* ${fn} ${ln}\n` +
                      `📧 *Correo:* ${email}\n` +
                      `📱 *Teléfono:* ${phone}\n` +
@@ -23,7 +23,7 @@ module.exports = async function(sock, chatId, msg) {
                      `🏠 *Dirección:* ${street}, ${city}\n` +
                      `🇵🇰 *País:* Pakistan\n\n` +
                      `⚠️ Estos son datos FALSOS únicamente para pruebas y aprendizaje.\n\n` +
-                     `_Desarrollado por NIKU MD_`;
+                     `_Desarrollado por ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ_`;
 
         await sock.sendMessage(chatId, { text }, { quoted: msg });
     } catch (err) {

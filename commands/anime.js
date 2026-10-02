@@ -60,10 +60,10 @@ async function fetchInteractionMedia(canonical) {
         }
     }
     try {
-        const fallback = await axios.get(`https://nekos.best/api/v2/${canonical}`, { timeout: 10000, headers: { 'User-Agent': 'NIKU-MD/3.0' } });
+        const fallback = await axios.get(`https://nekos.best/api/v2/${canonical}`, { timeout: 10000, headers: { 'User-Agent': 'JK-BOT-MD/3.0' } });
         const url = fallback.data?.results?.[0]?.url;
         if (url) {
-            const media = await axios.get(url, { responseType: 'arraybuffer', timeout: 15000, headers: { 'User-Agent': 'NIKU-MD/3.0' } });
+            const media = await axios.get(url, { responseType: 'arraybuffer', timeout: 15000, headers: { 'User-Agent': 'JK-BOT-MD/3.0' } });
             const buffer = Buffer.from(media.data);
             if (buffer.length >= 1000) return buffer;
         }
@@ -75,7 +75,7 @@ async function fetchInteractionMedia(canonical) {
 async function animeInfo(sock, chatId, msg, query) {
     if (!query) return sock.sendMessage(chatId, { text: `${animeMenu}\n\nTambién puedes buscar un anime con: *.anime <nombre>*` }, { quoted: msg });
     try {
-        const response = await axios.get('https://api.jikan.moe/v4/anime', { params: { q: query, limit: 1, sfw: true }, timeout: 15000, headers: { Accept: 'application/json', 'User-Agent': 'NIKU-MD/3.0' } });
+        const response = await axios.get('https://api.jikan.moe/v4/anime', { params: { q: query, limit: 1, sfw: true }, timeout: 15000, headers: { Accept: 'application/json', 'User-Agent': 'JK-BOT-MD/3.0' } });
         const anime = response.data?.data?.[0];
         if (!anime) return sock.sendMessage(chatId, { text: `❌ No encontré resultados para: ${query}` }, { quoted: msg });
         const genres = Array.isArray(anime.genres) && anime.genres.length ? anime.genres.map(g => g.name).join(', ') : 'No disponible';

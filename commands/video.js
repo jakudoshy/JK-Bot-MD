@@ -132,7 +132,7 @@ async function videoCommand(sock, chatId, message) {
             video: videoBuffer,
             mimetype: 'video/mp4',
             fileName: `${(videoData.title || videoTitle || 'youtube-video').replace(/[^\w\s-]/g, '').trim() || 'youtube-video'}.mp4`,
-            caption: `*${videoData.title || videoTitle || 'YouTube Video'}*\n\n> *Downloaded by NIKU MD BOT*`
+            caption: `*${videoData.title || videoTitle || 'YouTube Video'}*\n\n> *Downloaded by ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ*`
         }, { quoted: message });
 
     } catch (error) {

@@ -4,7 +4,7 @@ module.exports = async function logoCommand(sock, chatId, msg, q = '') {
     const name = String(q || '').trim();
     if (!name) {
         return sock.sendMessage(chatId, {
-            text: '⚠️ Uso: .logo <nombre o concepto>\n\nEjemplo: .logo NIKU MD gaming'
+            text: '⚠️ Uso: .logo <nombre o concepto>\n\nEjemplo: .logo ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ gaming'
         }, { quoted: msg });
     }
 
@@ -16,7 +16,7 @@ module.exports = async function logoCommand(sock, chatId, msg, q = '') {
         await sock.sendMessage(chatId, {
             image: response.data,
             mimetype: 'image/jpeg',
-            caption: `🎨 *Logo generado*\n\nConcepto: ${name}\n\n_NIKU MD • Generador de logos_`
+            caption: `🎨 *Logo generado*\n\nConcepto: ${name}\n\n_ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • Generador de logos_`
         }, { quoted: msg });
     } catch (error) {
         console.error('Error en logo:', error.message);

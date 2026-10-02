@@ -19,7 +19,7 @@ module.exports = async function(sock, chatId, msg, q) {
             const response = await axios.get(`https://ipapi.co/${ip}/json/`, { timeout: 5000 });
             const data = response.data;
 
-            const text = `🌐 *INFORMACIÓN DE IP DE NIKU MD* 🌐\n\n` +
+            const text = `🌐 *INFORMACIÓN DE IP DE ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ* 🌐\n\n` +
                          `📍 *IP:* ${data.ip || ip}\n` +
                          `🏙️ *Ciudad:* ${data.city || 'N/A'}\n` +
                          `🏛️ *Región:* ${data.region || 'N/A'}\n` +
@@ -28,15 +28,15 @@ module.exports = async function(sock, chatId, msg, q) {
                          `🌐 *Proveedor:* ${data.org || 'N/A'}\n` +
                          `📡 *ASN:* ${data.asn || 'N/A'}\n` +
                          `⏰ *Zona horaria:* ${data.timezone || 'N/A'}\n\n` +
-                         `_Desarrollado por NIKU MD_`;
+                         `_Desarrollado por ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ_`;
 
             await sock.sendMessage(chatId, { text }, { quoted: msg });
         } catch (apiErr) {
-            const text = `🌐 *INFORMACIÓN DE IP DE NIKU MD* 🌐\n\n` +
+            const text = `🌐 *INFORMACIÓN DE IP DE ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ* 🌐\n\n` +
                          `📍 *IP:* ${ip}\n` +
                          `⚠️ *Estado:* Se alcanzó el límite de la API o la IP no existe\n` +
                          `🔄 Inténtalo más tarde o prueba con otra IP.\n\n` +
-                         `_Desarrollado por NIKU MD_`;
+                         `_Desarrollado por ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ_`;
             await sock.sendMessage(chatId, { text }, { quoted: msg });
         }
     } catch (err) {
