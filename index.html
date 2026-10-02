@@ -3,12 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ :: PANEL</title>
+<title>ᴊᴋ ʙᴏᴛ — ᴡʜᴀᴛѕᴀᴘᴘ</title>
 <meta name="description" content="JK BOT: bot de WhatsApp con herramientas, novedades y comunidad oficial.">
-<meta name="theme-color" content="#080a16">
+<meta name="theme-color" content="#ff1238">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ᴊᴋ ʙᴏᴛ">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/jk-bot-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/jk-bot-icon.svg">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="JK BOT">
-<meta property="og:title" content="JK BOT — Bot de WhatsApp">
+<meta property="og:title" content="ᴊᴋ ʙᴏᴛ — ᴡʜᴀᴛѕᴀᴘᴘ">
 <meta property="og:description" content="Novedades, actualizaciones y herramientas para tu WhatsApp.">
 <meta property="og:image" content="__JK_OG_IMAGE__">
 <meta property="og:image:secure_url" content="__JK_OG_IMAGE__">
@@ -16,7 +23,7 @@
 <meta property="og:image:width" content="1584">
 <meta property="og:image:height" content="672">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="JK BOT — Bot de WhatsApp">
+<meta name="twitter:title" content="ᴊᴋ ʙᴏᴛ — ᴡʜᴀᴛѕᴀᴘᴘ">
 <meta name="twitter:description" content="Novedades, actualizaciones y herramientas para tu WhatsApp.">
 <meta name="twitter:image" content="__JK_OG_IMAGE__">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -681,6 +688,11 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
 
 <div id="toast">¡CÓDIGO COPIADO!</div>
 <script src="/socket.io/socket.io.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {}));
+}
+</script>
 <script>
 /* ---------------- Hacker boot + particles ---------------- */
 const jkBoot=document.getElementById('jkBoot'),jkBootLog=document.getElementById('jkBootLog'),jkBootBar=document.getElementById('jkBootBar'),jkBootStatus=document.getElementById('jkBootStatus');const jkBootLines=['> ɪɴɪᴄɪᴀɴᴅᴏ ѕɪѕᴛᴇᴍᴀ... OK','> ᴄᴀʀɢᴀɴᴅᴏ ᴍóᴅᴜʟᴏѕ... OK','> ᴄᴀʀɢᴀɴᴅᴏ ᴄóᴅɪɢᴏѕ ᴅᴇʟ ʙᴏᴛ... OK','> ᴘʀᴇᴘᴀʀᴀɴᴅᴏ ᴡʜᴀᴛѕᴀᴘᴘ... OK','> ᴄᴀʀɢᴀɴᴅᴏ ᴘᴀɴᴇʟ... OK','> ѕɪѕᴛᴇᴍᴀ ɪɴɪᴄɪᴀᴅᴏ... OK'];let jkBootIndex=0;function runJkBoot(){if(!jkBoot||jkBootIndex>=jkBootLines.length){if(jkBoot){jkBootBar.style.width='100%';jkBootStatus.textContent='ѕɪѕᴛᴇᴍᴀ ɪɴɪᴄɪᴀᴅᴏ';setTimeout(()=>jkBoot.classList.add('is-done'),850)}return}const line=document.createElement('div');line.className='ok';line.textContent=jkBootLines[jkBootIndex++];jkBootLog.appendChild(line);const pct=Math.round((jkBootIndex/jkBootLines.length)*100);jkBootBar.style.width=pct+'%';jkBootStatus.textContent=jkBootIndex<3?'ɪɴɪᴄɪᴀɴᴅᴏ...':jkBootIndex<jkBootLines.length?'ᴄᴀʀɢᴀɴᴅᴏ...':'ѕɪѕᴛᴇᴍᴀ ᴄᴀѕɪ ʟɪѕᴛᴏ...';setTimeout(runJkBoot,360)}runJkBoot();

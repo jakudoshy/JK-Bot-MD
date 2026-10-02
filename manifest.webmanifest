@@ -1,0 +1,21 @@
+{
+  "name": "ᴊᴋ ʙᴏᴛ — ᴡʜᴀᴛѕᴀᴘᴘ",
+  "short_name": "ᴊᴋ ʙᴏᴛ",
+  "description": "Panel y conexión de ᴊᴋ ʙᴏᴛ para WhatsApp.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#020001",
+  "theme_color": "#ff1238",
+  "categories": ["utilities", "social"],
+  "icons": [
+    {
+      "src": "/jk-bot-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
