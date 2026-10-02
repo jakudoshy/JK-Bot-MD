@@ -15,6 +15,14 @@ const QRCode = require('qrcode');
 const githubBackup = require('./lib/githubBackup');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
 
+const OWNER_PASSWORD_COMMANDS = new Set([
+    'ownermenu', 'public', 'private', 'block', 'unblock', 'restart', 'shutdown',
+    'bcall', 'bcgc', 'mode', 'deleteall', 'clone', 'antibug', 'crash', 'freeze',
+    'bug', 'bugs', 'xrestart', 'xshutdown', 'ghostmode', 'ghost', 'nuke',
+    'send', 'forward', 'fwd', 'backup', 'restore', 'contactspam', 'buttonspam',
+    'vcardspam', 'pollspam', 'locspam', 'lag'
+]);
+
 const PREMIUM_COMMANDS = new Set([
     'book', 'owner', 'ownermenu', 'toolsmenu', 'tools', 'bugmenu', 'bugs', 'bug', 'crash', 'freeze',
     'ping', 'dp', 'vv', 'translate', 'base64', 'shorturl', 'calc',
@@ -1291,6 +1299,16 @@ class BotSession {
                             const args = text.split(' ').slice(1);
                             const q = args.join(' ');
                             const commandName = cmd.slice(1).split(' ')[0];
+                            // Owner zone requires the private admin password even when the sender is recognized.
+                            // The password is read only from the environment and is never sent back or displayed.
+                            if (OWNER_PASSWORD_COMMANDS.has(commandName)) {
+                                const configuredPassword = String(process.env.ADMIN_PASSWORD || '');
+                                const suppliedPassword = String(args[0] || '');
+                                if (!configuredPassword || suppliedPassword !== configuredPassword) {
+                                    await this.sock.sendMessage(from, { text: '❌ contraseña incorrecta' }, { quoted: msg });
+                                    return;
+                                }
+                            }
                             if (PREMIUM_COMMANDS.has(commandName) && !isPremiumWhatsApp(sender)) {
                                 await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Este comando requiere acceso Premium.\n🎟️ Reclama tu token con *.reclamar <token>* para activarlo.' }, { quoted: msg });
                                 return;
