@@ -613,8 +613,11 @@ app.get('/health', (req, res) => {
 });
 
 const LEGACY_DATA_DIR = path.resolve(__dirname, 'data');
+const LEGACY_RUNTIME_DIR = path.resolve(__dirname, 'bot');
 const LEGACY_AUTH_DIR = path.resolve(__dirname, 'auth_info');
-const PERSISTENT_DIR = path.resolve(process.env.PERSISTENT_DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'bot'));
+// Default runtime state lives beside the repository, never inside it. This survives git pull,
+// reclone and replacement of the working tree. Production should point this to a mounted volume.
+const PERSISTENT_DIR = path.resolve(process.env.PERSISTENT_DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, '..', 'jkbot-data'));
 const AUTH_DIR = path.join(PERSISTENT_DIR, 'auth_info');
 const UPLOADS_DIR = path.join(PERSISTENT_DIR, 'uploads');
 const DATA_FILE = path.join(PERSISTENT_DIR, 'bot_data.json');
@@ -624,13 +627,38 @@ fs.ensureDirSync(PERSISTENT_DIR);
 fs.ensureDirSync(AUTH_DIR);
 fs.ensureDirSync(UPLOADS_DIR);
 
-// Al activar el volumen por primera vez, conserva los datos locales existentes.
-if (PERSISTENT_DIR !== LEGACY_DATA_DIR) {
-    const legacyDataFile = path.join(LEGACY_DATA_DIR, 'bot_data.json');
-    if (!fs.existsSync(DATA_FILE) && fs.existsSync(legacyDataFile)) fs.copyFileSync(legacyDataFile, DATA_FILE);
-    if (fs.existsSync(LEGACY_AUTH_DIR)) {
-        for (const userId of fs.readdirSync(LEGACY_AUTH_DIR)) {
-            const source = path.join(LEGACY_AUTH_DIR, userId);
+// First-run migration: preserve old data and merge it without replacing newer persistent data.
+function mergeLegacyBotData(sourceFile) {
+    if (!fs.existsSync(sourceFile)) return;
+    try {
+        const source = fs.readJsonSync(sourceFile);
+        const target = fs.existsSync(DATA_FILE) ? fs.readJsonSync(DATA_FILE) : {};
+        target.premiumUsers = { ...(source.premiumUsers || {}), ...(target.premiumUsers || {}) };
+        target.premiumTokens = { ...(source.premiumTokens || {}), ...(target.premiumTokens || {}) };
+        for (const key of ['registeredUsers', 'profiles', 'userNames', 'subbots']) {
+            target[key] = { ...(source[key] || {}), ...(target[key] || {}) };
+        }
+        if (!target.broadcastHistory?.length && source.broadcastHistory?.length) target.broadcastHistory = source.broadcastHistory;
+        fs.writeJsonSync(DATA_FILE, target, { spaces: 2 });
+    } catch (e) {
+        console.warn(`[Persistence] No se pudo migrar ${sourceFile}: ${e.message}`);
+    }
+}
+for (const legacyFile of [path.join(LEGACY_RUNTIME_DIR, 'bot_data.json'), path.join(LEGACY_DATA_DIR, 'bot_data.json')]) {
+    if (legacyFile !== DATA_FILE) mergeLegacyBotData(legacyFile);
+}
+if (fs.existsSync(LEGACY_AUTH_DIR)) {
+    for (const userId of fs.readdirSync(LEGACY_AUTH_DIR)) {
+        const source = path.join(LEGACY_AUTH_DIR, userId);
+        const target = path.join(AUTH_DIR, userId);
+        if (!fs.existsSync(target)) fs.copySync(source, target);
+    }
+}
+if (LEGACY_RUNTIME_DIR !== PERSISTENT_DIR && fs.existsSync(LEGACY_RUNTIME_DIR)) {
+    const legacyAuth = path.join(LEGACY_RUNTIME_DIR, 'auth_info');
+    if (fs.existsSync(legacyAuth)) {
+        for (const userId of fs.readdirSync(legacyAuth)) {
+            const source = path.join(legacyAuth, userId);
             const target = path.join(AUTH_DIR, userId);
             if (!fs.existsSync(target)) fs.copySync(source, target);
         }
