@@ -2166,6 +2166,11 @@ io.on('connection', (socket) => {
             .filter(user => user.jid?.endsWith('@s.whatsapp.net'))
             .map(user => ({ ...user, bot: activeById.get(user.lastSession) || fallbackBot }))
             .filter(user => user.bot?.sock);
+        // Also target every linked WhatsApp account itself, even if it has not chatted yet.
+        for (const bot of activeBots) {
+            const linkedJid = bot.sock.user?.id ? jidNormalizedUser(bot.sock.user.id) : null;
+            if (linkedJid?.endsWith('@s.whatsapp.net')) recipients.push({ jid: linkedJid, name: 'Cuenta vinculada', bot });
+        }
         const uniqueRecipients = new Map(recipients.map(user => [user.jid, user]));
         let totalSent = 0;
         let totalFailed = 0;
