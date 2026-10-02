@@ -680,8 +680,9 @@ function registeredUsersSnapshot() {
     return Object.values(botData.registeredUsers || {}).sort((a, b) => String(b.lastSeen || '').localeCompare(String(a.lastSeen || '')));
 }
 function recordRegisteredUser({ jid, name, sessionId, chatId, isGroup }) {
-    if (!jid || jid === 'status@broadcast' || jid.endsWith('@g.us')) return;
+    if (!jid || jid === 'status@broadcast' || jid.endsWith('@g.us') || !jid.endsWith('@s.whatsapp.net')) return;
     const now = new Date().toISOString();
+    const isNew = !botData.registeredUsers[jid];
     const current = botData.registeredUsers[jid] || { jid, firstSeen: now, chats: 0 };
     current.name = name || current.name || jid.split('@')[0];
     current.lastSeen = now;
@@ -690,7 +691,8 @@ function recordRegisteredUser({ jid, name, sessionId, chatId, isGroup }) {
     current.chats = Number(current.chats || 0) + 1;
     current.isGroup = Boolean(isGroup);
     botData.registeredUsers[jid] = current;
-    if (current.chats === 1 || current.chats % 10 === 0) saveBotData();
+    // Persist the first contact immediately so it is available to admin broadcasts.
+    if (isNew || current.chats % 10 === 0) saveBotData();
 }
 function getDashboardStats() {
     const connectedSessions = Object.values(sessions).filter(session => session.isConnected && session.sock?.user);
@@ -2148,47 +2150,59 @@ io.on('connection', (socket) => {
     });
 
 
-    // BROADCAST MESSAGE - Send to all connected users
-    socket.on('broadcast', async ({ message }) => {
+    // BROADCAST MESSAGE - Send the exact admin text to registered private chats.
+    socket.on('broadcast', async ({ message } = {}) => {
         if (!socket.authenticated) return;
+        const text = String(message || '').trim();
+        if (!text) {
+            socket.emit('broadcast-result', { ok: false, totalSent: 0, totalFailed: 0, message: 'Escribe un mensaje antes de enviarlo.' });
+            return;
+        }
 
         const activeBots = getAllActiveSockets();
+        const activeById = new Map(activeBots.map(bot => [bot.sessionId, bot]));
+        const fallbackBot = activeBots[0];
+        const recipients = registeredUsersSnapshot()
+            .filter(user => user.jid?.endsWith('@s.whatsapp.net'))
+            .map(user => ({ ...user, bot: activeById.get(user.lastSession) || fallbackBot }))
+            .filter(user => user.bot?.sock);
+        const uniqueRecipients = new Map(recipients.map(user => [user.jid, user]));
         let totalSent = 0;
-        let totalChats = 0;
+        let totalFailed = 0;
+        const failures = [];
 
-        for (const bot of activeBots) {
+        for (const user of uniqueRecipients.values()) {
             try {
-                // Get all chats for this bot
-                const allChats = Object.keys(bot.sock.chats || {});
-                const knownUsers = registeredUsersSnapshot().map(user => user.jid).filter(Boolean);
-                const personalChats = [...new Set([...allChats, ...knownUsers])]
-                    .filter(jid => jid.endsWith('@s.whatsapp.net') || jid.endsWith('@g.us'));
-
-                for (const jid of personalChats) {
-                    try {
-                        await bot.sock.sendMessage(jid, {
-                            text: `📢 *AVISO DE ᴊᴋ ʙᴏᴛ*\n\n${message}\n\n🛡️ Enviado desde el panel administrativo`
-                        });
-                        totalSent++;
-                    } catch (e) {}
-                }
-                totalChats += personalChats.length;
-            } catch (e) {
-                console.error('Broadcast error:', e.message);
+                // __jkRaw prevents the global visual decorator from changing the exact admin text.
+                await user.bot.sock.sendMessage(user.jid, { text, __jkRaw: true });
+                totalSent++;
+            } catch (error) {
+                totalFailed++;
+                failures.push({ jid: user.jid, error: error.message });
+                console.error(`[Broadcast] ${user.jid}:`, error.message);
             }
         }
 
-        // Save to history
         botData.broadcastHistory.unshift({
-            message,
+            message: text,
             timestamp: new Date().toISOString(),
             totalSent,
+            totalFailed,
+            totalRecipients: uniqueRecipients.size,
             totalBots: activeBots.length
         });
         if (botData.broadcastHistory.length > 50) botData.broadcastHistory.pop();
         saveBotData();
 
-        socket.emit('broadcast-result', { totalSent, totalBots: activeBots.length, totalChats });
+        socket.emit('broadcast-result', {
+            ok: totalFailed === 0,
+            totalSent,
+            totalFailed,
+            totalRecipients: uniqueRecipients.size,
+            totalBots: activeBots.length,
+            failures,
+            message: totalRecipients ? `Difusión completada: ${totalSent} enviados, ${totalFailed} fallidos.` : 'No hay usuarios privados registrados con una sesión activa.'
+        });
     });
 
     // STOP BOT - Disconnect a specific bot

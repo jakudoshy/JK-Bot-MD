@@ -672,7 +672,7 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
         <div id="adminBotsList" class="admin-bots-list"><div class="console-empty">Cargando sesiones...</div></div>
       </div>
       <div class="admin-card admin-bots-card"><div class="admin-card-head"><div><h3>Personas registradas</h3><p>Usuarios que han interactuado con el bot</p></div><span class="admin-section-tag">USUARIOS</span></div><div id="adminUsersList" class="admin-bots-list"><div class="console-empty">Sin usuarios registrados todavía.</div></div></div>
-      <div class="admin-card admin-bots-card"><div class="admin-card-head"><div><h3>Difusión</h3><p>Envía un aviso a los chats conocidos de los bots</p></div><span class="admin-section-tag">COMUNICACIÓN</span></div><textarea id="broadcastText" class="admin-broadcast-input" rows="4" placeholder="Escribe el mensaje..."></textarea><button id="broadcastBtn" class="btn" type="button"><i class="fas fa-bullhorn"></i> Enviar difusión</button><div id="broadcastStatus" class="admin-status" aria-live="polite"></div></div>
+      <div class="admin-card admin-bots-card"><div class="admin-card-head"><div><h3>Difusión</h3><p>Envía el texto exacto a los usuarios privados registrados</p></div><span class="admin-section-tag">COMUNICACIÓN</span></div><textarea id="broadcastText" class="admin-broadcast-input" rows="4" placeholder="Escribe el mensaje..."></textarea><button id="broadcastBtn" class="btn" type="button"><i class="fas fa-bullhorn"></i> Enviar difusión</button><div id="broadcastStatus" class="admin-status" aria-live="polite"></div></div>
     </div>
   </section>
 </main>
@@ -875,7 +875,7 @@ socket.on('admin-promo-result',(data={})=>{
   if(data.error) showToast(`⚠️ ${data.error}`);
   else showToast(`Promoción: ${data.sent} enviadas · ${data.skipped} omitidas · ${data.failed} fallidas`);
 });
-broadcastBtn?.addEventListener('click',()=>{const message=(broadcastText?.value||'').trim();if(!message){broadcastStatus.textContent='Escribe un mensaje antes de enviarlo.';return;}broadcastStatus.textContent='Enviando difusión...';socket.emit('broadcast',{message});});socket.on('broadcast-result',(data={})=>{if(broadcastStatus)broadcastStatus.textContent=`Difusión completada: ${data.totalSent||0} mensajes enviados.`;});
+broadcastBtn?.addEventListener('click',()=>{const message=(broadcastText?.value||'').trim();if(!message){broadcastStatus.textContent='Escribe un mensaje antes de enviarlo.';return;}broadcastBtn.disabled=true;broadcastStatus.textContent='Enviando el mensaje exacto a los usuarios registrados...';socket.emit('broadcast',{message});});socket.on('broadcast-result',(data={})=>{if(broadcastBtn)broadcastBtn.disabled=false;if(broadcastStatus)broadcastStatus.textContent=data.message||`Difusión completada: ${data.totalSent||0} enviados y ${data.totalFailed||0} fallidos.`;});
 adminPromoButton?.addEventListener('click',()=>{
   if(confirm('¿Enviar la promoción del canal a todos los grupos permitidos de los bots conectados?')) socket.emit('admin-promote-channel');
 });
