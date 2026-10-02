@@ -1861,12 +1861,17 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
         return;
     }
     const titleAliases = {
-        '🛠️ MENÚ DE HERRAMIENTAS': '⌁ ʀᴇᴅ ᴄᴏʀᴇ',
-        '🎉 FUN MENU': '⟡ ᴍɪɴɪ ᴘʟᴀʏ',
-        '🏷️ STICKER MENU': '◇ ʟɪɴᴋ ʟᴀʙ',
-        '👑 OWNER MENU': '⧉ ᴏᴡɴᴇʀ ᴢᴏɴᴇ'
+        '🛠️ MENÚ DE HERRAMIENTAS': 'Herramientas',
+        '🎉 FUN MENU': 'Diversión',
+        '🏷️ STICKER MENU': 'Stickers',
+        '👑 OWNER MENU': 'Zona del owner'
     };
-    const styledTitle = titleAliases[title] || title.replace(/[^\x20-\x7E]/g, '').trim();
+    const sectionIcons = {
+        '🛠️ MENÚ DE HERRAMIENTAS': '🧰', '🎉 FUN MENU': '🎉', '🏷️ STICKER MENU': '🏷️',
+        '👑 OWNER MENU': '👑', '🤖 AI MENU': '🤖', '📥 DOWNLOAD MENU': '📥', '👥 GROUP MENU': '👥',
+        '🪙 ECONOMY MENU': '💰', '👤 PROFILE MENU': '👤', '🎯 MISC MENU': '📦'
+    };
+    const styledTitle = titleAliases[title] || title.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ]+/u, '').trim();
 const descriptions = {
         ping: 'comprobación de conexión', dp: 'foto de perfil', vv: 'visualización temporal', translate: 'traducción de textos',
         base64: 'codificación de datos', qr: 'códigos QR', shorturl: 'enlaces cortos', calc: 'cálculos rápidos',
@@ -1879,16 +1884,21 @@ const descriptions = {
         profile: 'muestra tu perfil', pfp: 'muestra una foto de perfil', groupinfo: 'muestra la información del grupo',
         grouplink: 'enlace del grupo', tagall: 'menciones organizadas', hidetag: 'aviso silencioso', profile: 'tarjeta de perfil', status: 'estado del sistema'
     };
-    const glyphs = { sticker: '🏷️', tempmail: '📩', fakeinfo: '🪪', ai: '🤖', song: '🎵', video: '🎬', weather: '🌤️', groupinfo: '👥', profile: '👤', qr: '🔳', default: '🔹' };
+    const commandIcons = {
+        sticker: '🏷️', tempmail: '📩', fakeinfo: '🪪', ai: '🤖', chatbot: '💬', translate: '🌐',
+        song: '🎵', video: '🎬', youtube: '▶️', tiktok: '🎵', spotify: '🎧', download: '📥',
+        weather: '🌤️', github: '🐙', qr: '🔳', shorturl: '🔗', calc: '🧮', meme: '😂',
+        joke: '😄', quote: '💭', profile: '👤', pfp: '🖼️', groupinfo: '👥', grouplink: '🔗',
+        tagall: '📣', hidetag: '📢', welcome: '👋', promote: '⬆️', demote: '⬇️', poll: '📊',
+        ping: '🏓', status: '📡', default: '🧰'
+    };
     const lines = [
-        '╭─⟦ JK // CORE ⟧',
-        `│ ${glyphs[available.length % glyphs.length]} ${styledTitle}`,
-        '│ simple · fast · different',
-        '╰──────────────────',
+        `${sectionIcons[title] || '📚'} ${styledTitle}`,
+        `📋 ${available.length} comandos disponibles`,
         '',
-        ...available.map((name) => `│ ${glyphs[name] || glyphs.default} .${name} — ${descriptions[name] || `ejecuta ${name}`}`),
+        ...available.map((name) => `${commandIcons[name] || commandIcons.default} .${name} — ${descriptions[name] || `ejecuta ${name}`}`),
         '',
-        `╰─⟦ ${available.length} modules ⟧`
+        '💡 Elige un comando para comenzar.'
     ];
     await sendSubmenuWithChannel(sock, from, lines.join('\n'), msg);
 }
