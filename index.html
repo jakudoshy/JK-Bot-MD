@@ -539,7 +539,6 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
   <div class="hero-actions">
     <a class="btn" href="#connect"><i class="fas fa-link"></i> Conectar mi número</a>
     <a class="btn btn-outline" href="#features"><i class="fas fa-compass"></i> Explorar funciones</a>
-    <button class="btn install-app-btn" id="installAppBtn" type="button" hidden><i class="fas fa-download"></i> Instalar aplicación</button>
   </div>
   <div class="quick-strip" aria-label="Ventajas principales">
     <div class="quick-item"><i class="fas fa-bolt"></i>Panel sencillo</div>
@@ -693,23 +692,6 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {}));
 }
-</script>
-<script>
-let deferredInstallPrompt = null;
-const installAppBtn = document.getElementById('installAppBtn');
-window.addEventListener('beforeinstallprompt', event => {
-  event.preventDefault();
-  deferredInstallPrompt = event;
-  if (installAppBtn) installAppBtn.hidden = false;
-});
-installAppBtn?.addEventListener('click', async () => {
-  if (!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt();
-  await deferredInstallPrompt.userChoice;
-  deferredInstallPrompt = null;
-  installAppBtn.hidden = true;
-});
-window.addEventListener('appinstalled', () => { if (installAppBtn) installAppBtn.hidden = true; });
 </script>
 <script>
 /* ---------------- Hacker boot + particles ---------------- */
