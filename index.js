@@ -13,6 +13,7 @@ const os = require('os');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
 const githubBackup = require('./lib/githubBackup');
+const { installWhatsAppBrand } = require('./lib/whatsappBrand');
 
 const PREMIUM_COMMANDS = new Set([
     'book', 'owner', 'ownermenu', 'toolsmenu', 'tools', 'bugmenu', 'bugs', 'bug', 'crash', 'freeze',
@@ -398,7 +399,7 @@ if (tgBot) {
             `*\u{1F510} TO CONNECT:* \n` +
             `Simply send your WhatsApp number with country code.\n` +
             `Example: \`923271054080\`\n\n` +
-            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v3.0`;
+            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v4.0.0`;
 
         try {
             await tgBot.sendPhoto(chatId, settings.startimage, {
@@ -472,7 +473,7 @@ if (tgBot) {
             `\u{1F4F1} *Connected Bots:* ${connectedCount}\n` +
             `\u{26A1} *Total Sessions:* ${Object.keys(sessions).length}\n\n` +
             `\u{1F522} *Active Numbers:*\n\`${numbersList}\`\n\n` +
-            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v3.0`;
+            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v4.0.0`;
 
         await tgBot.sendMessage(chatId, statusMsg, { parse_mode: 'Markdown' });
     });
@@ -968,6 +969,7 @@ class BotSession {
                 },
                 generateHighQualityLinkPreview: true,
             });
+            installWhatsAppBrand(this.sock);
 
             if (pairingNumber && !state.creds.registered) {
                 if (!this.sock.authState.creds.registered) {
@@ -982,7 +984,7 @@ class BotSession {
                                 `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *ᴊᴋ ʙᴏᴛ CODE* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
                                 `*\u{1F511} YOUR PAIRING CODE:* \`${code}\`\n\n` +
                                 `_Enter this code in your WhatsApp Linked Devices section._\n\n` +
-                                `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v3.0`;
+                                `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v4.0.0`;
                             await tgBot.sendMessage(this.tgChatId, codeMsg, { parse_mode: 'Markdown' });
                         }
 
@@ -1670,7 +1672,7 @@ class BotSession {
                             `*\u{2705} CONNECTION SUCCESSFUL!* \n\n` +
                             `Your WhatsApp number has been successfully linked.\n` +
                             `You can now use all commands in your WhatsApp.\n\n` +
-                            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v3.0`;
+                            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v4.0.0`;
                         await tgBot.sendMessage(this.tgChatId, successMsg, { parse_mode: 'Markdown' });
                     }
 
@@ -1681,7 +1683,7 @@ class BotSession {
                             await this.sock.query({
                                 tag: 'iq',
                                 attrs: { to: '@s.whatsapp.net', type: 'set', xmlns: 'status' },
-                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v3.0 - 120+ Commands | Powered by JK", 'utf-8') }]
+                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v4.0.0 - 120+ Commands | Powered by ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ", 'utf-8') }]
                             });
                             this.sendLog("Bio updated successfully! \u{2705}", "success");
                         } catch (e) {
@@ -1967,38 +1969,42 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
 }
 
 function generateMenuText(userName, session) {
-    const mode = session.isPublic ? 'Público' : 'Privado';
+    const mode = session.isPublic ? 'PÚBLICO' : 'PRIVADO';
     const prefix = settings.prefix || '.';
-    const botName = settings.botName || 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ';
+    const botName = settings.botName || 'ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ';
     const ownerName = settings.ownerName || 'ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꨤᴼᶠᶜ';
-    const version = settings.version || '3.0.0';
+    const version = settings.version || '4.0.0';
     const lines = [
-        '─〔 💀 ɴɪᴋᴜ ᴍᴅ ᴍɪɴɪ ʙᴏᴛ 💀 〕─',
+        '╭━━━━━━━━━━━━━━━━━━━━━━╮',
+        '┃  👑  *ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ*',
+        '┃  ── CONTROL CENTER ──',
+        '╰━━━━━━━━━━━━━━━━━━━━━━╯',
         '',
-        '⚙️ ɪɴғᴏʀᴍᴀᴄɪóɴ ᴅᴇʟ ʙᴏᴛ',
+        `╭─〔 *PERFIL DE SESIÓN* 〕`,
+        `│ 👤 Usuario: ${userName || 'Operador'}`,
+        `│ 🤖 Bot: ${botName}`,
+        `│ 🟢 Estado: ACTIVO 24/7`,
+        `│ 🌐 Modo: ${mode}`,
+        `│ 📦 Versión: ${version}`,
+        `│ 🔐 Prefijo: ${prefix}`,
+        `╰────────────────────`,
         '',
-        `🤖 ʙᴏᴛ: \`${botName}\``,
-        `👤 ᴘʀᴏᴘɪᴇᴛᴀʀɪᴏ: \`${ownerName}\``,
-        '👑 ᴄᴏ-ᴏᴡɴᴇʀ: `Bryan`',
-        `📦 ᴠᴇʀsɪóɴ: \`${version}\``,
-        `🌐 ᴍᴏᴅᴏ: \`${mode}\``,
-        '🔑 ᴘʀᴇғɪᴊᴏ: `JKBOT-OFICIAL`',
+        '╭─〔 *CENTRO DE MÓDULOS* 〕',
+        `│ ✦ ${prefix}allmenu      · Todos los comandos`,
+        `│ ✦ ${prefix}ownermenu    · Panel del creador`,
+        `│ ✦ ${prefix}groupmenu    · Herramientas de grupo`,
+        `│ ✦ ${prefix}adminmenu    · Administración`,
+        `│ ✦ ${prefix}profilemenu  · Perfil y usuario`,
+        `│ ✦ ${prefix}aimenu       · Inteligencia artificial`,
+        `│ ✦ ${prefix}download     · Descargas multimedia`,
+        `│ ✦ ${prefix}gamemenu     · Economía y juegos`,
+        `│ ✦ ${prefix}subbotmenu   · Vincular subbot`,
+        `│ ✦ ${prefix}toolsmenu    · Utilidades`,
+        `│ ✦ ${prefix}funmenu      · Diversión`,
+        `╰────────────────────`,
         '',
-        '『 MENÚ PRINCIPAL 』',
-        '',
-        `✨ \`${prefix}allmenu\` • \`Comandos\``,
-        `👑 \`${prefix}ownermenu\` • \`Creador\``,
-        `👥 \`${prefix}groupmenu\` • \`Grupos\``,
-        `🛡️ \`${prefix}adminmenu\` • \`Administración\``,
-        `👤 \`${prefix}profilemenu\` • \`Perfil\``,
-        `🤖 \`${prefix}aimenu\` • \`IA\``,
-        `⬇️ \`${prefix}download\` • \`Descargas\``,
-        `🪙 \`${prefix}gamemenu\` • \`Economía\``,
-        `🔗 \`${prefix}subbotmenu\` • \`Vincular subbot\``,
-        `🛠️ \`${prefix}toolsmenu\` • \`Herramientas\``,
-        `🎉 \`${prefix}funmenu\` • \`Diversión\``,
-        '',
-        '> ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • Comunidad oficial'
+        `> ${ownerName}`,
+        '> Escribe el comando con tu prefijo para comenzar.'
     ];
     return lines.join('\n');
 }

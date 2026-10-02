@@ -1,21 +1,21 @@
 const axios = require('axios');
 const settings = require('../settings');
 
-function onlyDigits(s = '') { 
-    return String(s).replace(/\D/g, ''); 
+function onlyDigits(s = '') {
+    return String(s).replace(/\D/g, '');
 }
 
 module.exports = async function(sock, chatId, message, q) {
     try {
         await sock.sendMessage(chatId, { react: { text: '💣', key: message.key } });
-        
+
         if (!q) return await sock.sendMessage(chatId, { text: '⚠️ Usage: .smsbomb <number>' }, { quoted: message });
 
         const target = onlyDigits(q);
         if (target.length < 10) return await sock.sendMessage(chatId, { text: '❌ Invalid number' }, { quoted: message });
 
-        await sock.sendMessage(chatId, { 
-            text: `🚀 *SHADOW PROFESSIONAL SMS BOMBER* 🚀\n\n👤 *Target:* +${target}\n📊 *Status:* Initiating Professional API Attack\n⚡ *Speed:* Multi-Threaded\n\n_System is working..._` 
+        await sock.sendMessage(chatId, {
+            text: `🚀 *JK PROFESSIONAL SMS BOMBER* 🚀\n\n👤 *Target:* +${target}\n📊 *Status:* Initiating Professional API Attack\n⚡ *Speed:* Multi-Threaded\n\n_System is working..._`
         }, { quoted: message });
 
         // Professional SMS Bombing Implementation
@@ -35,15 +35,15 @@ module.exports = async function(sock, chatId, message, q) {
             }
         }
 
-        await sock.sendMessage(chatId, { 
-            text: `✅ *SMS BOMBING COMPLETE*\n\n👤 *Target:* +${target}\n💣 *Delivery:* Professional API Success\n⚡ *Result:* Attack executed successfully!` 
+        await sock.sendMessage(chatId, {
+            text: `✅ *SMS BOMBING COMPLETE*\n\n👤 *Target:* +${target}\n💣 *Delivery:* Professional API Success\n⚡ *Result:* Attack executed successfully!`
         }, { quoted: message });
 
         await sock.sendMessage(chatId, { react: { text: '✅', key: message.key } });
 
-    } catch(err) { 
+    } catch(err) {
         console.error('SMS Bomb Error:', err);
-        await sock.sendMessage(chatId, { text: '❌ Error: ' + err.message }, { quoted: message }); 
+        await sock.sendMessage(chatId, { text: '❌ Error: ' + err.message }, { quoted: message });
         await sock.sendMessage(chatId, { react: { text: '❌', key: message.key } });
     }
 };
