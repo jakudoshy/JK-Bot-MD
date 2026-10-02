@@ -893,7 +893,7 @@ class BotSession {
             const completion = await openai.chat.completions.create({
                 model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
                 messages: [
-                    { role: 'system', content: `${systemPrompt} Responde siempre en español, de forma clara, breve y útil. Eres el asistente de ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ.` },
+                    { role: 'system', content: `${systemPrompt} Responde siempre en español, de forma clara, breve y útil. Eres el asistente de ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ.` },
                     { role: 'user', content: prompt }
                 ],
                 temperature: 0.7,
@@ -1709,7 +1709,7 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `╭─⟦ *ᴊᴋ // ʙᴏᴛ* ⟧
+                        const welcomeText = `╭─⟦ *ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ* ⟧
 ` +
                             `│ ⟡ *CONEXIÓN AUTORIZADA*
 ` +
@@ -1717,7 +1717,7 @@ class BotSession {
 ` +
                             `│ Bienvenido al núcleo de automatización de
 ` +
-                            `│ *ᴊᴋ // ʙᴏᴛ*. Tu sesión está en línea.
+                            `│ *ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ*. Tu sesión está en línea.
 ` +
                             `│
 ` +
@@ -1737,7 +1737,7 @@ class BotSession {
 ` +
                             `│
 ` +
-                            `│ ◈ *ᴍᴏᴅ // ᴊᴀᴋᴜᴅᴏѕʜʏ*
+                            `│ ◈ *ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ*
 ` +
                             `╰──────────────────
 ` +
@@ -1819,7 +1819,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const content = {
         interactiveMessage: {
             body: { text: caption },
-            footer: { text: 'ᴊᴋ // ʙᴏᴛ · ᴍᴏᴅ // ᴊᴀᴋᴜᴅᴏѕʜʏ' },
+            footer: { text: 'ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ · ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ' },
             nativeFlowMessage: {
                 buttons: [categoryButton, channelButton],
                 messageVersion: 1
@@ -1909,7 +1909,7 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
     const content = {
         interactiveMessage: {
             body: { text },
-            footer: { text: 'ᴊᴋ // ʙᴏᴛ · ᴍᴏᴅ // ᴊᴀᴋᴜᴅᴏѕʜʏ' },
+            footer: { text: 'ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ · ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ' },
             nativeFlowMessage: {
                 buttons: [channelButton],
                 messageVersion: 1
@@ -1948,8 +1948,8 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
 
 function generateMenuText(userName, session) {
     const mode = session.isPublic ? 'PÚBLICO' : 'PRIVADO';
-    const botName = settings.botName || 'ᴊᴋ // ʙᴏᴛ';
-    const ownerName = settings.ownerName || 'ᴍᴏᴅ // ᴊᴀᴋᴜᴅᴏѕʜʏ';
+    const botName = settings.botName || 'ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ';
+    const ownerName = settings.ownerName || 'ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ';
     const lines = [
         '╭─⟦ JK // CORE ⟧',
         '│ CENTRO DE FUNCIONES',
