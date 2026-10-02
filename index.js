@@ -1309,8 +1309,9 @@ class BotSession {
                                     return;
                                 }
                             }
-                            if (PREMIUM_COMMANDS.has(commandName) && !isPremiumWhatsApp(sender)) {
-                                await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Este comando requiere acceso Premium.\n🎟️ Reclama tu token con *.reclamar <token>* para activarlo.' }, { quoted: msg });
+                            const requiresPremium = PREMIUM_COMMANDS.has(commandName) || OWNER_PASSWORD_COMMANDS.has(commandName);
+                            if (requiresPremium && !isPremiumWhatsApp(sender)) {
+                                await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Esta zona requiere Premium activo.\n🎟️ Reclama tu token con *.reclamar <token>* para activarlo.' }, { quoted: msg });
                                 return;
                             }
                             if (isGroup && botData.adminOnlyGroups?.[from] && !isAdmin && !['menu', 'admin', 'adminmenu'].includes(commandName)) {
