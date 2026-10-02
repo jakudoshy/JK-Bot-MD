@@ -13,7 +13,7 @@ const os = require('os');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
 const githubBackup = require('./lib/githubBackup');
-const { installWhatsAppBrand } = require('./lib/whatsappBrand');
+const { installWhatsAppBrand, decorateText } = require('./lib/whatsappBrand');
 
 const PREMIUM_COMMANDS = new Set([
     'book', 'owner', 'ownermenu', 'toolsmenu', 'tools', 'bugmenu', 'bugs', 'bug', 'crash', 'freeze',
@@ -1301,7 +1301,7 @@ class BotSession {
                                         // ===== MENU =====
                                         case 'menu': case 'menú': {
                                             const customName = botData.userNames[this.userId] || msg.pushName || 'User';
-                                            const menuText = generateMenuText(customName, this);
+                                            const menuText = decorateText(generateMenuText(customName, this));
                                             try {
                                                 await sendOfficialChannelMenu(this.sock, from, menuText, msg);
                                             } catch (e) {
