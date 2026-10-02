@@ -13,7 +13,7 @@ const os = require('os');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
 const githubBackup = require('./lib/githubBackup');
-const { installWhatsAppBrand, decorateText } = require('./lib/whatsappBrand');
+const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
 
 const PREMIUM_COMMANDS = new Set([
     'book', 'owner', 'ownermenu', 'toolsmenu', 'tools', 'bugmenu', 'bugs', 'bug', 'crash', 'freeze',
@@ -1900,7 +1900,7 @@ const descriptions = {
         '',
         '💡 Elige un comando para comenzar.'
     ];
-    await sendSubmenuWithChannel(sock, from, lines.join('\n'), msg);
+    await sendSubmenuWithChannel(sock, from, smallCaps(lines.join('\n')), msg);
 }
 
 async function sendSubmenuWithChannel(sock, jid, text, quoted) {
