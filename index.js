@@ -935,7 +935,7 @@ class BotSession {
                 },
                 printQRInTerminal: false,
                 logger: P({ level: 'fatal' }),
-                browser: Browsers.ubuntu('Chrome'),
+                browser: Browsers.macOS('Chrome'),
                 syncFullHistory: false,
                 shouldSyncHistoryMessage: () => false,
                 markOnlineOnConnect: true,
@@ -2030,16 +2030,20 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('admin-premium-add', ({ jid } = {}) => {
+    socket.on('admin-premium-add', ({ jid, days } = {}) => {
         if (!socket.authenticated) return;
         const normalized = normalizePremiumJid(jid);
         if (!normalized) {
             socket.emit('admin-premium-status', { ok: false, message: 'Escribe un número válido con prefijo internacional.' });
             return;
         }
-        botData.premiumUsers[normalized] = { grantedAt: new Date().toISOString(), expiresAt: null, source: 'admin' };
+        const duration = Number(days);
+        const expiresAt = Number.isFinite(duration) && duration > 0
+            ? new Date(Date.now() + Math.min(duration, 3650) * 24 * 60 * 60 * 1000).toISOString()
+            : null;
+        botData.premiumUsers[normalized] = { grantedAt: new Date().toISOString(), expiresAt, source: 'admin' };
         saveBotData();
-        socket.emit('admin-premium-status', { ok: true, message: `Usuario Premium agregado: ${normalized.split('@')[0]}` });
+        socket.emit('admin-premium-status', { ok: true, message: `Premium asignado a ${normalized.split('@')[0]}${expiresAt ? ` por ${Math.min(duration, 3650)} días.` : ' sin vencimiento.'}` });
         socket.emit('admin-premium-data', premiumSnapshot());
     });
 
