@@ -1733,7 +1733,7 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `👋 ¡Hola! Soy ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ.\n\n✅ WhatsApp conectado.\n📚 Usa *.menu* para ver los módulos.\n🛠️ Usa *.allmenu* para ver todos los comandos.\n\nᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
+                        const welcomeText = `╭────────༺ ༻────────╮\n│☞︎ 👋 ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ ᴇѕᴛá ᴇɴ ʟíɴᴇᴀ\n│☞︎ ✅ ᴡʜᴀᴛѕᴀᴘᴘ ᴄᴏɴᴇᴄᴛᴀᴅᴏ\n│☞︎ 📚 *.menu* · ᴠᴇʀ ᴍᴇɴús\n╰────────༺ ༻────────╯\nᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
                         await this.sock.sendMessage(botNumber, { text: welcomeText });
 
                         try {
