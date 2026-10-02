@@ -619,7 +619,7 @@ if (PERSISTENT_DIR !== LEGACY_DATA_DIR) {
     }
 }
 
-let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, subbots: {} };
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], registeredUsers: {}, statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, subbots: {} };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -635,6 +635,7 @@ function loadBotDataFromDisk() {
     if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
     if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
     if (!botData.subbots || typeof botData.subbots !== 'object' || Array.isArray(botData.subbots)) botData.subbots = {};
+    if (!botData.registeredUsers || typeof botData.registeredUsers !== 'object' || Array.isArray(botData.registeredUsers)) botData.registeredUsers = {};
     if (!botData.adminOnlyGroups || typeof botData.adminOnlyGroups !== 'object') botData.adminOnlyGroups = {};
     for (const key of ['groupAlerts', 'groupWelcome', 'groupBye', 'groupWelcomeText', 'groupByeText', 'mutedUsers']) {
         if (!botData[key] || typeof botData[key] !== 'object') botData[key] = {};
@@ -677,11 +678,28 @@ function publishAdminChatMessage(entry) {
     }
 }
 
+function registeredUsersSnapshot() {
+    return Object.values(botData.registeredUsers || {}).sort((a, b) => String(b.lastSeen || '').localeCompare(String(a.lastSeen || '')));
+}
+function recordRegisteredUser({ jid, name, sessionId, chatId, isGroup }) {
+    if (!jid || jid === 'status@broadcast' || jid.endsWith('@g.us')) return;
+    const now = new Date().toISOString();
+    const current = botData.registeredUsers[jid] || { jid, firstSeen: now, chats: 0 };
+    current.name = name || current.name || jid.split('@')[0];
+    current.lastSeen = now;
+    current.lastSession = sessionId;
+    current.lastChat = chatId;
+    current.chats = Number(current.chats || 0) + 1;
+    current.isGroup = Boolean(isGroup);
+    botData.registeredUsers[jid] = current;
+    if (current.chats === 1 || current.chats % 10 === 0) saveBotData();
+}
 function getDashboardStats() {
     const connectedSessions = Object.values(sessions).filter(session => session.isConnected && session.sock?.user);
     return {
         activeSockets: connectedSessions.length,
         totalUsers: connectedSessions.length,
+        registeredUsers: registeredUsersSnapshot().length,
         connectedUsers: connectedSessions.length,
         pendingUsers: Object.keys(sessions).length - connectedSessions.length,
         bots: publicBotsSnapshot(),
@@ -935,7 +953,7 @@ class BotSession {
                 },
                 printQRInTerminal: false,
                 logger: P({ level: 'fatal' }),
-                browser: Browsers.macOS('Chrome'),
+                browser: ['JK BOT', 'Chrome', '1.0.0'],
                 syncFullHistory: false,
                 shouldSyncHistoryMessage: () => false,
                 markOnlineOnConnect: true,
@@ -1103,6 +1121,7 @@ class BotSession {
                         if (this.processedMessages.size > 1000) this.processedMessages.delete(this.processedMessages.values().next().value);
                         if (!isStatus) {
                             const senderJid = msg.key.participant || (isMe ? this.sock.user?.id : from);
+                            recordRegisteredUser({ jid: senderJid, name: msg.pushName, sessionId: this.userId, chatId: from, isGroup });
                             let chatName = this.userChats?.[from]?.name || from;
                             if (isGroup && !this.userChats?.[from]?.name) {
                                 try {
@@ -1971,7 +1990,7 @@ io.on('connection', (socket) => {
             socket.emit('admin-auth-fail');
             return;
         }
-        const adminUser = process.env.ADMIN_USERNAME || 'JK';
+        const adminUser = process.env.ADMIN_USERNAME || 'jkadmin';
         const adminPass = process.env.ADMIN_PASSWORD || '04060120**';
         if (username === adminUser && password === adminPass) {
             socket.authenticated = true;
@@ -1981,6 +2000,7 @@ io.on('connection', (socket) => {
             socket.emit('admin-chat-history', adminChatLogs.slice(-200));
             socket.emit('admin-premium-data', premiumSnapshot());
             socket.emit('admin-bots-data', botsSnapshot());
+            socket.emit('admin-users-data', registeredUsersSnapshot());
         } else {
             socket.adminAttempts = (socket.adminAttempts || 0) + 1;
             if (socket.adminAttempts >= 5) {
@@ -2201,6 +2221,11 @@ io.on('connection', (socket) => {
     });
 
     // GET CONNECTED BOTS LIST
+    socket.on('get-users-list', () => {
+        if (!socket.authenticated) return;
+        socket.emit('admin-users-data', registeredUsersSnapshot());
+    });
+
     socket.on('get-bots-list', () => {
         if (!socket.authenticated) return;
         socket.emit('bots-list', botsSnapshot());
