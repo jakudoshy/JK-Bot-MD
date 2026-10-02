@@ -907,9 +907,9 @@ class BotSession {
                 try {
                     const botNumber = jidNormalizedUser(this.sock.user.id);
                     await this.sock.sendMessage(botNumber, {
-                        text: "JK \u{1D5D4}\u{1D5E5}\u{1D5D8}-\u{1D5D3}\u{1D5E6}\u{1D601} \u{1D5F1}\u{1D600} \u{1D603}\u{1D608}\u{1D5F1}\u{1D5F1}\u{1D5F2}\u{1D5F7}\u{1D5F2} \u{1F680}\n\n_24/7 Active System Working..._"
+                        text: "JK \u{1D5D4}\u{1D5E5}\u{1D5D8}-\u{1D5D3}\u{1D5E6}\u{1D601} \u{1D5F1}\u{1D600} \u{1D603}\u{1D608}\u{1D5F1}\u{1D5F1}\u{1D5F2}\u{1D5F7}\u{1D5F2} \u{1F680}\n\n_Connection check active._"
                     });
-                    this.sendLog("24/7 Keep-alive message sent to own DM. \u{2705}", "success");
+                    this.sendLog("Connection check sent to own DM. \u{2705}", "success");
                 } catch (e) {
                     this.sendLog("Keep-alive failed: " + e.message, "error");
                 }
@@ -1707,17 +1707,17 @@ class BotSession {
 ` +
                             `│ ◇ *Perfil:* ${botName}
 ` +
-                            `│ ● *Estado:* Activo 24/7
+                            `│ ● *Estado:* Disponible
 ` +
-                            `│ ⌁ *Módulos:* ${commandCount} comandos disponibles
+                            `│ ⌁ *Módulos:* Herramientas activas
 ` +
                             `│ ▣ *Canal:* conexión protegida
 ` +
                             `│
 ` +
-                            `│ Escribe *.menu* para abrir el centro
+                            `│ Abre el selector de funciones para explorar
 ` +
-                            `│ de comandos y herramientas.
+                            `│ las herramientas y categorías disponibles.
 ` +
                             `│
 ` +
@@ -1857,11 +1857,15 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
         '👑 OWNER MENU': '⧉ ᴏᴡɴᴇʀ ᴢᴏɴᴇ'
     };
     const styledTitle = titleAliases[title] || title.replace(/[^\x20-\x7E]/g, '').trim();
-    const displayNames = {
-        ping: 'pulse', dp: 'avatar', vv: 'view-once', translate: 'lingua', base64: 'cipher', qr: 'scan',
-        shorturl: 'tiny-link', calc: 'math', weather: 'sky', github: 'git-hub', ipinfo: 'trace',
-        screenshot: 'snap', sticker: 'sticker', song: 'audio', video: 'video', groupinfo: 'group-card',
-        grouplink: 'group-link', tagall: 'all-tag', hidetag: 'silent-tag', profile: 'card', status: 'state'
+const descriptions = {
+        ping: 'comprobación de conexión', dp: 'foto de perfil', vv: 'visualización temporal', translate: 'traducción de textos',
+        base64: 'codificación de datos', qr: 'códigos QR', shorturl: 'enlaces cortos', calc: 'cálculos rápidos',
+        weather: 'consulta del clima', github: 'proyectos y repositorios', ipinfo: 'información de red', tempmail: 'correo temporal',
+        fakeinfo: 'datos de prueba', binlookup: 'consulta de tarjetas', whois: 'datos de dominio', dnslookup: 'consulta DNS',
+        portscan: 'revisión de puertos', screenshot: 'captura de página', define: 'definición de palabras', google: 'búsqueda web',
+        wiki: 'consulta de conocimiento', yts: 'búsqueda de vídeos', playstore: 'aplicaciones', npm: 'paquetes de software',
+        sticker: 'creación de stickers', song: 'descarga de audio', video: 'descarga de vídeo', groupinfo: 'información del grupo',
+        grouplink: 'enlace del grupo', tagall: 'menciones organizadas', hidetag: 'aviso silencioso', profile: 'tarjeta de perfil', status: 'estado del sistema'
     };
     const glyphs = ['⌁', '✦', '◇', '▣', '◈', '⟡', '⧉'];
     const lines = [
@@ -1870,7 +1874,7 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
         '│ simple · fast · different',
         '╰──────────────────',
         '',
-        ...available.map((name, index) => `│ ${glyphs[index % glyphs.length]} ${settings.prefix || '.'}${displayNames[name] || name}`),
+        ...available.map((name, index) => `│ ${glyphs[index % glyphs.length]} ${descriptions[name] || 'herramienta general'}`),
         '',
         `╰─⟦ ${available.length} modules ⟧`
     ];
@@ -1928,41 +1932,30 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
 
 function generateMenuText(userName, session) {
     const mode = session.isPublic ? 'PÚBLICO' : 'PRIVADO';
-    const prefix = settings.prefix || '.';
-    const botName = settings.botName || 'ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ';
-    const ownerName = settings.ownerName || 'ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꨤᴼᶠᶜ';
-    const version = settings.version || '4.0.0';
+    const botName = settings.botName || 'ᴊᴋ // ʙᴏᴛ';
+    const ownerName = settings.ownerName || 'ᴍᴏᴅ // ᴊᴀᴋᴜᴅᴏѕʜʏ';
     const lines = [
-        '╭━━━━━━━━━━━━━━━━━━━━━━╮',
-        '┃  🟥  *ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ*',
-        '┃  ── CONTROL CENTER ──',
-        '╰━━━━━━━━━━━━━━━━━━━━━━╯',
+        '╭─⟦ JK // CORE ⟧',
+        '│ CENTRO DE FUNCIONES',
+        '╰──────────────────',
         '',
-        `╭─〔 *PERFIL DE SESIÓN* 〕`,
-        `│ 🧑‍💻 Usuario: ${userName || 'Operador'}`,
-        `│ 📡 Bot: ${botName}`,
-        `│ 🟩 Estado: ACTIVO 24/7`,
-        `│ 🛰️ Modo: ${mode}`,
-        `│ 🧬 Versión: ${version}`,
-        `│ 🔑 Prefijo: ${prefix}`,
-        `╰────────────────────`,
+        `╭─⟦ PERFIL ⟧`,
+        `│ Usuario: ${userName || 'Operador'}`,
+        `│ Bot: ${botName}`,
+        '│ Estado: Disponible',
+        `│ Modo: ${mode}`,
+        `╰──────────────────`,
         '',
-        '╭─〔 *CENTRO DE MÓDULOS* 〕',
-        `│ ⚡ ${prefix}allmenu      · Todos los comandos`,
-        `│ ✦ ${prefix}ownermenu    · Panel del creador`,
-        `│ ✦ ${prefix}groupmenu    · Herramientas de grupo`,
-        `│ ✦ ${prefix}adminmenu    · Administración`,
-        `│ ✦ ${prefix}profilemenu  · Perfil y usuario`,
-        `│ ✦ ${prefix}aimenu       · Inteligencia artificial`,
-        `│ ✦ ${prefix}download     · Descargas multimedia`,
-        `│ ✦ ${prefix}gamemenu     · Economía y juegos`,
-        `│ ✦ ${prefix}subbotmenu   · Vincular subbot`,
-        `│ ✦ ${prefix}toolsmenu    · Utilidades`,
-        `│ ✦ ${prefix}funmenu      · Diversión`,
-        `╰────────────────────`,
+        '╭─⟦ QUÉ PUEDES HACER ⟧',
+        '│ Protección y seguridad para tus chats',
+        '│ Moderación y organización de grupos',
+        '│ Descarga de audio, vídeo y contenido',
+        '│ Asistencia inteligente y traducciones',
+        '│ Perfiles, stickers, QR y utilidades',
+        '╰──────────────────',
         '',
         `> ${ownerName}`,
-        '> Escribe el comando con tu prefijo para comenzar.'
+        '> Abre el selector de funciones para comenzar.'
     ];
     return lines.join('\n');
 }
