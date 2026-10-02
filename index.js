@@ -991,7 +991,8 @@ class BotSession {
                     await delay(3000);
                     try {
                         let code = await this.sock.requestPairingCode(pairingNumber);
-                        code = code?.match(/.{1,4}/g)?.join("-") || code;
+                        if (!code || typeof code !== 'string') throw new Error('WhatsApp no devolvió un código. Espera unos segundos y vuelve a intentarlo.');
+                        code = code.replace(/[^A-Za-z0-9]/g, '').match(/.{1,4}/g)?.join('-') || code;
                         this.sendLog(`\u{1F511} Pairing Code: ${code}`, 'success');
 
                         if (this.tgChatId && tgBot) {
@@ -1011,7 +1012,10 @@ class BotSession {
                             });
                         }
                     } catch (err) {
+                        this.isInitializing = false;
                         this.sendLog(`\u{274C} Pairing error: ${err.message}`, 'error');
+                        const pairingSocketId = userSockets[this.userId];
+                        if (pairingSocketId) io.to(pairingSocketId).emit('pair-error', `No se pudo generar el código: ${err.message}`);
                         if (this.tgChatId && tgBot) {
                             await tgBot.sendMessage(this.tgChatId, "\u{274C} Pairing Error: " + err.message);
                         }
@@ -1766,6 +1770,8 @@ class BotSession {
 
         } catch (err) {
             this.isInitializing = false;
+            const pairingSocketId = userSockets[this.userId];
+            if (pairingSocketId && pairingNumber) io.to(pairingSocketId).emit('pair-error', `No se pudo iniciar WhatsApp: ${err.message}`);
             this.sendLog(`Initialization failed: ${err.message}. Retrying in 10s...`, 'error');
             setTimeout(() => this.initialize(), 10000);
         }
@@ -2101,7 +2107,13 @@ io.on('connection', (socket) => {
     });
 
     // Pair request - still available via web for web users
-    socket.on('pair-request', async ({ userId, number }) => {
+    socket.on('pair-request', async ({ userId, number } = {}) => {
+        const cleanNumber = normalizePhone(number);
+        if (!userId || !cleanNumber) {
+            socket.emit('pair-error', 'Escribe un número válido con código de país, solo dígitos.');
+            return;
+        }
+        try {
         if (sessions[userId]) {
             if (!botData.statusSettings[userId]) {
                 botData.statusSettings[userId] = {
@@ -2114,7 +2126,7 @@ io.on('connection', (socket) => {
                 saveBotData();
             }
             sessions[userId].tgChatId = null;
-            await sessions[userId].initialize(number);
+            await sessions[userId].initialize(cleanNumber);
         } else {
             sessions[userId] = new BotSession(userId);
             if (!botData.statusSettings[userId]) {
@@ -2128,7 +2140,11 @@ io.on('connection', (socket) => {
                 saveBotData();
             }
             sessions[userId].tgChatId = null;
-            await sessions[userId].initialize(number);
+            await sessions[userId].initialize(cleanNumber);
+        }
+        } catch (error) {
+            console.error(`[${userId}] Pair request failed:`, error.message);
+            socket.emit('pair-error', `No se pudo iniciar la vinculación: ${error.message}`);
         }
     });
 

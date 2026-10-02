@@ -410,7 +410,7 @@
   @media(max-width:620px){.admin-bot-row{grid-template-columns:1fr 1fr;}.admin-bot-row .admin-bot-stop{grid-column:2;justify-self:end;}}
   .hero-banner{width:min(1100px,calc(100% - 32px));margin:86px auto 0;position:relative;overflow:hidden;border:1px solid var(--border);border-radius:22px;background:var(--bg-panel);box-shadow:0 20px 70px rgba(0,0,0,.28);animation:bannerIn .9s ease both;}
   .hero-banner::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(111,247,210,.04),transparent 34%,rgba(0,0,0,.18));}
-  .hero-banner img{display:block;width:100%;height:auto;aspect-ratio:1584/672;object-fit:cover;}
+  .hero-banner img{display:block;width:100%;height:auto;aspect-ratio:1584/672;max-height:520px;object-fit:contain;background:#020001;}
   .banner-nav{width:min(1100px,calc(100% - 32px));margin:12px auto 0;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;animation:bannerIn .9s .1s ease both;}
   .banner-nav a{display:inline-flex;align-items:center;gap:8px;padding:11px 15px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.035);color:var(--text);font-size:.74rem;font-weight:700;text-decoration:none;transition:transform .2s,border-color .2s,background .2s;}
   .banner-nav a:hover{transform:translateY(-2px);border-color:var(--green);background:var(--green-glass);}
@@ -904,7 +904,7 @@ premiumTokensList?.addEventListener('click',(event)=>{
 function copyCode(){
   const code = pairingCode.innerText;
   if(code === '0000 0000') return;
-  navigator.clipboard.writeText(code.replace(/\s/g,'')).then(()=>showToast('¡CÓDIGO COPIADO!'));
+  navigator.clipboard.writeText(code.replace(/[^A-Za-z0-9]/g,'')).then(()=>showToast('¡CÓDIGO COPIADO!'));
 }
 
 requestBtn.addEventListener('click', ()=>{
