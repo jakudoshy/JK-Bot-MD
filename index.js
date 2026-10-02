@@ -1693,52 +1693,40 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `╭━━━〔 *ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ* 〕━━━╮
+                        const welcomeText = `╭─⟦ *ᴊᴋ // ʙᴏᴛ* ⟧
 ` +
-                            `┃ 👑 *CONEXIÓN AUTORIZADA*
+                            `│ ⟡ *CONEXIÓN AUTORIZADA*
 ` +
-                            `┃
+                            `│
 ` +
-                            `┃ Bienvenido al núcleo de automatización de
+                            `│ Bienvenido al núcleo de automatización de
 ` +
-                            `┃ *ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ*. Tu sesión está en línea.
+                            `│ *ᴊᴋ // ʙᴏᴛ*. Tu sesión está en línea.
 ` +
-                            `┃
+                            `│
 ` +
-                            `┃ 📱 *Perfil:* ${botName}
+                            `│ ◇ *Perfil:* ${botName}
 ` +
-                            `┃ 🟢 *Estado:* Activo 24/7
+                            `│ ● *Estado:* Activo 24/7
 ` +
-                            `┃ ⚡ *Módulos:* ${commandCount} comandos disponibles
+                            `│ ⌁ *Módulos:* ${commandCount} comandos disponibles
 ` +
-                            `┃ 🔐 *Canal:* conexión protegida
+                            `│ ▣ *Canal:* conexión protegida
 ` +
-                            `┃
+                            `│
 ` +
-                            `┃ Escribe *.menu* para abrir el centro
+                            `│ Escribe *.menu* para abrir el centro
 ` +
-                            `┃ de comandos y herramientas.
+                            `│ de comandos y herramientas.
 ` +
-                            `┃
+                            `│
 ` +
-                            `┃ 👤 *ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꨤᴼᶠᶜ*
+                            `│ ◈ *ᴍᴏᴅ // ᴊᴀᴋᴜᴅᴏѕʜʏ*
 ` +
-                            `╰━━━━━━━━━━━━━━━━━━━━╯
+                            `╰──────────────────
 ` +
-                            `> JK-BOT-MD v${settings.version || '4.0.0'}`;
-                        const menuImagePath = path.join(__dirname, 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg');
-                        if (fs.existsSync(menuImagePath)) {
-                            await this.sock.sendMessage(botNumber, {
-                                image: fs.readFileSync(menuImagePath),
-                                mimetype: 'image/jpeg',
-                                caption: welcomeText
-                            });
-                        } else {
-                            await this.sock.sendMessage(botNumber, {
-                                image: { url: settings.startimage },
-                                caption: welcomeText
-                            });
-                        }
+                            `> JK // CORE v${settings.version || '4.0.0'}`;
+                        await this.sock.sendMessage(botNumber, { text: welcomeText });
 
                         try {
                             const channelLink = settings.whatsappChannel;
@@ -1771,32 +1759,31 @@ class BotSession {
 
 // =================== MENU GENERATOR ===================
 async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
-    const menuImagePath = path.join(__dirname, 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg');
     const categoryButton = {
         name: 'single_select',
         buttonParamsJson: JSON.stringify({
-            title: '📋 ELEGIR UNA CATEGORÍA',
+            title: '⌁ ELEGIR UN MÓDULO',
             sections: [{
                 title: 'Categorías disponibles',
                 rows: [
-                    ['allmenu', '✨ Todos los comandos'],
-                    ['ownermenu', '👑 Propietario'],
-                    ['groupmenu', '👥 Grupos'],
-                    ['adminmenu', '🛡️ Administración'],
-                    ['profilemenu', '👤 Perfil'],
-                    ['aimenu', '🤖 Inteligencia artificial'],
-                    ['downloadmenu', '⬇️ Descargas'],
-                    ['gamemenu', '🪙 Economía'],
-                    ['subbotmenu', '🔗 Vincular subbot'],
-                    ['toolsmenu', '🛠️ Herramientas'],
-                    ['funmenu', '🎉 Diversión'],
-                    ['animemenu', '🎌 Anime'],
-                    ['stickermenu', '🏷️ Stickers'],
-                    ['imagemenu', '🖼️ Imágenes'],
-                    ['textmakermenu', '✏️ Text Maker'],
-                    ['logomenu', '🏢 Logos'],
-                    ['miscmenu', '🎯 Misceláneos'],
-                    ['bugmenu', '🐛 Bugs']
+                    ['allmenu', '◈ Centro completo'],
+                    ['ownermenu', '⧉ Zona del owner'],
+                    ['groupmenu', '▣ Control de grupos'],
+                    ['adminmenu', '✦ Seguridad'],
+                    ['profilemenu', '◇ Perfil'],
+                    ['aimenu', '⌁ Núcleo IA'],
+                    ['downloadmenu', '↘ Link Lab'],
+                    ['gamemenu', '⟡ Mini Play'],
+                    ['subbotmenu', '⇄ Vincular bot'],
+                    ['toolsmenu', '⚙ Red Core'],
+                    ['funmenu', '✺ Zona chill'],
+                    ['animemenu', '△ Anime'],
+                    ['stickermenu', '✧ Stickers'],
+                    ['imagemenu', '□ Imágenes'],
+                    ['textmakermenu', '⌘ Texto'],
+                    ['logomenu', '◇ Logos'],
+                    ['miscmenu', '○ Misceláneos'],
+                    ['bugmenu', '! Reportes']
                 ].map(([id, title]) => ({
                     title,
                     description: `Abrir ${title.replace(/^[^ ]+ /, '')}`,
@@ -1808,7 +1795,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const channelButton = {
         name: 'cta_url',
         buttonParamsJson: JSON.stringify({
-            display_text: 'Ver canal',
+            display_text: 'JK // BOT',
             url: settings.whatsappChannel,
             merchant_url: settings.whatsappChannel
         })
@@ -1816,24 +1803,13 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const content = {
         interactiveMessage: {
             body: { text: caption },
-            footer: { text: 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • Comunidad oficial' },
+            footer: { text: 'ᴊᴋ // ʙᴏᴛ · ᴍᴏᴅ // ᴊᴀᴋᴜᴅᴏѕʜʏ' },
             nativeFlowMessage: {
                 buttons: [categoryButton, channelButton],
                 messageVersion: 1
             }
         }
     };
-    if (fs.existsSync(menuImagePath)) {
-        const imageContent = await generateWAMessageContent({
-            image: fs.readFileSync(menuImagePath),
-            mimetype: 'image/jpeg'
-        }, { upload: sock.waUploadToServer });
-        content.interactiveMessage.header = {
-            title: 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ MINI BOT',
-            hasMediaAttachment: true,
-            imageMessage: imageContent.imageMessage
-        };
-    }
     const userJid = sock.user?.id;
     const fullMessage = generateWAMessageFromContent(jid, content, {
         logger: sock.logger,
@@ -1871,42 +1847,34 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
     const profileAliases = commands.profile?.aliases || [];
     const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name));
     if (!available.length) {
-        await sendSubmenuWithChannel(sock, from, `${title}\n\nNo hay comandos activos en esta categoría.`, msg);
+        await sendSubmenuWithChannel(sock, from, `${title}\n\nNo hay módulos activos en esta sección.`, msg);
         return;
     }
-    const width = 41;
-    const charWidth = (char) => {
-        const code = char.codePointAt(0);
-        if (code === 0x200d || (code >= 0xfe00 && code <= 0xfe0f) || (code >= 0x0300 && code <= 0x036f)) return 0;
-        if ((code >= 0x1f000 && code <= 0x1faff) || (code >= 0x2600 && code <= 0x27bf)) return 2;
-        return 1;
+    const titleAliases = {
+        '🛠️ MENÚ DE HERRAMIENTAS': '⌁ ʀᴇᴅ ᴄᴏʀᴇ',
+        '🎉 FUN MENU': '⟡ ᴍɪɴɪ ᴘʟᴀʏ',
+        '🏷️ STICKER MENU': '◇ ʟɪɴᴋ ʟᴀʙ',
+        '👑 OWNER MENU': '⧉ ᴏᴡɴᴇʀ ᴢᴏɴᴇ'
     };
-    const visualWidth = (value) => [...String(value)].reduce((total, char) => total + charWidth(char), 0);
-    const fit = (value) => {
-        let result = '';
-        let used = 0;
-        for (const char of [...String(value)]) {
-            const next = charWidth(char);
-            if (used + next > width) break;
-            result += char;
-            used += next;
-        }
-        return result;
+    const styledTitle = titleAliases[title] || title.replace(/[^\x20-\x7E]/g, '').trim();
+    const displayNames = {
+        ping: 'pulse', dp: 'avatar', vv: 'view-once', translate: 'lingua', base64: 'cipher', qr: 'scan',
+        shorturl: 'tiny-link', calc: 'math', weather: 'sky', github: 'git-hub', ipinfo: 'trace',
+        screenshot: 'snap', sticker: 'sticker', song: 'audio', video: 'video', groupinfo: 'group-card',
+        grouplink: 'group-link', tagall: 'all-tag', hidetag: 'silent-tag', profile: 'card', status: 'state'
     };
-    const center = (value) => {
-        const text = fit(value);
-        return `${' '.repeat(Math.max(0, Math.floor((width - visualWidth(text)) / 2)))}${text}`;
-    };
+    const glyphs = ['⌁', '✦', '◇', '▣', '◈', '⟡', '⧉'];
     const lines = [
-        center(`『 ${title} 』`),
-        center('· · · ✦ · · ·'),
+        '╭─⟦ JK // CORE ⟧',
+        `│ ${glyphs[available.length % glyphs.length]} ${styledTitle}`,
+        '│ simple · fast · different',
+        '╰──────────────────',
         '',
-        ...available.map(name => center(`• .${TOOL_DISPLAY_NAMES[name] || name}`)),
+        ...available.map((name, index) => `│ ${glyphs[index % glyphs.length]} ${settings.prefix || '.'}${displayNames[name] || name}`),
         '',
-        center('· · · ✦ · · ·'),
-        center(`✦ ${available.length} comando(s) disponibles ✦`)
+        `╰─⟦ ${available.length} modules ⟧`
     ];
-    await sendSubmenuWithChannel(sock, from, ['```', lines.join('\n'), '```'].join('\n'), msg);
+    await sendSubmenuWithChannel(sock, from, lines.join('\n'), msg);
 }
 
 async function sendSubmenuWithChannel(sock, jid, text, quoted) {
@@ -1921,7 +1889,7 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
     const content = {
         interactiveMessage: {
             body: { text },
-            footer: { text: 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • Comunidad oficial' },
+            footer: { text: 'ᴊᴋ // ʙᴏᴛ · ᴍᴏᴅ // ᴊᴀᴋᴜᴅᴏѕʜʏ' },
             nativeFlowMessage: {
                 buttons: [channelButton],
                 messageVersion: 1
