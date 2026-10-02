@@ -562,7 +562,7 @@ html,body{background:#020001!important;color:#fff5f6!important}body{background:r
         <i class="fas fa-phone"></i>
         <input type="tel" id="phone" placeholder="Ej.: 5491112345678 (con código de país)">
       </div>
-      <button class="btn" id="requestPairing"><i class="fas fa-key"></i> Código real</button>
+      <button class="btn" id="requestPairing"><i class="fas fa-key"></i> Generar código</button>
     </div>
 
     <div id="status"></div>
@@ -930,7 +930,7 @@ socket.on('pairing-started', (msg)=>{
 
 socket.on('pairing-code', (code)=>{
   requestBtn.disabled = false;
-  requestBtn.innerHTML = '<i class="fas fa-key"></i> Código real';
+  requestBtn.innerHTML = '<i class="fas fa-key"></i> Generar código';
   setStatus('Código generado. Vincula WhatsApp durante los próximos 60 segundos.', 'success');
   codeWrap.style.display = 'block';
   pairingCode.innerText = code;
@@ -938,7 +938,7 @@ socket.on('pairing-code', (code)=>{
 
 socket.on('pair-error', (msg)=>{
   requestBtn.disabled = false;
-  requestBtn.innerHTML = '<i class="fas fa-key"></i> Código real';
+  requestBtn.innerHTML = '<i class="fas fa-key"></i> Generar código';
   setStatus(msg || 'No se pudo generar el código. Inténtalo de nuevo.', 'error');
 });
 

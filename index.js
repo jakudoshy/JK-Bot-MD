@@ -950,11 +950,11 @@ class BotSession {
                 },
                 printQRInTerminal: false,
                 logger: P({ level: 'fatal' }),
-                browser: ['JK BOT', 'Chrome', '1.0.0'],
+                browser: Browsers.macOS('Chrome'),
                 syncFullHistory: false,
                 shouldSyncHistoryMessage: () => false,
                 markOnlineOnConnect: true,
-                keepJkAliveIntervalMs: 30000,
+                keepAliveIntervalMs: 30000,
                 connectTimeoutMs: 60000,
                 defaultQueryTimeoutMs: 60000,
                 emitOwnEvents: true,
@@ -1643,12 +1643,12 @@ class BotSession {
                 }
 
                 if (connection === 'close') {
-                    const shouldReconnect = (lastDisconnect.error)?.output?.statusCode !== DisconnectReason.loggedOut;
+                    const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
                     this.isConnected = false;
                     this.isInitializing = false;
                     this.sendLog(`Connection closed. Reconnecting: ${shouldReconnect}`, 'warning');
                     this.sendConnectionStatus();
-                    const statusCode = (lastDisconnect.error)?.output?.statusCode;
+                    const statusCode = lastDisconnect?.error?.output?.statusCode;
 
                     if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
                         this.sendLog('Session expired or logged out. Clearing auth data...', 'error');
