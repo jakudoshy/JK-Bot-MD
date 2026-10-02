@@ -1025,7 +1025,11 @@ class BotSession {
                         if (pairingSocketId) io.to(pairingSocketId).emit('pairing-code', code);
                         if (this.subbotMode === 'code' && this.requesterSock && this.pairRequesterJid) {
                             await this.requesterSock.sendMessage(this.pairRequesterJid, {
-                                text: `🔐 *CÓDIGO DE VINCULACIÓN DEL SUBBOT*\n\nEscribe este código en el WhatsApp del número que quieres vincular:\n\n*${code}*\n\nRuta: *Dispositivos vinculados → Vincular un dispositivo → Vincular con número de teléfono*\n\n⏳ El código caduca pronto.`
+                                text: `🔗 *VINCULAR WHATSAPP*
+
+🔑 Código: *${code}*
+📲 En WhatsApp: Dispositivos vinculados → Vincular con número
+⏳ Úsalo antes de que caduque.`
                             });
                         }
                     } catch (err) {
@@ -1729,39 +1733,7 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `╭─⟦ *ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ* ⟧
-` +
-                            `│ ⟡ *CONEXIÓN AUTORIZADA*
-` +
-                            `│
-` +
-                            `│ Bienvenido al núcleo de automatización de
-` +
-                            `│ *ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ*. Tu sesión está en línea.
-` +
-                            `│
-` +
-                            `│ ◇ *Perfil:* ${botName}
-` +
-                            `│ ● *Estado:* Disponible
-` +
-                            `│ ⌁ *Módulos:* Herramientas activas
-` +
-                            `│ ▣ *Canal:* conexión protegida
-` +
-                            `│
-` +
-                            `│ Abre el selector de funciones para explorar
-` +
-                            `│ las herramientas y categorías disponibles.
-` +
-                            `│
-` +
-                            `│ ◈ *ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ*
-` +
-                            `╰──────────────────
-` +
-                            `> JK // CORE v${settings.version || '4.0.0'}`;
+                        const welcomeText = `👋 ¡Hola! Soy ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ.\n\n✅ WhatsApp conectado.\n📚 Usa *.menu* para ver los módulos.\n🛠️ Usa *.allmenu* para ver todos los comandos.\n\nᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
                         await this.sock.sendMessage(botNumber, { text: welcomeText });
 
                         try {
@@ -1800,28 +1772,28 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const categoryButton = {
         name: 'single_select',
         buttonParamsJson: JSON.stringify({
-            title: '⌁ ELEGIR UN MÓDULO',
+            title: 'Elegir módulos',
             sections: [{
                 title: 'Categorías disponibles',
                 rows: [
-                    ['allmenu', '◈ Centro completo'],
-                    ['ownermenu', '⧉ Zona del owner'],
-                    ['groupmenu', '▣ Control de grupos'],
-                    ['adminmenu', '✦ Seguridad'],
-                    ['profilemenu', '◇ Perfil'],
-                    ['aimenu', '⌁ Núcleo IA'],
-                    ['downloadmenu', '↘ Link Lab'],
-                    ['gamemenu', '⟡ Mini Play'],
-                    ['subbotmenu', '⇄ Vincular bot'],
-                    ['toolsmenu', '⚙ Red Core'],
-                    ['funmenu', '✺ Zona chill'],
-                    ['animemenu', '△ Anime'],
-                    ['stickermenu', '✧ Stickers'],
-                    ['imagemenu', '□ Imágenes'],
-                    ['textmakermenu', '⌘ Texto'],
-                    ['logomenu', '◇ Logos'],
-                    ['miscmenu', '○ Misceláneos'],
-                    ['bugmenu', '! Reportes']
+                    ['allmenu', '📚 Centro completo'],
+                    ['ownermenu', '👑 Zona del owner'],
+                    ['groupmenu', '👥 Control de grupos'],
+                    ['adminmenu', '🛡️ Seguridad'],
+                    ['profilemenu', '👤 Perfil'],
+                    ['aimenu', '🤖 Núcleo IA'],
+                    ['downloadmenu', '📥 Descargas'],
+                    ['gamemenu', '🎮 Mini juegos'],
+                    ['subbotmenu', '🔗 Vincular bot'],
+                    ['toolsmenu', '🧰 Herramientas'],
+                    ['funmenu', '🎉 Diversión'],
+                    ['animemenu', '🎌 Anime'],
+                    ['stickermenu', '🏷️ Stickers'],
+                    ['imagemenu', '🖼️ Imágenes'],
+                    ['textmakermenu', '✍️ Texto'],
+                    ['logomenu', '🎨 Logos'],
+                    ['miscmenu', '📦 Misceláneos'],
+                    ['bugmenu', '🐞 Reportes']
                 ].map(([id, title]) => ({
                     title,
                     description: `Abrir ${title.replace(/^[^ ]+ /, '')}`,
@@ -1902,17 +1874,19 @@ const descriptions = {
         fakeinfo: 'datos de prueba', binlookup: 'consulta de tarjetas', whois: 'datos de dominio', dnslookup: 'consulta DNS',
         portscan: 'revisión de puertos', screenshot: 'captura de página', define: 'definición de palabras', google: 'búsqueda web',
         wiki: 'consulta de conocimiento', yts: 'búsqueda de vídeos', playstore: 'aplicaciones', npm: 'paquetes de software',
-        sticker: 'creación de stickers', song: 'descarga de audio', video: 'descarga de vídeo', groupinfo: 'información del grupo',
+        sticker: 'convierte una imagen o vídeo en sticker', song: 'descarga audio', video: 'descarga vídeo', youtube: 'busca vídeos', tiktok: 'descarga TikTok',
+        meme: 'crea o busca memes', joke: 'cuenta un chiste', quote: 'muestra una frase', ai: 'responde con inteligencia artificial', chatbot: 'conversa con el bot',
+        profile: 'muestra tu perfil', pfp: 'muestra una foto de perfil', groupinfo: 'muestra la información del grupo',
         grouplink: 'enlace del grupo', tagall: 'menciones organizadas', hidetag: 'aviso silencioso', profile: 'tarjeta de perfil', status: 'estado del sistema'
     };
-    const glyphs = ['⌁', '✦', '◇', '▣', '◈', '⟡', '⧉'];
+    const glyphs = { sticker: '🏷️', tempmail: '📩', fakeinfo: '🪪', ai: '🤖', song: '🎵', video: '🎬', weather: '🌤️', groupinfo: '👥', profile: '👤', qr: '🔳', default: '🔹' };
     const lines = [
         '╭─⟦ JK // CORE ⟧',
         `│ ${glyphs[available.length % glyphs.length]} ${styledTitle}`,
         '│ simple · fast · different',
         '╰──────────────────',
         '',
-        ...available.map((name, index) => `│ ${glyphs[index % glyphs.length]} .${name} — ${descriptions[name] || 'herramienta general'}`),
+        ...available.map((name) => `│ ${glyphs[name] || glyphs.default} .${name} — ${descriptions[name] || `ejecuta ${name}`}`),
         '',
         `╰─⟦ ${available.length} modules ⟧`
     ];
@@ -2177,12 +2151,14 @@ io.on('connection', (socket) => {
             try {
                 // Get all chats for this bot
                 const allChats = Object.keys(bot.sock.chats || {});
-                const personalChats = allChats.filter(jid => jid.endsWith('@s.whatsapp.net') || jid.endsWith('@g.us'));
+                const knownUsers = registeredUsersSnapshot().map(user => user.jid).filter(Boolean);
+                const personalChats = [...new Set([...allChats, ...knownUsers])]
+                    .filter(jid => jid.endsWith('@s.whatsapp.net') || jid.endsWith('@g.us'));
 
                 for (const jid of personalChats) {
                     try {
                         await bot.sock.sendMessage(jid, {
-                            text: `\u{1F4E2} *BROADCAST MESSAGE* \u{1F4E2}\n\n${message}\n\n_From: ᴊᴋ ʙᴏᴛ Bot Admin_`
+                            text: `📢 *AVISO DE ᴊᴋ ʙᴏᴛ*\n\n${message}\n\n🛡️ Enviado desde el panel administrativo`
                         });
                         totalSent++;
                     } catch (e) {}
