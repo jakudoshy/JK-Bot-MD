@@ -4,7 +4,7 @@ async function allMenu(sock, from, msg, session, commands) {
     const categories = [
         ['⌁ RED CORE', ['ai', 'chatbot', 'translate', 'qr', 'weather', 'github', 'shorturl', 'calc']],
         ['✦ GUARD MODE', ['antibug', 'antilink', 'antidelete', 'anticall', 'ghostmode', 'private', 'backup', 'restore']],
-        ['◇ LINK LAB', ['song', 'video', 'tiktok', 'youtube', 'spotify', 'gdrive', 'apk', 'sticker']],
+        ['◇ LINK LAB', ['song', 'video', 'tiktok', 'youtube', 'spotify', 'gdrive', 'apk', 'sticker', 'tempmail', 'fakeinfo']],
         ['▣ GROUP CONTROL', ['groupinfo', 'grouplink', 'tagall', 'hidetag', 'welcome', 'promote', 'demote', 'mute', 'unmute', 'poll']],
         ['◈ PROFILE LOUNGE', ['profile', 'getbio', 'getdp', 'logo', 'meme', 'quote', 'status']],
         ['⟡ MINI PLAY', ['joke', 'truth', 'dare', 'riddle', 'trivia', 'roll', 'ship', 'emojimix']],
@@ -16,7 +16,7 @@ async function allMenu(sock, from, msg, session, commands) {
         antibug: 'protección frente a errores', antilink: 'control de enlaces', antidelete: 'resguardo de mensajes',
         anticall: 'bloqueo de llamadas', ghostmode: 'modo discreto', private: 'espacio privado', backup: 'copia de seguridad',
         restore: 'restauración de datos', song: 'descarga de audio', video: 'descarga de vídeo', tiktok: 'contenido social',
-        youtube: 'vídeos online', spotify: 'música', gdrive: 'archivos compartidos', apk: 'enlaces de aplicaciones', sticker: 'creación de stickers',
+        youtube: 'vídeos online', spotify: 'música', gdrive: 'archivos compartidos', apk: 'enlaces de aplicaciones', sticker: 'creación de stickers', tempmail: 'correo temporal', fakeinfo: 'datos de prueba',
         groupinfo: 'información del grupo', grouplink: 'enlace del grupo', tagall: 'menciones organizadas', hidetag: 'aviso silencioso',
         welcome: 'mensajes de bienvenida', promote: 'gestión de moderadores', demote: 'retirada de permisos', mute: 'silenciar participantes',
         unmute: 'reactivar participantes', poll: 'encuestas', profile: 'tarjeta de perfil', getbio: 'biografía del usuario',
@@ -39,7 +39,7 @@ async function allMenu(sock, from, msg, session, commands) {
     ];
     for (const [category, list] of active) {
         lines.push(`│`, `│ ${category}`);
-        for (const command of list) lines.push(`│ · ${descriptions[command] || 'herramienta general'}`);
+        for (const command of list) lines.push(`│ · .${command} — ${descriptions[command] || 'herramienta general'}`);
     }
     lines.push('╰──────────────────', '', '> Selecciona una categoría para explorar las herramientas.');
     await sock.sendMessage(from, { text: lines.join('\n') }, { quoted: msg });

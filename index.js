@@ -337,7 +337,7 @@ function isPremiumWhatsApp(chatId) {
 }
 
 function hashPremiumToken(token) {
-    return crypto.createHash('sha256').update(String(token || '').trim()).digest('hex');
+    return crypto.createHash('sha256').update(String(token || '').replace(/\s+/g, '').trim().toUpperCase()).digest('hex');
 }
 
 function createPremiumToken(days = 30) {
@@ -1299,7 +1299,7 @@ class BotSession {
                                     // =================== 120+ COMMAND SWITCH ===================
                                     switch (commandName) {
                                         // ===== MENU =====
-                                        case 'menu': {
+                                        case 'menu': case 'menú': {
                                             const customName = botData.userNames[this.userId] || msg.pushName || 'User';
                                             const menuText = generateMenuText(customName, this);
                                             try {
@@ -1318,7 +1318,7 @@ class BotSession {
                                             await promoJkBot(this.sock, from, msg, isOwner, this.promoState);
                                             break;
                                         case 'reclamar': {
-                                            const tokenText = String(args[0] || '').trim();
+                                            const tokenText = String(args.join('') || '').replace(/\s+/g, '').trim();
                                             const token = botData.premiumTokens[hashPremiumToken(tokenText)];
                                             const claimJid = normalizePremiumJid(sender);
                                             if (!tokenText) {
@@ -1349,7 +1349,7 @@ class BotSession {
                                             await this.sock.sendMessage(from, { text: '📚 *BOOK PREMIUM*\n\n🔐 Tu cuenta tiene acceso a funciones exclusivas.\n\n👤 .owner\n🛠️ .toolsmenu\n👑 .ownermenu\n🐛 .bugmenu\n\nUsa *.menu* para volver al menú principal.' }, { quoted: msg });
                                             break;
                                         case 'allmenu':
-                                            await sendCategoryMenu(this.sock, from, msg, '✨ TODOS LOS COMANDOS', Object.keys(commands).filter(name => name !== 'utils'));
+                                            await sendCategoryMenu(this.sock, from, msg, '✨ TODOS LOS COMANDOS', ['menu', ...Object.keys(commands).filter(name => name !== 'utils')]);
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
                                         case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 GROUP MENU', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
@@ -1883,7 +1883,7 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
     const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
     const animeAliases = commands.anime?.aliases || [];
     const profileAliases = commands.profile?.aliases || [];
-    const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name));
+    const available = names.filter(name => name === 'menu' || Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name));
     if (!available.length) {
         await sendSubmenuWithChannel(sock, from, `${title}\n\nNo hay módulos activos en esta sección.`, msg);
         return;
@@ -1912,7 +1912,7 @@ const descriptions = {
         '│ simple · fast · different',
         '╰──────────────────',
         '',
-        ...available.map((name, index) => `│ ${glyphs[index % glyphs.length]} ${descriptions[name] || 'herramienta general'}`),
+        ...available.map((name, index) => `│ ${glyphs[index % glyphs.length]} .${name} — ${descriptions[name] || 'herramienta general'}`),
         '',
         `╰─⟦ ${available.length} modules ⟧`
     ];
