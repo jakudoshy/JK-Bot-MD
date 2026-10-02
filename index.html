@@ -370,7 +370,9 @@
   #adminConsole{display:none;}
   #adminNavLink{display:none;}
   body.admin-route #adminNavLink{display:inline-flex;}
-  #admin.panel{display:block;}
+  #admin.panel{display:none;margin-top:86px;position:relative;border:1px solid rgba(255,18,56,.72);background:linear-gradient(155deg,rgba(28,0,8,.97),rgba(3,0,2,.98) 70%)!important;box-shadow:0 -18px 60px rgba(255,0,31,.14),0 0 30px rgba(255,0,31,.16)!important;}
+  body.admin-panel-open #admin.panel{display:block;}
+  #admin.panel::before{content:"PRIVATE // ADMIN DECK";display:block;margin:-8px 0 18px;color:#ff405c;font:800 .68rem/1 monospace;letter-spacing:.22em;text-align:right;text-shadow:0 0 12px rgba(255,0,31,.8);}
 
 
   body.admin-route nav{position:relative;}
@@ -733,8 +735,9 @@ const adminLogout = document.getElementById('adminLogout');
 const adminBotsList = document.getElementById('adminBotsList');
 const adminPromoButton = document.getElementById('adminPromoButton');
 const adminMessages = new Map();
-function updateAdminRoute(){document.body.classList.remove('admin-route');}
+function updateAdminRoute(){const isAdmin=window.location.hash.toLowerCase()==='#admin' || window.location.pathname.toLowerCase()==='/admin';document.body.classList.toggle('admin-panel-open',isAdmin);if(isAdmin)setTimeout(()=>document.getElementById('admin')?.scrollIntoView({behavior:'smooth',block:'start'}),60);}
 updateAdminRoute();
+window.addEventListener('hashchange',updateAdminRoute);
 function renderAdminChatMessage(entry){
   if(!entry?.id || adminMessages.has(entry.id)) return;
   adminMessages.set(entry.id,entry);
@@ -825,7 +828,7 @@ socket.on('admin-auth-fail',()=>{
 });
 adminLogout?.addEventListener('click',()=>{
   socket.disconnect();
-  window.location.href='/admin';
+  window.location.href='/';
 });
 socket.on('admin-chat-history',renderAdminChatHistory);
 socket.on('admin-chat-message',renderAdminChatMessage);
