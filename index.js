@@ -1290,7 +1290,7 @@ class BotSession {
                             const q = args.join(' ');
                             const commandName = cmd.slice(1).split(' ')[0];
                             if (PREMIUM_COMMANDS.has(commandName) && !isPremiumWhatsApp(sender)) {
-                                await this.sock.sendMessage(from, { text: '🔐 Este comando es exclusivo para usuarios Premium.\n\nObtén un token y usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
+                                await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Este comando requiere acceso Premium.\n🎟️ Reclama tu token con *.reclamar <token>* para activarlo.' }, { quoted: msg });
                                 return;
                             }
                             if (isGroup && botData.adminOnlyGroups?.[from] && !isAdmin && !['menu', 'admin', 'adminmenu'].includes(commandName)) {
@@ -1326,27 +1326,27 @@ class BotSession {
                                             const token = botData.premiumTokens[hashPremiumToken(tokenText)];
                                             const claimJid = normalizePremiumJid(sender);
                                             if (!tokenText) {
-                                                await this.sock.sendMessage(from, { text: '🎟️ Usa *.reclamar <token>* para activar tu acceso Premium.' }, { quoted: msg });
+                                                await this.sock.sendMessage(from, { text: '🎟️ *ACTIVAR PREMIUM*\n\nEscribe *.reclamar <token>* para activar tu acceso.\n✨ El token te dará acceso durante el tiempo indicado.' }, { quoted: msg });
                                                 break;
                                             }
                                             if (!token || token.claimedBy) {
-                                                await this.sock.sendMessage(from, { text: '❌ El token no existe o ya fue utilizado.' }, { quoted: msg });
+                                                await this.sock.sendMessage(from, { text: '❌ *TOKEN NO VÁLIDO*\n\nEl token no existe o ya fue utilizado.\n🔎 Revisa que lo hayas copiado completo.' }, { quoted: msg });
                                                 break;
                                             }
                                             if (new Date(token.expiresAt).getTime() <= Date.now()) {
-                                                await this.sock.sendMessage(from, { text: '⏳ Este token Premium ya expiró.' }, { quoted: msg });
+                                                await this.sock.sendMessage(from, { text: '⏳ *TOKEN EXPIRADO*\n\nEste token Premium ya no se puede activar.\n📩 Solicita uno nuevo al administrador.' }, { quoted: msg });
                                                 break;
                                             }
                                             if (isPremiumWhatsApp(claimJid)) {
-                                                await this.sock.sendMessage(from, { text: '✅ Este número ya tiene acceso Premium.' }, { quoted: msg });
+                                                await this.sock.sendMessage(from, { text: '✅ *YA TIENES PREMIUM*\n\nEste número ya cuenta con acceso Premium activo.' }, { quoted: msg });
                                                 break;
                                             }
                                             botData.premiumUsers[claimJid] = { grantedAt: new Date().toISOString(), expiresAt: token.expiresAt, source: 'token' };
                                             token.claimedBy = claimJid;
                                             token.claimedAt = new Date().toISOString();
                                             saveBotData();
-                                            const grantedUntil = new Date(token.expiresAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
-                                            await this.sock.sendMessage(from, { text: `✅ Usted ha reclamado su Premium.\n\n🎉 Ahora es usuario Premium.\n🪪 Usuario: ${claimJid.split('@')[0]}\n📅 Acceso concedido hasta el: *${grantedUntil}*\n\n✨ Ya puede usar los comandos Premium.` }, { quoted: msg });
+                                            const grantedUntil = new Date(token.expiresAt).toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' });
+                                            await this.sock.sendMessage(from, { text: `🎉 *¡PREMIUM ACTIVADO!*\n\n✅ Tu acceso fue confirmado correctamente.\n🪪 Usuario: ${claimJid.split('@')[0]}\n📅 Válido hasta: *${grantedUntil}*\n🔐 Ya puedes usar las funciones Premium.\n\n💡 Guarda este mensaje para recordar la fecha de vencimiento.` }, { quoted: msg });
                                             break;
                                         }
                                         case 'book':
@@ -1610,6 +1610,11 @@ class BotSession {
                                         case 'backup': await commands.backup(this.sock, from, msg, isOwner); break;
                                         case 'restore': await commands.restore(this.sock, from, msg, isOwner); break;
                                         case 'mycmd': case 'mycommands': await commands.mycmd(this.sock, from, msg); break;
+                                        default:
+                                            await this.sock.sendMessage(from, {
+                                                text: `❓ *COMANDO NO ENCONTRADO*\n\nNo reconozco *.${commandName}*.\n📚 Usa *.menu* para abrir el menú o *.allmenu* para ver todos los comandos.`
+                                            }, { quoted: msg });
+                                            break;
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
