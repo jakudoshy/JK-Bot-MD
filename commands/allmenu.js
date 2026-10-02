@@ -2,15 +2,15 @@ const settings = require('../settings');
 
 async function allMenu(sock, from, msg, session, commands) {
     const categories = {
-        '👑 ᴏᴡɴᴇʀ': ['public', 'private', 'mode', 'owner', 'setname', 'block', 'unblock', 'bcgc', 'bcall', 'restart', 'shutdown', 'xrestart', 'xshutdown', 'clear', 'backup', 'restore', 'clone'],
-        '👥 ɢʀᴏᴜᴘ': ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo', 'join', 'leave', 'setdesc', 'setppgc', 'getbio', 'getdp', 'accept', 'poll', 'everyonemsg', 'listonline', 'tagme', 'mention', 'kickoffline', 'snipe', 'editmsg', 'react', 'send', 'forward', 'save'],
-        '🤖 ᴀɪ': ['ai', 'chatbot', 'gali'],
-        '⬇️ ᴅᴏᴡɴʟᴏᴀᴅ': ['song', 'video', 'insta', 'tiktok', 'facebook', 'youtube', 'pinterest', 'twitter', 'reddit', 'spotify', 'mf', 'apk', 'gdrive'],
-        '🛠️ ᴛᴏᴏʟs': ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm', 'sticker', 'toimg', 'tomp3', 'tts', 'blur', 'invert', 'crop', 'flip', 'grayscale', 'removebg', 'enlarge', 'runtime', 'uptime', 'serverinfo', 'speedtest', 'device'],
-        '🎉 ғᴜɴ': ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather'],
-        '🕌 ɪsʟᴀᴍɪᴄ': ['quran', 'hadith', 'prayer', 'qibla', 'asmaulhusna'],
-        '🎌 ᴀɴɪᴍᴇ': ['anime', 'manga'],
-        '⚠️ ᴅᴇᴍᴏs ᴅᴇ ᴏᴡɴᴇʀ': ['hack', 'report']
+        '🟥 ᴏᴡɴᴇʀ': ['public', 'private', 'mode', 'owner', 'setname', 'block', 'unblock', 'bcgc', 'bcall', 'restart', 'shutdown', 'xrestart', 'xshutdown', 'clear', 'backup', 'restore', 'clone'],
+        '🛡️ ɢʀᴏᴜᴘ': ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo', 'join', 'leave', 'setdesc', 'setppgc', 'getbio', 'getdp', 'accept', 'poll', 'everyonemsg', 'listonline', 'tagme', 'mention', 'kickoffline', 'snipe', 'editmsg', 'react', 'send', 'forward', 'save'],
+        '🧠 ᴀɪ': ['ai', 'chatbot', 'gali'],
+        '📥 ᴅᴏᴡɴʟᴏᴀᴅ': ['song', 'video', 'insta', 'tiktok', 'facebook', 'youtube', 'pinterest', 'twitter', 'reddit', 'spotify', 'mf', 'apk', 'gdrive'],
+        '🧰 ᴛᴏᴏʟs': ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm', 'sticker', 'toimg', 'tomp3', 'tts', 'blur', 'invert', 'crop', 'flip', 'grayscale', 'removebg', 'enlarge', 'runtime', 'uptime', 'serverinfo', 'speedtest', 'device'],
+        '🎮 ғᴜɴ': ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather'],
+        '☪️ ɪsʟᴀᴍɪᴄ': ['quran', 'hadith', 'prayer', 'qibla', 'asmaulhusna'],
+        '🎴 ᴀɴɪᴍᴇ': ['anime', 'manga'],
+        '🚨 ᴅᴇᴍᴏs ᴅᴇ ᴏᴡɴᴇʀ': ['hack', 'report']
     };
     const available = new Set(Object.keys(commands));
     for (const [category, list] of Object.entries(categories)) {
@@ -20,7 +20,7 @@ async function allMenu(sock, from, msg, session, commands) {
     const prefix = settings.prefix || '.';
     const lines = [
         '╭━━━━━━━━━━━━━━━━━━━━━━╮',
-        '┃ 👑 *ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ*',
+        '┃ 🟥 *ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ*',
         '┃ ── COMMAND DIRECTORY ──',
         '╰━━━━━━━━━━━━━━━━━━━━━━╯',
         '',
