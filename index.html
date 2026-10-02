@@ -550,7 +550,7 @@ html,body{background:#020001!important;color:#fff5f6!important}body{background:r
       <h3>Cómo conectar tu número</h3>
       <ol>
         <li>Escribe tu número con código de país, sin «+», espacios ni paréntesis.</li>
-        <li>Pulsa «Solicitar código de vinculación».</li>
+        <li>Pulsa «Generar código».</li>
         <li>Copia el código de ocho dígitos.</li>
         <li>Abre WhatsApp → Ajustes → Dispositivos vinculados.</li>
         <li>Introduce el código cuando WhatsApp lo solicite.</li>
@@ -931,7 +931,7 @@ socket.on('pairing-started', (msg)=>{
 socket.on('pairing-code', (code)=>{
   requestBtn.disabled = false;
   requestBtn.innerHTML = '<i class="fas fa-key"></i> Generar código';
-  setStatus('Código generado. Vincula WhatsApp durante los próximos 60 segundos.', 'success');
+  setStatus('Código generado por WhatsApp. Vincula el dispositivo durante los próximos 60 segundos.', 'success');
   codeWrap.style.display = 'block';
   pairingCode.innerText = code;
 });

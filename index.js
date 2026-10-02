@@ -574,6 +574,7 @@ app.use(express.static(path.join(__dirname), { index: false }));
 const INDEX_TEMPLATE = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 const BANNER_FILE = 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg';
 function sendIndexWithPreview(req, res) {
+    res.set({ 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate', 'Pragma': 'no-cache', 'Expires': '0' });
     const protocol = req.get('x-forwarded-proto') || req.protocol || 'https';
     const imageUrl = `${protocol.split(',')[0].trim()}://${req.get('host')}/${BANNER_FILE}`;
     res.type('html').send(INDEX_TEMPLATE.replaceAll('__JK_OG_IMAGE__', imageUrl));
