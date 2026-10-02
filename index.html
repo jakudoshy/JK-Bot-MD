@@ -457,7 +457,7 @@ header{position:relative}header:before{content:"// ACCESS GRANTED";position:abso
 <style id="jk-boost-polish">
 .jk-boot{transition:opacity .65s ease,visibility .65s ease;color:#ff4965;text-shadow:0 0 10px rgba(255,18,56,.55)}
 .jk-boot-inner{width:min(720px,calc(100% - 24px));padding:28px 30px;border:3px solid #ff1238;border-radius:28px;overflow:hidden;background:linear-gradient(145deg,rgba(32,0,9,.98),rgba(3,0,2,.99));box-shadow:0 0 24px #ff1238,0 0 70px rgba(255,0,31,.62),inset 0 0 42px rgba(255,18,56,.14)}
-.jk-boot-inner:before{color:#ff1238;font-weight:800}
+.jk-boot-inner:before{content:none}
 .jk-boot-top{color:#ff1238;border-bottom:2px solid rgba(255,18,56,.65)}
 .jk-boot-top span,.jk-boot-meta{color:#ff4965}
 .jk-boot-log{color:#ff4965;text-shadow:0 0 11px rgba(255,18,56,.75)}
@@ -481,7 +481,7 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
 </style>
 </head>
 <body>
-<div id="jkBoot" class="jk-boot" role="status" aria-label="Iniciando JK BOT"><div class="jk-boot-inner"><div class="jk-boot-top"><strong>ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</strong><span>RED CORE</span></div><div id="jkBootLog" class="jk-boot-log"></div><div class="jk-boot-bar"><i id="jkBootBar"></i></div><div class="jk-boot-meta"><span id="jkBootStatus">INICIALIZANDO NODO...</span></div></div></div>
+<div id="jkBoot" class="jk-boot" role="status" aria-label="Iniciando JK BOT"><div class="jk-boot-inner"><div class="jk-boot-top"><strong>ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</strong></div><div id="jkBootLog" class="jk-boot-log"></div><div class="jk-boot-bar"><i id="jkBootBar"></i></div><div class="jk-boot-meta"><span id="jkBootStatus">INICIALIZANDO NODO...</span></div></div></div>
 <div class="scanlines"></div>
 <div class="grid-bg"></div>
 <div class="glow-orb"></div>
@@ -683,7 +683,7 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
 <script src="/socket.io/socket.io.js"></script>
 <script>
 /* ---------------- Hacker boot + particles ---------------- */
-const jkBoot=document.getElementById('jkBoot'),jkBootLog=document.getElementById('jkBootLog'),jkBootBar=document.getElementById('jkBootBar'),jkBootStatus=document.getElementById('jkBootStatus');const jkBootLines=['> mounting red core modules... OK','> validating secure WhatsApp bridge... OK','> loading live socket telemetry... OK','> premium gate: token-only access... OK','> system ready // access granted'];let jkBootIndex=0;function runJkBoot(){if(!jkBoot||jkBootIndex>=jkBootLines.length){if(jkBoot){jkBootBar.style.width='100%';jkBootStatus.textContent='NODO EN LÍNEA';setTimeout(()=>jkBoot.classList.add('is-done'),850)}return}const line=document.createElement('div');line.className='ok';line.textContent=jkBootLines[jkBootIndex++];jkBootLog.appendChild(line);const pct=Math.round((jkBootIndex/jkBootLines.length)*100);jkBootBar.style.width=pct+'%';jkBootStatus.textContent=jkBootIndex<3?'SINCRONIZANDO...':'VERIFICANDO...';setTimeout(runJkBoot,360)}runJkBoot();
+const jkBoot=document.getElementById('jkBoot'),jkBootLog=document.getElementById('jkBootLog'),jkBootBar=document.getElementById('jkBootBar'),jkBootStatus=document.getElementById('jkBootStatus');const jkBootLines=['> ɪɴɪᴄɪᴀɴᴅᴏ ѕɪѕᴛᴇᴍᴀ... OK','> ᴄᴀʀɢᴀɴᴅᴏ ᴍóᴅᴜʟᴏѕ... OK','> ᴄᴀʀɢᴀɴᴅᴏ ᴄóᴅɪɢᴏѕ ᴅᴇʟ ʙᴏᴛ... OK','> ᴘʀᴇᴘᴀʀᴀɴᴅᴏ ᴡʜᴀᴛѕᴀᴘᴘ... OK','> ᴄᴀʀɢᴀɴᴅᴏ ᴘᴀɴᴇʟ... OK','> ѕɪѕᴛᴇᴍᴀ ɪɴɪᴄɪᴀᴅᴏ... OK'];let jkBootIndex=0;function runJkBoot(){if(!jkBoot||jkBootIndex>=jkBootLines.length){if(jkBoot){jkBootBar.style.width='100%';jkBootStatus.textContent='ѕɪѕᴛᴇᴍᴀ ɪɴɪᴄɪᴀᴅᴏ';setTimeout(()=>jkBoot.classList.add('is-done'),850)}return}const line=document.createElement('div');line.className='ok';line.textContent=jkBootLines[jkBootIndex++];jkBootLog.appendChild(line);const pct=Math.round((jkBootIndex/jkBootLines.length)*100);jkBootBar.style.width=pct+'%';jkBootStatus.textContent=jkBootIndex<3?'ɪɴɪᴄɪᴀɴᴅᴏ...':jkBootIndex<jkBootLines.length?'ᴄᴀʀɢᴀɴᴅᴏ...':'ѕɪѕᴛᴇᴍᴀ ᴄᴀѕɪ ʟɪѕᴛᴏ...';setTimeout(runJkBoot,360)}runJkBoot();
 
 const matrixCanvas=document.createElement('canvas');matrixCanvas.className='jk-matrix-rain';document.body.appendChild(matrixCanvas);const matrixCtx=matrixCanvas.getContext('2d');let matrixDrops=[];function resizeJkMatrix(){matrixCanvas.width=innerWidth;matrixCanvas.height=innerHeight;matrixDrops=Array.from({length:Math.ceil(innerWidth/16)},()=>Math.random()*-30)}function drawJkMatrix(){matrixCtx.fillStyle='rgba(2,0,1,.12)';matrixCtx.fillRect(0,0,matrixCanvas.width,matrixCanvas.height);matrixCtx.fillStyle='rgba(255,18,56,.52)';matrixCtx.font='13px monospace';const glyphs='ᴊᴋʙᴏᴛ01<>[]{}';matrixDrops.forEach((y,i)=>{matrixCtx.fillText(glyphs[Math.floor(Math.random()*glyphs.length)],i*16,y*15);if(y*15>matrixCanvas.height&&Math.random()>.975)matrixDrops[i]=0;matrixDrops[i]+=.82})}resizeJkMatrix();addEventListener('resize',resizeJkMatrix);setInterval(drawJkMatrix,85);
 const pWrap = document.getElementById('particles');

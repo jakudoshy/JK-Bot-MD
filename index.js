@@ -396,7 +396,7 @@ if (tgBot) {
             `*\u{1F510} TO CONNECT:* \n` +
             `Simply send your WhatsApp number with country code.\n` +
             `Example: \`923271054080\`\n\n` +
-            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.0.0`;
+            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.1.0`;
 
         try {
             await tgBot.sendPhoto(chatId, settings.startimage, {
@@ -470,7 +470,7 @@ if (tgBot) {
             `\u{1F4F1} *Connected Bots:* ${connectedCount}\n` +
             `\u{26A1} *Total Sessions:* ${Object.keys(sessions).length}\n\n` +
             `\u{1F522} *Active Numbers:*\n\`${numbersList}\`\n\n` +
-            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.0.0`;
+            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.1.0`;
 
         await tgBot.sendMessage(chatId, statusMsg, { parse_mode: 'Markdown' });
     });
@@ -1018,7 +1018,7 @@ class BotSession {
                                 `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *ᴊᴋ ʙᴏᴛ CODE* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
                                 `*\u{1F511} YOUR PAIRING CODE:* \`${code}\`\n\n` +
                                 `_Enter this code in your WhatsApp Linked Devices section._\n\n` +
-                                `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.0.0`;
+                                `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.1.0`;
                             await tgBot.sendMessage(this.tgChatId, codeMsg, { parse_mode: 'Markdown' });
                         }
 
@@ -1717,7 +1717,7 @@ class BotSession {
                             `*\u{2705} CONNECTION SUCCESSFUL!* \n\n` +
                             `Your WhatsApp number has been successfully linked.\n` +
                             `You can now use all commands in your WhatsApp.\n\n` +
-                            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.0.0`;
+                            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.1.0`;
                         await tgBot.sendMessage(this.tgChatId, successMsg, { parse_mode: 'Markdown' });
                     }
 
@@ -1728,7 +1728,7 @@ class BotSession {
                             await this.sock.query({
                                 tag: 'iq',
                                 attrs: { to: '@s.whatsapp.net', type: 'set', xmlns: 'status' },
-                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.0.0 - 120+ Commands | Powered by ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ", 'utf-8') }]
+                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.1.0 - 120+ Commands | Powered by ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ", 'utf-8') }]
                             });
                             this.sendLog("Bio updated successfully! \u{2705}", "success");
                         } catch (e) {
