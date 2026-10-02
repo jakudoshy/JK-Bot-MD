@@ -1733,7 +1733,7 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `╭────────༺ ༻────────╮\n│☞︎ 👋 ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ ᴇѕᴛá ᴇɴ ʟíɴᴇᴀ\n│☞︎ ✅ ᴡʜᴀᴛѕᴀᴘᴘ ᴄᴏɴᴇᴄᴛᴀᴅᴏ\n│☞︎ 📚 *.menu* · ᴠᴇʀ ᴍᴇɴús\n╰────────༺ ༻────────╯\nᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
+                        const welcomeText = `👋 Hola, soy ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ.\n✅ WhatsApp conectado y listo para usar.\n📚 Escribe *.menu* para abrir el centro de funciones.\n📢 Canal oficial: ${settings.whatsappChannel}\n\n🛠️ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
                         await this.sock.sendMessage(botNumber, { text: welcomeText });
 
                         try {
@@ -1946,30 +1946,24 @@ function generateMenuText(userName, session) {
     const mode = session.isPublic ? 'PÚBLICO' : 'PRIVADO';
     const botName = settings.botName || 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ';
     const ownerName = settings.ownerName || 'ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ';
-    const lines = [
-        '╭─⟦ JK // CORE ⟧',
-        '│ CENTRO DE FUNCIONES',
-        '╰──────────────────',
+    return [
+        `👋 Hola, ${userName || 'amigo'}`,
+        `🤖 ${botName}`,
+        '✅ Estado: disponible',
+        `🔐 Modo: ${mode}`,
         '',
-        `╭─⟦ PERFIL ⟧`,
-        `│ Usuario: ${userName || 'Operador'}`,
-        `│ Bot: ${botName}`,
-        '│ Estado: Disponible',
-        `│ Modo: ${mode}`,
-        `╰──────────────────`,
+        '📚 Funciones principales:',
+        '🛡️ Protección y administración de grupos',
+        '🎵 Música, vídeos, stickers y descargas',
+        '🤖 IA, traducciones y herramientas útiles',
+        '🎮 Diversión, perfiles y economía',
         '',
-        '╭─⟦ QUÉ PUEDES HACER ⟧',
-        '│ Protección y seguridad para tus chats',
-        '│ Moderación y organización de grupos',
-        '│ Descarga de audio, vídeo y contenido',
-        '│ Asistencia inteligente y traducciones',
-        '│ Perfiles, stickers, QR y utilidades',
-        '╰──────────────────',
+        '⚡ Escribe *.allmenu* para ver todos los comandos.',
+        '📖 Cada módulo explica para qué sirve.',
+        `📢 Canal oficial: ${settings.whatsappChannel}`,
         '',
-        `> ${ownerName}`,
-        '> Abre el selector de funciones para comenzar.'
-    ];
-    return lines.join('\n');
+        `🛠️ ${ownerName}`
+    ].join('\n');
 }
 
 // =================== SOCKET.IO ===================
