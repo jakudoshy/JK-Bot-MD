@@ -20,7 +20,7 @@ async function allMenu(sock, from, msg, session, commands) {
     const totalCommands = [...new Set(Object.values(categories).flat())].length;
 
     let allMenuText = `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
-    allMenuText += `┃  💀  *SYED MINI ALL MENU*  💀               ┃\n`;
+    allMenuText += `┃  💀  *ᴊᴋ ʙᴏᴛ ALL MENU*  💀               ┃\n`;
     allMenuText += `┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\n`;
     allMenuText += `┃  📋 TOTAL COMMANDS: ${String(totalCommands).padEnd(3)}                 ┃\n`;
     allMenuText += `┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n`;
@@ -49,7 +49,7 @@ async function allMenu(sock, from, msg, session, commands) {
     }
 
     // ===== FOOTER =====
-    allMenuText += `☠️  *POWERED BY : SYED MINI*  ☠️`;
+    allMenuText += `☠️  *POWERED BY : ᴊᴋ ʙᴏᴛ*  ☠️`;
 
     // ===== SEND =====
     try {

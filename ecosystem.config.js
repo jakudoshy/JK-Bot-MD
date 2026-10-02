@@ -1,6 +1,6 @@
 module.exports = {
   apps: [{
-    name: 'syed-md-bot',
+    name: 'jk-bot-md',
     script: './index.js',
     instances: 1,
     autorestart: true,

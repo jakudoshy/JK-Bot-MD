@@ -27,9 +27,9 @@ module.exports = async function(sock, chatId, msg, args) {
 ┃  💀  *𝙎𝙔𝙀𝘿 𝙈𝘿  —  𝙍𝙀𝙋𝙊𝙎𝙄𝙏𝙊𝙍𝙔*  💀  ┃
 ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
 ┃  🔗 *Official Website*                   ┃
-┃  ➤ https://syed-md-production.up.railway.app/ ┃
-┃  ➤ https://syed-md-production.up.railway.app/ ┃
-┃  ➤ https://syed-md-production.up.railway.app/ ┃
+┃  ➤ https://github.com/jakudoshy/JK-Bot-MD ┃
+┃  ➤ https://github.com/jakudoshy/JK-Bot-MD ┃
+┃  ➤ https://github.com/jakudoshy/JK-Bot-MD ┃
 ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
 ┃  📱 *Pairing Guide*                      ┃
 ┃  ➤ Type .pair 92XXXXXXXXXX              ┃
@@ -41,7 +41,7 @@ module.exports = async function(sock, chatId, msg, args) {
 ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
 ┃  👑 *Version*   : ${settings?.version || '3.0'}  ┃
 ┃  🔐 *Security*  : Premium Encrypted      ┃
-┃  ☠️ *Powered by* : SYED MD TEAM          ┃
+┃  ☠️ *Powered by* : JK MD TEAM          ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
         `;
 

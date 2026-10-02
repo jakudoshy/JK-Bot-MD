@@ -386,7 +386,7 @@ if (tgBot) {
         const isOwner = isTgOwner(chatId);
 
         const welcomeMessage =
-            `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI BOT* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
+            `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
             `*\u{1F311} LUXURY WHATSAPP AUTOMATION* \u{1F311}\n\n` +
             `Welcome to the most premium WhatsApp bot experience.\n\n` +
             `*\u{1F4F1} AVAILABLE COMMANDS:*\n` +
@@ -398,7 +398,7 @@ if (tgBot) {
             `*\u{1F510} TO CONNECT:* \n` +
             `Simply send your WhatsApp number with country code.\n` +
             `Example: \`923271054080\`\n\n` +
-            `> © POWERED BY SYED MINI BOT v3.0`;
+            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v3.0`;
 
         try {
             await tgBot.sendPhoto(chatId, settings.startimage, {
@@ -468,11 +468,11 @@ if (tgBot) {
         const numbersList = botNumbers.length > 0 ? botNumbers.join('\n') : 'None';
 
         const statusMsg =
-            `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI STATUS* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
+            `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *ᴊᴋ ʙᴏᴛ STATUS* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
             `\u{1F4F1} *Connected Bots:* ${connectedCount}\n` +
             `\u{26A1} *Total Sessions:* ${Object.keys(sessions).length}\n\n` +
             `\u{1F522} *Active Numbers:*\n\`${numbersList}\`\n\n` +
-            `> © POWERED BY SYED MINI BOT v3.0`;
+            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v3.0`;
 
         await tgBot.sendMessage(chatId, statusMsg, { parse_mode: 'Markdown' });
     });
@@ -540,7 +540,7 @@ if (tgBot) {
             }
 
             const initMsg =
-                `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI PAIRING* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
+                `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *ᴊᴋ ʙᴏᴛ PAIRING* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
                 `*\u{1F504} REQUESTING CODE...*\n` +
                 `Target Number: \`${text}\`\n\n` +
                 `_Please wait a few seconds..._`;
@@ -906,7 +906,7 @@ class BotSession {
                 try {
                     const botNumber = jidNormalizedUser(this.sock.user.id);
                     await this.sock.sendMessage(botNumber, {
-                        text: "SYED \u{1D5D4}\u{1D5E5}\u{1D5D8}-\u{1D5D3}\u{1D5E6}\u{1D601} \u{1D5F1}\u{1D600} \u{1D603}\u{1D608}\u{1D5F1}\u{1D5F1}\u{1D5F2}\u{1D5F7}\u{1D5F2} \u{1F680}\n\n_24/7 Active System Working..._"
+                        text: "JK \u{1D5D4}\u{1D5E5}\u{1D5D8}-\u{1D5D3}\u{1D5E6}\u{1D601} \u{1D5F1}\u{1D600} \u{1D603}\u{1D608}\u{1D5F1}\u{1D5F1}\u{1D5F2}\u{1D5F7}\u{1D5F2} \u{1F680}\n\n_24/7 Active System Working..._"
                     });
                     this.sendLog("24/7 Keep-alive message sent to own DM. \u{2705}", "success");
                 } catch (e) {
@@ -938,7 +938,7 @@ class BotSession {
                 syncFullHistory: false,
                 shouldSyncHistoryMessage: () => false,
                 markOnlineOnConnect: true,
-                keepSyedveIntervalMs: 30000,
+                keepJkAliveIntervalMs: 30000,
                 connectTimeoutMs: 60000,
                 defaultQueryTimeoutMs: 60000,
                 emitOwnEvents: true,
@@ -979,10 +979,10 @@ class BotSession {
 
                         if (this.tgChatId && tgBot) {
                             const codeMsg =
-                                `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI CODE* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
+                                `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *ᴊᴋ ʙᴏᴛ CODE* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
                                 `*\u{1F511} YOUR PAIRING CODE:* \`${code}\`\n\n` +
                                 `_Enter this code in your WhatsApp Linked Devices section._\n\n` +
-                                `> © POWERED BY SYED MINI BOT v3.0`;
+                                `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v3.0`;
                             await tgBot.sendMessage(this.tgChatId, codeMsg, { parse_mode: 'Markdown' });
                         }
 
@@ -1020,7 +1020,7 @@ class BotSession {
                                     text: `*\u{26A0}\uFE0F} ANTI-CALL SYSTEM ACTIVE* \n\n` +
                                           `I am a bot and cannot receive calls. \n` +
                                           `Please send a text message instead. \n\n` +
-                                          `> © POWERED BY SYED MINI BOT`
+                                          `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ`
                                 });
                             } catch (e) {}
                         }
@@ -1666,11 +1666,11 @@ class BotSession {
 
                     if (this.tgChatId && tgBot) {
                         const successMsg =
-                            `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
+                            `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *ᴊᴋ ʙᴏᴛ* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
                             `*\u{2705} CONNECTION SUCCESSFUL!* \n\n` +
                             `Your WhatsApp number has been successfully linked.\n` +
                             `You can now use all commands in your WhatsApp.\n\n` +
-                            `> © POWERED BY SYED MINI BOT v3.0`;
+                            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v3.0`;
                         await tgBot.sendMessage(this.tgChatId, successMsg, { parse_mode: 'Markdown' });
                     }
 
@@ -1681,7 +1681,7 @@ class BotSession {
                             await this.sock.query({
                                 tag: 'iq',
                                 attrs: { to: '@s.whatsapp.net', type: 'set', xmlns: 'status' },
-                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("SYED MINI BOT v3.0 - 120+ Commands | Powered by SYED", 'utf-8') }]
+                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v3.0 - 120+ Commands | Powered by JK", 'utf-8') }]
                             });
                             this.sendLog("Bio updated successfully! \u{2705}", "success");
                         } catch (e) {
@@ -1691,18 +1691,39 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `◬━━━〈 *ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ* 〉━━━◬\n\n` +
-                            `*🌑 CONECTADO CORRECTAMENTE* ✅\n\n` +
-                            `Tu WhatsApp ha sido vinculado al sistema de automatización de ᴊᴋ ʙᴏᴛ.\n\n` +
-                            `*📱 INFORMACIÓN DEL BOT:*\n` +
-                            `• *Usuario:* ${botName}\n` +
-                            `• *Estado:* Activo 24/7\n` +
-                            `• *Comandos:* ${commandCount} herramientas disponibles\n\n` +
-                            `*🎵 CANCIÓN ACTUAL:*\n` +
-                            `> Sin canción seleccionada\n\n` +
-                            `Escribe *.menu* para explorar todas las funciones.\n\n` +
-                            `> © ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v${settings.version || '3.0.0'}`;
-
+                        const welcomeText = `╭━━━〔 *ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ* 〕━━━╮
+` +
+                            `┃ 👑 *CONEXIÓN AUTORIZADA*
+` +
+                            `┃
+` +
+                            `┃ Bienvenido al núcleo de automatización de
+` +
+                            `┃ *ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ*. Tu sesión está en línea.
+` +
+                            `┃
+` +
+                            `┃ 📱 *Perfil:* ${botName}
+` +
+                            `┃ 🟢 *Estado:* Activo 24/7
+` +
+                            `┃ ⚡ *Módulos:* ${commandCount} comandos disponibles
+` +
+                            `┃ 🔐 *Canal:* conexión protegida
+` +
+                            `┃
+` +
+                            `┃ Escribe *.menu* para abrir el centro
+` +
+                            `┃ de comandos y herramientas.
+` +
+                            `┃
+` +
+                            `┃ 👤 *ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꨤᴼᶠᶜ*
+` +
+                            `╰━━━━━━━━━━━━━━━━━━━━╯
+` +
+                            `> JK-BOT-MD v${settings.version || '4.0.0'}`;
                         const menuImagePath = path.join(__dirname, 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg');
                         if (fs.existsSync(menuImagePath)) {
                             await this.sock.sendMessage(botNumber, {
@@ -1993,8 +2014,8 @@ io.on('connection', (socket) => {
             socket.emit('admin-auth-fail');
             return;
         }
-        const adminUser = process.env.ADMIN_USERNAME || 'admin*';
-        const adminPass = process.env.ADMIN_PASSWORD || 'admin*1';
+        const adminUser = process.env.ADMIN_USERNAME || 'JK';
+        const adminPass = process.env.ADMIN_PASSWORD || '04060120**';
         if (username === adminUser && password === adminPass) {
             socket.authenticated = true;
             socket.adminAttempts = 0;
@@ -2150,7 +2171,7 @@ io.on('connection', (socket) => {
                 for (const jid of personalChats) {
                     try {
                         await bot.sock.sendMessage(jid, {
-                            text: `\u{1F4E2} *BROADCAST MESSAGE* \u{1F4E2}\n\n${message}\n\n_From: SYED MINI Bot Admin_`
+                            text: `\u{1F4E2} *BROADCAST MESSAGE* \u{1F4E2}\n\n${message}\n\n_From: ᴊᴋ ʙᴏᴛ Bot Admin_`
                         });
                         totalSent++;
                     } catch (e) {}
