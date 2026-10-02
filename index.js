@@ -384,7 +384,7 @@ if (tgBot) {
         const isOwner = isTgOwner(chatId);
 
         const welcomeMessage =
-            `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
+            `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
             `*\u{1F311} LUXURY WHATSAPP AUTOMATION* \u{1F311}\n\n` +
             `Welcome to the most premium WhatsApp bot experience.\n\n` +
             `*\u{1F4F1} AVAILABLE COMMANDS:*\n` +
@@ -396,7 +396,7 @@ if (tgBot) {
             `*\u{1F510} TO CONNECT:* \n` +
             `Simply send your WhatsApp number with country code.\n` +
             `Example: \`923271054080\`\n\n` +
-            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v4.0.0`;
+            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.0.0`;
 
         try {
             await tgBot.sendPhoto(chatId, settings.startimage, {
@@ -470,7 +470,7 @@ if (tgBot) {
             `\u{1F4F1} *Connected Bots:* ${connectedCount}\n` +
             `\u{26A1} *Total Sessions:* ${Object.keys(sessions).length}\n\n` +
             `\u{1F522} *Active Numbers:*\n\`${numbersList}\`\n\n` +
-            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v4.0.0`;
+            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.0.0`;
 
         await tgBot.sendMessage(chatId, statusMsg, { parse_mode: 'Markdown' });
     });
@@ -894,7 +894,7 @@ class BotSession {
             const completion = await openai.chat.completions.create({
                 model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
                 messages: [
-                    { role: 'system', content: `${systemPrompt} Responde siempre en español, de forma clara, breve y útil. Eres el asistente de ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ.` },
+                    { role: 'system', content: `${systemPrompt} Responde siempre en español, de forma clara, breve y útil. Eres el asistente de ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ.` },
                     { role: 'user', content: prompt }
                 ],
                 temperature: 0.7,
@@ -1018,7 +1018,7 @@ class BotSession {
                                 `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *ᴊᴋ ʙᴏᴛ CODE* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
                                 `*\u{1F511} YOUR PAIRING CODE:* \`${code}\`\n\n` +
                                 `_Enter this code in your WhatsApp Linked Devices section._\n\n` +
-                                `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v4.0.0`;
+                                `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.0.0`;
                             await tgBot.sendMessage(this.tgChatId, codeMsg, { parse_mode: 'Markdown' });
                         }
 
@@ -1057,7 +1057,7 @@ class BotSession {
                                     text: `*\u{26A0}\uFE0F} ANTI-CALL SYSTEM ACTIVE* \n\n` +
                                           `I am a bot and cannot receive calls. \n` +
                                           `Please send a text message instead. \n\n` +
-                                          `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ`
+                                          `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ`
                                 });
                             } catch (e) {}
                         }
@@ -1708,7 +1708,7 @@ class BotSession {
                             `*\u{2705} CONNECTION SUCCESSFUL!* \n\n` +
                             `Your WhatsApp number has been successfully linked.\n` +
                             `You can now use all commands in your WhatsApp.\n\n` +
-                            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v4.0.0`;
+                            `> © POWERED BY ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.0.0`;
                         await tgBot.sendMessage(this.tgChatId, successMsg, { parse_mode: 'Markdown' });
                     }
 
@@ -1719,7 +1719,7 @@ class BotSession {
                             await this.sock.query({
                                 tag: 'iq',
                                 attrs: { to: '@s.whatsapp.net', type: 'set', xmlns: 'status' },
-                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v4.0.0 - 120+ Commands | Powered by ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ", 'utf-8') }]
+                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.0.0 - 120+ Commands | Powered by ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ", 'utf-8') }]
                             });
                             this.sendLog("Bio updated successfully! \u{2705}", "success");
                         } catch (e) {
@@ -1729,7 +1729,7 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `╭─⟦ *ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ* ⟧
+                        const welcomeText = `╭─⟦ *ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ* ⟧
 ` +
                             `│ ⟡ *CONEXIÓN AUTORIZADA*
 ` +
@@ -1737,7 +1737,7 @@ class BotSession {
 ` +
                             `│ Bienvenido al núcleo de automatización de
 ` +
-                            `│ *ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ*. Tu sesión está en línea.
+                            `│ *ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ*. Tu sesión está en línea.
 ` +
                             `│
 ` +
@@ -1841,7 +1841,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const content = {
         interactiveMessage: {
             body: { text: caption },
-            footer: { text: 'ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ · ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ' },
+            footer: { text: 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ · ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ' },
             nativeFlowMessage: {
                 buttons: [categoryButton, channelButton],
                 messageVersion: 1
@@ -1931,7 +1931,7 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
     const content = {
         interactiveMessage: {
             body: { text },
-            footer: { text: 'ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ · ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ' },
+            footer: { text: 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ · ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ' },
             nativeFlowMessage: {
                 buttons: [channelButton],
                 messageVersion: 1
@@ -1970,7 +1970,7 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
 
 function generateMenuText(userName, session) {
     const mode = session.isPublic ? 'PÚBLICO' : 'PRIVADO';
-    const botName = settings.botName || 'ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ';
+    const botName = settings.botName || 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ';
     const ownerName = settings.ownerName || 'ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ';
     const lines = [
         '╭─⟦ JK // CORE ⟧',
