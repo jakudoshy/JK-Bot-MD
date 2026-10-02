@@ -989,7 +989,7 @@ class BotSession {
 
             if (pairingNumber && !state.creds.registered) {
                 const pairingSocketId = userSockets[this.userId];
-                if (pairingSocketId) io.to(pairingSocketId).emit('pairing-started', 'Conectando con WhatsApp para solicitar un código real...');
+                if (pairingSocketId) io.to(pairingSocketId).emit('pairing-started', 'Conectando con WhatsApp para generar tu código...');
                 try {
                     // The WhatsApp transport can take longer than the old fixed 3-second delay.
                     // Retry the real Baileys request while the socket becomes ready, never inventing a code.
