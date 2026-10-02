@@ -1,4 +1,4 @@
-const DEFAULT_MESSAGE = `📢 *ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ*\n\n🤖 Novedades, actualizaciones y herramientas para tu WhatsApp.\n\n🔗 *Únete al canal oficial:*\nhttps://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l\n\n✨ ¡No te pierdas nada!`;
+const DEFAULT_MESSAGE = `📢 *ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ*\n\n🤖 Novedades, actualizaciones y herramientas para tu WhatsApp.\n\n🔗 *Únete al canal oficial:*\nhttps://github.com/jakudoshy/JK-Bot-MD\n\n✨ ¡No te pierdas nada!`;
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 

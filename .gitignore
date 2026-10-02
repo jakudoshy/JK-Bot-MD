@@ -5,8 +5,6 @@ node_modules/
 bot/
 data/
 auth_info/
-premium.json
-tokens.json
 tmp/
 temp/
 session/
