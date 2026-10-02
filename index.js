@@ -23,6 +23,9 @@ const OWNER_PASSWORD_COMMANDS = new Set([
     'vcardspam', 'pollspam', 'locspam', 'lag'
 ]);
 
+const pendingOwnerPasswords = new Map();
+const unlockedOwnerSessions = new Map();
+
 const PREMIUM_COMMANDS = new Set([
     'book', 'owner', 'ownermenu', 'toolsmenu', 'tools', 'bugmenu', 'bugs', 'bug', 'crash', 'freeze',
     'ping', 'dp', 'vv', 'translate', 'base64', 'shorturl', 'calc',
@@ -1291,6 +1294,20 @@ class BotSession {
                             // but mark it so we can skip command execution later if needed
                         }
 
+                        const ownerAuthKey = `${this.userId}:${sender}`;
+                        // After selecting Owner, the next plain message is treated as the password.
+                        if (pendingOwnerPasswords.has(ownerAuthKey) && !text.trim().startsWith('.')) {
+                            const configuredPassword = String(process.env.ADMIN_PASSWORD || '');
+                            if (configuredPassword && text.trim() === configuredPassword) {
+                                pendingOwnerPasswords.delete(ownerAuthKey);
+                                unlockedOwnerSessions.set(ownerAuthKey, Date.now());
+                                await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']);
+                            } else {
+                                await this.sock.sendMessage(from, { text: '❌ contraseña incorrecta' }, { quoted: msg });
+                            }
+                            return;
+                        }
+
                         // Process commands
                         if (text.toLowerCase().startsWith('.')) {
                             // Re-check authorization for commands
@@ -1299,19 +1316,20 @@ class BotSession {
                             const args = text.split(' ').slice(1);
                             const q = args.join(' ');
                             const commandName = cmd.slice(1).split(' ')[0];
-                            // Owner zone requires the private admin password even when the sender is recognized.
-                            // The password is read only from the environment and is never sent back or displayed.
+                            const requiresPremium = PREMIUM_COMMANDS.has(commandName) || OWNER_PASSWORD_COMMANDS.has(commandName);
                             if (OWNER_PASSWORD_COMMANDS.has(commandName)) {
-                                const configuredPassword = String(process.env.ADMIN_PASSWORD || '');
-                                const suppliedPassword = String(args[0] || '');
-                                if (!configuredPassword || suppliedPassword !== configuredPassword) {
-                                    await this.sock.sendMessage(from, { text: '❌ contraseña incorrecta' }, { quoted: msg });
+                                if (!isPremiumWhatsApp(sender)) {
+                                    await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Primero necesitas Premium activo para entrar a la zona Owner.\n🎟️ Usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
+                                    return;
+                                }
+                                if (!unlockedOwnerSessions.has(ownerAuthKey)) {
+                                    pendingOwnerPasswords.set(ownerAuthKey, Date.now());
+                                    await this.sock.sendMessage(from, { text: '🔐 Por favor, introduce la contraseña del administrador.' }, { quoted: msg });
                                     return;
                                 }
                             }
-                            const requiresPremium = PREMIUM_COMMANDS.has(commandName) || OWNER_PASSWORD_COMMANDS.has(commandName);
-                            if (requiresPremium && !isPremiumWhatsApp(sender)) {
-                                await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Esta zona requiere Premium activo.\n🎟️ Reclama tu token con *.reclamar <token>* para activarlo.' }, { quoted: msg });
+                            if (requiresPremium && !OWNER_PASSWORD_COMMANDS.has(commandName) && !isPremiumWhatsApp(sender)) {
+                                await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Este comando requiere acceso Premium.\n🎟️ Reclama tu token con *.reclamar <token>* para activarlo.' }, { quoted: msg });
                                 return;
                             }
                             if (isGroup && botData.adminOnlyGroups?.[from] && !isAdmin && !['menu', 'admin', 'adminmenu'].includes(commandName)) {
