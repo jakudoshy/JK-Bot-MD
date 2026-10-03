@@ -335,7 +335,7 @@ function normalizePremiumJid(value) {
         const [user, server] = withoutDevice.split('@');
         const digits = String(user || '').replace(/\D/g, '');
         if (!digits) return null;
-        return `${digits}@${server || 's.whatsapp.net'}`;
+        return `${digits}@${String(server || 's.whatsapp.net').toLowerCase()}`;
     }
     let number = withoutDevice.replace(/\D/g, '');
     // The admin panel may receive a local Cuban number without country code.
@@ -350,15 +350,18 @@ function premiumEntryActive(entry) {
 }
 
 function isPremiumWhatsApp(chatId) {
-    const normalized = normalizePremiumJid(chatId);
-    if (!normalized) return false;
-    const exact = botData.premiumUsers?.[normalized];
-    if (premiumEntryActive(exact)) return true;
-    // Match phone digits across device-qualified JIDs and legacy @lid/@s.whatsapp.net keys.
-    const digits = normalized.split('@')[0].replace(/\D/g, '');
+    const candidates = Array.isArray(chatId) ? chatId : [chatId];
+    const normalized = candidates.map(normalizePremiumJid).filter(Boolean);
+    const rawIds = candidates.map(value => String(value || '').trim().toLowerCase()).filter(Boolean);
+    if (!normalized.length && !rawIds.length) return false;
+    const digits = new Set(normalized.map(jid => jid.split('@')[0].replace(/\D/g, '')).filter(Boolean));
     return Object.entries(botData.premiumUsers || {}).some(([jid, entry]) => {
-        const storedDigits = String(jid).split('@')[0].replace(/\D/g, '');
-        return storedDigits === digits && premiumEntryActive(entry);
+        if (!premiumEntryActive(entry)) return false;
+        const stored = String(jid || '').toLowerCase();
+        const storedDigits = stored.split('@')[0].replace(/\D/g, '');
+        const linkedIds = Array.isArray(entry?.jids) ? entry.jids.map(id => String(id).toLowerCase()) : [];
+        return normalized.includes(stored) || rawIds.includes(stored) || linkedIds.some(id => rawIds.includes(id)) ||
+            (storedDigits && digits.has(storedDigits));
     });
 }
 
@@ -632,6 +635,11 @@ const DATA_TEMP = `${DATA_FILE}.tmp`;
 const PREMIUM_DATA_FILE = path.join(PERSISTENT_DIR, 'premium_data.json');
 const PREMIUM_DATA_TEMP = `${PREMIUM_DATA_FILE}.tmp`;
 const PREMIUM_DATA_BACKUP = `${PREMIUM_DATA_FILE}.bak`;
+const LEGACY_PREMIUM_FILES = [
+    path.join(__dirname, 'premium_data.json'),
+    path.join(LEGACY_RUNTIME_DIR, 'premium_data.json'),
+    path.join(LEGACY_DATA_DIR, 'premium_data.json')
+].filter(file => path.resolve(file) !== path.resolve(PREMIUM_DATA_FILE));
 fs.ensureDirSync(PERSISTENT_DIR);
 fs.ensureDirSync(AUTH_DIR);
 fs.ensureDirSync(UPLOADS_DIR);
@@ -700,14 +708,14 @@ function loadBotDataFromDisk() {
 loadBotDataFromDisk();
 
 function loadPremiumDataFromDisk() {
-    for (const candidate of [PREMIUM_DATA_FILE, PREMIUM_DATA_BACKUP]) {
+    for (const candidate of [PREMIUM_DATA_FILE, PREMIUM_DATA_BACKUP, ...LEGACY_PREMIUM_FILES]) {
         if (!fs.existsSync(candidate)) continue;
         try {
             const premium = fs.readJsonSync(candidate);
             if (premium && typeof premium === 'object') {
                 botData.premiumUsers = { ...(premium.premiumUsers || {}), ...(botData.premiumUsers || {}) };
                 botData.premiumTokens = { ...(premium.premiumTokens || {}), ...(botData.premiumTokens || {}) };
-                return;
+                // Do not stop at the first legacy file: merge all available stores so an update cannot discard users.
             }
         } catch (e) {
             console.warn(`[Persistence] No se pudo leer ${candidate}: ${e.message}`);
@@ -1420,13 +1428,13 @@ class BotSession {
                             const requiresPremium = PREMIUM_COMMANDS.has(commandName) || OWNER_PASSWORD_COMMANDS.has(commandName);
                             if (OWNER_PASSWORD_COMMANDS.has(commandName)) {
                                 if (!isOwner) {
-                                    await this.sock.sendMessage(from, { text: '🚫 *ACCESO DENEGADO*\n\n🔒 Primero necesitas Premium activo para entrar a la zona Owner.\n🎟️ Usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
+                                    await this.sock.sendMessage(from, { text: '🚫 *ACCESO DENEGADO*\n\n👑 Esta sección es exclusiva del número Owner autorizado.' }, { quoted: msg });
                                     return;
                                 }
                                 // The exact Owner number is already authenticated; never ask for a password.
                                 unlockedOwnerSessions.set(ownerAuthKey, Date.now());
                             }
-                            if (requiresPremium && !OWNER_PASSWORD_COMMANDS.has(commandName) && !isPremiumWhatsApp(sender)) {
+                            if (requiresPremium && !OWNER_PASSWORD_COMMANDS.has(commandName) && !isOwner && !isPremiumWhatsApp([sender, from])) {
                                 await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Este comando requiere acceso Premium.\n🎟️ Reclama tu token con *.reclamar <token>* para activarlo.' }, { quoted: msg });
                                 return;
                             }
@@ -1461,9 +1469,14 @@ class BotSession {
                                         case 'reclamar': {
                                             const tokenText = String(args.join('') || '').replace(/\s+/g, '').trim();
                                             const token = botData.premiumTokens[hashPremiumToken(tokenText)];
-                                            const claimJid = normalizePremiumJid(sender);
+                                            const claimCandidates = [sender, from].filter(Boolean);
+                                            const claimJid = normalizePremiumJid(sender) || normalizePremiumJid(from);
                                             if (!tokenText) {
                                                 await this.sock.sendMessage(from, { text: '🎟️ *ACTIVAR PREMIUM*\n\nEscribe *.reclamar <token>* para activar tu acceso.\n✨ El token te dará acceso durante el tiempo indicado.' }, { quoted: msg });
+                                                break;
+                                            }
+                                            if (!claimJid) {
+                                                await this.sock.sendMessage(from, { text: '❌ No pude identificar tu número de WhatsApp. Intenta de nuevo desde un chat privado.' }, { quoted: msg });
                                                 break;
                                             }
                                             if (!token || token.claimedBy) {
@@ -1474,11 +1487,17 @@ class BotSession {
                                                 await this.sock.sendMessage(from, { text: '⏳ *TOKEN EXPIRADO*\n\nEste token Premium ya no se puede activar.\n📩 Solicita uno nuevo al administrador.' }, { quoted: msg });
                                                 break;
                                             }
-                                            if (isPremiumWhatsApp(claimJid)) {
+                                            if (isPremiumWhatsApp(claimCandidates)) {
                                                 await this.sock.sendMessage(from, { text: '✅ *YA TIENES PREMIUM*\n\nEste número ya cuenta con acceso Premium activo.' }, { quoted: msg });
                                                 break;
                                             }
-                                            botData.premiumUsers[claimJid] = { grantedAt: new Date().toISOString(), expiresAt: token.expiresAt, source: 'token' };
+                                            botData.premiumUsers[claimJid] = {
+                                                grantedAt: new Date().toISOString(),
+                                                expiresAt: token.expiresAt,
+                                                source: 'token',
+                                                // Keep the original JIDs too: WhatsApp may expose a phone JID, device JID or @lid.
+                                                jids: [...new Set(claimCandidates.map(value => String(value).trim().toLowerCase()).filter(Boolean))]
+                                            };
                                             token.claimedBy = claimJid;
                                             token.claimedAt = new Date().toISOString();
                                             saveBotData();

@@ -44,10 +44,11 @@ OWNER_NUMBER=tu_numero_con_codigo_de_pais
 ADMIN_USERNAME=tu_usuario_admin
 ADMIN_PASSWORD=una_contrasena_larga_y_unica
 PORT=3000
-PERSISTENT_DATA_DIR=./bot
+# Usa una ruta absoluta en un volumen persistente; no la pongas dentro del repositorio.
+PERSISTENT_DATA_DIR=/data/bot
 ```
 
-No publiques `.env`, credenciales de WhatsApp, tokens de GitHub ni claves de cifrado. En Railway se recomienda montar un volumen persistente y configurar `PERSISTENT_DATA_DIR=/data/bot`.
+No publiques `.env`, credenciales de WhatsApp, tokens de GitHub ni claves de cifrado. Los tokens Premium se guardan solo en el servidor, en `premium_data.json` dentro de `PERSISTENT_DATA_DIR`; la web no los escribe en `localStorage` ni los conserva al recargar. En Railway se recomienda montar un volumen persistente y configurar `PERSISTENT_DATA_DIR=/data/bot`. Si actualizas o reemplazas el repositorio, conserva ese volumen.
 
 ## Panel web
 
