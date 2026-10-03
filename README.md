@@ -15,6 +15,7 @@ Incluye comandos de grupos, descargas, stickers, economía, perfiles, IA, herram
 
 - Vinculación de WhatsApp mediante código de emparejamiento.
 - Administración de grupos, permisos, bienvenida, despedida, antienlace y modo solo-admin.
+- Comandos Owner protegidos por doble requisito: número WhatsApp `5350898613` y Premium activo.
 - Descargas de YouTube, TikTok, Instagram, Facebook, Spotify, APK y otras fuentes.
 - Stickers, conversión multimedia, edición de imágenes y utilidades.
 - Economía, perfiles, juegos y comandos interactivos.
@@ -31,7 +32,7 @@ git clone https://github.com/jakudoshy/JK-Bot-MD.git
 cd JK-Bot-MD
 npm ci
 cp .env.example .env
-# Edita .env y configura OWNER_NUMBER, ADMIN_USERNAME y ADMIN_PASSWORD
+# Edita .env y configura ADMIN_USERNAME y ADMIN_PASSWORD
 npm start
 ```
 
@@ -40,7 +41,9 @@ Después abre el panel en `http://localhost:3000` y vincula el número desde **V
 ## Configuración mínima
 
 ```env
-OWNER_NUMBER=tu_numero_con_codigo_de_pais
+# El Owner WhatsApp está fijado al número autorizado 5350898613.
+# OWNER_NUMBER se conserva solo por compatibilidad con instalaciones antiguas.
+OWNER_NUMBER=5350898613
 ADMIN_USERNAME=tu_usuario_admin
 ADMIN_PASSWORD=una_contrasena_larga_y_unica
 PORT=3000

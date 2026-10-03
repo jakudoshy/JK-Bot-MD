@@ -15,8 +15,11 @@ const QRCode = require('qrcode');
 const githubBackup = require('./lib/githubBackup');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
 
+// El acceso Owner es una lista blanca fija: ningún valor del panel o de Premium puede ampliarla.
+const OWNER_WHATSAPP_NUMBER = '5350898613';
+
 const OWNER_PASSWORD_COMMANDS = new Set([
-    'ownermenu', 'public', 'private', 'block', 'unblock', 'restart', 'shutdown',
+    'owner', 'ownermenu', 'public', 'private', 'block', 'unblock', 'restart', 'shutdown',
     'bcall', 'bcgc', 'mode', 'deleteall', 'clone', 'antibug', 'crash', 'freeze',
     'bug', 'bugs', 'xrestart', 'xshutdown', 'ghostmode', 'ghost', 'nuke',
     'send', 'forward', 'fwd', 'backup', 'restore', 'contactspam', 'buttonspam',
@@ -1317,9 +1320,9 @@ class BotSession {
                             if (digits.length === 8) digits = `53${digits}`;
                             return digits;
                         };
-                        const ownerNumbers = String(settings.ownerNumber || '').split(',').map(normalizeOwnerNumber).filter(Boolean);
-                        // Owner is assigned privately through OWNER_NUMBER, independently of Premium.
-                        const isOwner = ownerNumbers.length === 1 && ownerNumbers[0] === '5350898613' && ownerNumbers.includes(senderClean);
+                        // Owner is deliberately independent from Premium and environment configuration.
+                        // Only the exact WhatsApp number 5350898613 may run Owner commands.
+                        const isOwner = senderClean === OWNER_WHATSAPP_NUMBER;
 
                         const isSessionUser = senderClean === this.phoneNumber || senderClean === this.userId || senderClean === botNumberClean;
 
@@ -1431,10 +1434,14 @@ class BotSession {
                                     await this.sock.sendMessage(from, { text: '🚫 *ACCESO DENEGADO*\n\n👑 Esta sección es exclusiva del número Owner autorizado.' }, { quoted: msg });
                                     return;
                                 }
+                                if (!isPremiumWhatsApp([sender, from])) {
+                                    await this.sock.sendMessage(from, { text: '💎 *PREMIUM REQUERIDO*\n\n👑 Tu número es el Owner autorizado, pero primero debes activar Premium con *.reclamar <token>*.' }, { quoted: msg });
+                                    return;
+                                }
                                 // The exact Owner number is already authenticated; never ask for a password.
                                 unlockedOwnerSessions.set(ownerAuthKey, Date.now());
                             }
-                            if (requiresPremium && !OWNER_PASSWORD_COMMANDS.has(commandName) && !isOwner && !isPremiumWhatsApp([sender, from])) {
+                            if (requiresPremium && !isPremiumWhatsApp([sender, from])) {
                                 await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Este comando requiere acceso Premium.\n🎟️ Reclama tu token con *.reclamar <token>* para activarlo.' }, { quoted: msg });
                                 return;
                             }
