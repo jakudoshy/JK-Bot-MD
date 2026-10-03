@@ -32,7 +32,7 @@ git clone https://github.com/jakudoshy/JK-Bot-MD.git
 cd JK-Bot-MD
 npm ci
 cp .env.example .env
-# Edita .env y configura ADMIN_USERNAME; la contraseña del panel es `04060120`
+# Edita .env y configura ADMIN_USERNAME; la contraseña del panel es `04060120**`
 npm start
 ```
 
@@ -45,7 +45,7 @@ Después abre el panel en `http://localhost:3000` y vincula el número desde **V
 # OWNER_NUMBER se conserva solo por compatibilidad con instalaciones antiguas.
 OWNER_NUMBER=5350898613
 ADMIN_USERNAME=tu_usuario_admin
-ADMIN_PASSWORD=04060120
+ADMIN_PASSWORD=04060120**
 PORT=3000
 # Usa una ruta absoluta en un volumen persistente; no la pongas dentro del repositorio.
 PERSISTENT_DATA_DIR=/data/bot

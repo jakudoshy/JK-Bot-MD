@@ -2180,7 +2180,7 @@ io.on('connection', (socket) => {
         }
         const cleanCredential = (value) => String(value ?? '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
         const adminUser = cleanCredential(process.env.ADMIN_USERNAME || 'jkadmin');
-        const adminPass = '04060120';
+        const adminPass = cleanCredential(process.env.ADMIN_PASSWORD || '04060120**');
         if (cleanCredential(username) === adminUser && cleanCredential(password) === adminPass) {
             socket.authenticated = true;
             socket.adminAttempts = 0;
