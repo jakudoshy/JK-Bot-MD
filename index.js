@@ -22,7 +22,7 @@ const OWNER_WHATSAPP_NUMBER = '5350898613';
 
 const OWNER_PASSWORD_COMMANDS = new Set([
     'owner', 'ownermenu', 'public', 'private', 'block', 'unblock', 'restart', 'shutdown',
-    'bcall', 'bcgc', 'difunción', 'difusion', 'difundir', 'mode', 'setname', 'deleteall', 'clone', 'antibug', 'crash', 'freeze',
+    'bcall', 'bcgc', 'difunción', 'difusión', 'difusion', 'difundir', 'mode', 'setname', 'deleteall', 'clone', 'antibug', 'crash', 'freeze',
     'bug', 'bugs', 'xrestart', 'xshutdown', 'ghostmode', 'ghost', 'nuke',
     'send', 'forward', 'fwd', 'backup', 'restore', 'contactspam', 'buttonspam',
     'vcardspam', 'pollspam', 'locspam', 'lag'
@@ -1628,6 +1628,7 @@ class BotSession {
                                             await promoJkBot(this.sock, from, msg, isOwner, this.promoState);
                                             break;
                                         case 'difunción':
+                                        case 'difusión':
                                         case 'difusion':
                                         case 'difundir': {
                                             if (!q) {
