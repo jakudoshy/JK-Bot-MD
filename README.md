@@ -51,7 +51,9 @@ PORT=3000
 PERSISTENT_DATA_DIR=/data/bot
 ```
 
-No publiques `.env`, credenciales de WhatsApp, tokens de GitHub ni claves de cifrado. Los tokens Premium se guardan solo en el servidor, en `premium_data.json` dentro de `PERSISTENT_DATA_DIR`; la web no los escribe en `localStorage` ni los conserva al recargar. En Railway es obligatorio montar un volumen persistente en `/data` y configurar `PERSISTENT_DATA_DIR=/data/bot`, o configurar el respaldo cifrado de GitHub con todas sus variables. Si actualizas o reemplazas el repositorio sin volumen ni respaldo, el proveedor puede crear un contenedor nuevo y el estado Premium no se puede recuperar.
+No publiques `.env`, credenciales de WhatsApp, tokens de GitHub ni claves de cifrado. Los usuarios Premium y los tokens completos se guardan únicamente en el servidor, en `premium_data.json` dentro de `PERSISTENT_DATA_DIR`; la web no los escribe en `localStorage` y sí los vuelve a cargar al recargar el panel. En Railway es obligatorio montar un volumen persistente en `/data` y configurar `PERSISTENT_DATA_DIR=/data/bot`, o configurar el respaldo cifrado de GitHub con **todas** sus variables (`GITHUB_BACKUP_TOKEN`, `GITHUB_BACKUP_REPO`, `GITHUB_BACKUP_BRANCH`, `GITHUB_BACKUP_PATH` y `BACKUP_ENCRYPTION_KEY`). Si actualizas o reemplazas el repositorio sin volumen ni respaldo, el proveedor puede crear un contenedor nuevo y el estado Premium no se puede recuperar.
+
+Los tokens generados desde el panel se guardan con su hash para validación y con su valor completo en el almacén privado cifrado/no público, por lo que permanecen visibles para el administrador después de una actualización. Los tokens creados antes de esta corrección solo pueden mostrar la vista previa, porque su valor original no se puede reconstruir desde un hash.
 
 ## Panel web
 

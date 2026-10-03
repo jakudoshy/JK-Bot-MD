@@ -999,7 +999,8 @@ function renderPremiumData(data={}){
   }).join('') : 'Sin usuarios agregados.');
   premiumTokensList.innerHTML='<strong>Tokens generados</strong>' + (tokens.length ? tokens.map(token=>{
     const state = token.claimed ? '✅ reclamado' : '🟡 disponible';
-    return `<div class="premium-list-row"><span>${escapeAdminHtml(token.preview)} · ${state}</span><button class="premium-remove" data-premium-token="${escapeAdminHtml(token.id)}" type="button">Eliminar</button></div>`;
+    const value = token.value || token.preview || token.id;
+    return `<div class="premium-list-row"><span title="Token Premium persistido"><code>${escapeAdminHtml(value)}</code> · ${state}</span><button class="premium-remove" data-premium-token="${escapeAdminHtml(token.id)}" type="button">Eliminar</button></div>`;
   }).join('') : 'Sin tokens generados.');
 }
 premiumTokenForm?.addEventListener('submit',(event)=>{

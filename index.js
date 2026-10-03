@@ -377,6 +377,9 @@ function createPremiumToken(days = 30) {
     const token = `JKBOT-${crypto.randomBytes(15).toString('hex').toUpperCase()}`;
     const now = Date.now();
     botData.premiumTokens[hashPremiumToken(token)] = {
+        // El hash se sigue usando para validar el token. El valor completo se
+        // conserva en el almacén privado para poder verlo tras recargar o actualizar.
+        value: token,
         preview: `${token.slice(0, 9)}…`,
         createdAt: new Date(now).toISOString(),
         expiresAt: new Date(now + safeDays * 86400000).toISOString(),
@@ -395,6 +398,7 @@ function premiumSnapshot() {
     }));
     const tokens = Object.entries(botData.premiumTokens || {}).map(([id, token]) => ({
         id,
+        value: token.value || null,
         preview: token.preview,
         createdAt: token.createdAt,
         expiresAt: token.expiresAt,
