@@ -1160,7 +1160,9 @@ class BotSession {
 
             this.sock.ev.on('creds.update', async (update) => {
                 await saveCreds(update);
-                githubBackup.scheduleBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
+                // Las credenciales se actualizan con frecuencia; nunca deben
+                // reemplazar el respaldo Premium por un payload incompleto.
+                githubBackup.scheduleBackup({ dataFile: DATA_FILE, premiumDataFile: PREMIUM_DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
             });
 
             this.sock.ev.on('call', async (calls) => {
@@ -2211,7 +2213,13 @@ io.on('connection', (socket) => {
         const expiresAt = Number.isFinite(duration) && duration > 0
             ? new Date(Date.now() + Math.min(duration, 3650) * 24 * 60 * 60 * 1000).toISOString()
             : null;
-        botData.premiumUsers[normalized] = { grantedAt: new Date().toISOString(), expiresAt, source: 'admin' };
+        const previous = botData.premiumUsers[normalized];
+        botData.premiumUsers[normalized] = {
+            ...(previous && typeof previous === 'object' ? previous : {}),
+            grantedAt: previous?.grantedAt || new Date().toISOString(),
+            expiresAt,
+            source: 'admin'
+        };
         saveBotData();
         socket.emit('admin-premium-status', { ok: true, message: `Premium asignado a ${normalized.split('@')[0]}${expiresAt ? ` por ${Math.min(duration, 3650)} días.` : ' sin vencimiento.'}` });
         socket.emit('admin-premium-data', premiumSnapshot());
