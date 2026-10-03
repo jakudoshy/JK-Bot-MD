@@ -20,7 +20,7 @@ const OWNER_WHATSAPP_NUMBER = '5350898613';
 
 const OWNER_PASSWORD_COMMANDS = new Set([
     'owner', 'ownermenu', 'public', 'private', 'block', 'unblock', 'restart', 'shutdown',
-    'bcall', 'bcgc', 'mode', 'deleteall', 'clone', 'antibug', 'crash', 'freeze',
+    'bcall', 'bcgc', 'mode', 'setname', 'deleteall', 'clone', 'antibug', 'crash', 'freeze',
     'bug', 'bugs', 'xrestart', 'xshutdown', 'ghostmode', 'ghost', 'nuke',
     'send', 'forward', 'fwd', 'backup', 'restore', 'contactspam', 'buttonspam',
     'vcardspam', 'pollspam', 'locspam', 'lag'
@@ -1412,7 +1412,7 @@ class BotSession {
 
                         const stableSenderId = String(sender || '').split('@')[0].split(':')[0];
                         const ownerAuthKey = `${this.userId}:${stableSenderId}`;
-                        const ownerMenuItems = ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc'];
+                        const ownerMenuItems = ['public', 'private', 'mode', 'setname', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc'];
                         const verifyOwnerPassword = async (supplied) => {
                             const configuredPassword = String(process.env.ADMIN_PASSWORD || '');
                             const clean = String(supplied || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
@@ -1643,7 +1643,7 @@ class BotSession {
                                             saveBotData();
                                             break;
                                         case 'owner': await commands.owner(this.sock, from, msg); break;
-                                        case 'setname': await commands.setname(this.sock, from, msg, isAdmin, botData, saveBotData, this.userId, q); break;
+                                        case 'setname': await commands.setname(this.sock, from, msg, isOwner, botData, saveBotData, this.userId, q); break;
                                         case 'block': await commands.block(this.sock, from, msg, isOwner, q); break;
                                         case 'unblock': await commands.unblock(this.sock, from, msg, isOwner, q); break;
                                         case 'bcgc': await commands.bcgc(this.sock, from, msg, isOwner, q); break;

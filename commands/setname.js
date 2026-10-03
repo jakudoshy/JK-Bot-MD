@@ -1,5 +1,5 @@
-async function setnameCommand(sock, from, msg, isAdmin, botData, saveBotData, userId, q) {
-    if (!isAdmin) return await sock.sendMessage(from, { text: "❌ Only owner can use this command." }, { quoted: msg });
+async function setnameCommand(sock, from, msg, isOwner, botData, saveBotData, userId, q) {
+    if (!isOwner) return await sock.sendMessage(from, { text: "❌ Solo el número Owner autorizado puede usar este comando." }, { quoted: msg });
     if (!q) return await sock.sendMessage(from, { text: "❌ Please provide a name." }, { quoted: msg });
     
     botData.userNames[userId] = q;

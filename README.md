@@ -15,7 +15,7 @@ Incluye comandos de grupos, descargas, stickers, economía, perfiles, IA, herram
 
 - Vinculación de WhatsApp mediante código de emparejamiento.
 - Administración de grupos, permisos, bienvenida, despedida, antienlace y modo solo-admin.
-- Comandos Owner protegidos por doble requisito: número WhatsApp `5350898613` y Premium activo.
+- Menús y comandos Owner disponibles únicamente para el número WhatsApp `+5350898613`; las funciones Owner también requieren Premium activo.
 - Descargas de YouTube, TikTok, Instagram, Facebook, Spotify, APK y otras fuentes.
 - Stickers, conversión multimedia, edición de imágenes y utilidades.
 - Economía, perfiles, juegos y comandos interactivos.
