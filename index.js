@@ -1847,7 +1847,7 @@ class BotSession {
                                         case 'mycmd': case 'mycommands': await commands.mycmd(this.sock, from, msg); break;
                                         default:
                                             await this.sock.sendMessage(from, {
-                                                text: `❓ *COMANDO NO ENCONTRADO*\n\nNo reconozco *.${commandName}*.\n📚 Usa *.menu* para abrir el menú o *.allmenu* para ver todos los comandos.`
+                                                text: `❓ *COMANDO NO ENCONTRADO*\n\nNo reconozco *.${commandName}* ni */${commandName}*.\n📚 Usa *.menu* o */menu* para abrir el menú; también puedes usar *.allmenu* o */allmenu* para ver todos los comandos.`
                                             }, { quoted: msg });
                                             break;
                                     }
@@ -1855,7 +1855,7 @@ class BotSession {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
                                     try {
                                         await this.sock.sendMessage(from, {
-                                            text: `❌ No pude completar .${commandName}. ${e.message || 'Error interno.'}`
+                                            text: `❌ No pude completar .${commandName} / ${commandName}. ${e.message || 'Error interno.'}`
                                         }, { quoted: msg });
                                     } catch (replyError) {
                                         this.sendLog(`Command reply error (${commandName}): ` + replyError.message, 'error');

@@ -89,7 +89,7 @@ La función `.videoia` actual crea un corto animado a partir de una imagen gener
 
 ### Prefijos y grupos
 
-Todos los comandos principales pueden escribirse con punto o con barra, por ejemplo:
+Todos los comandos de WhatsApp del bot pueden escribirse con punto o con barra; no hay una categoría especial limitada a un solo prefijo. Por ejemplo:
 
 ```text
 .menú   o   /menú
