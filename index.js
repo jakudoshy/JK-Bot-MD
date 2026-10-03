@@ -1260,7 +1260,6 @@ class BotSession {
                         // THE FIX: Bot now works in ALL chats - personal, group, self
 
                         const botNumber = jidNormalizedUser(this.sock.user.id);
-                        const botNumberClean = botNumber.split('@')[0];
 
                         const sender = msg.key.participant || from;
                         const senderClean = sender.split('@')[0].split(':')[0].replace(/\D/g, '');
