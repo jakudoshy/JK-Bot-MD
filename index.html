@@ -649,11 +649,6 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
           <div class="admin-card-head"><div><h3>Acceso Premium</h3><p>Usuarios y tokens de acceso</p></div><span class="admin-section-tag">CONTROL</span></div>
           <div class="premium-admin">
         <div class="premium-grid">
-          <form id="premiumUserForm" class="premium-card">
-            <label for="premiumUserNumber">Agregar usuario por número</label>
-            <input id="premiumUserNumber" type="text" inputmode="tel" placeholder="Ej.: 18090000000" required><select id="premiumUserDays"><option value="7">7 días</option><option value="30" selected>30 días</option><option value="90">90 días</option><option value="365">365 días</option></select>
-            <button class="btn" type="submit"><i class="fas fa-user-plus"></i> Agregar Premium</button>
-          </form>
           <form id="premiumTokenForm" class="premium-card">
             <label for="premiumTokenDays">Generar token de reclamación</label>
             <select id="premiumTokenDays">
@@ -756,9 +751,6 @@ const adminPassword = document.getElementById('adminPassword');
 const adminStatus = document.getElementById('adminStatus');
 const adminConsoleOutput = document.getElementById('adminConsoleOutput');
 const adminMessageCount = document.getElementById('adminMessageCount');
-const premiumUserForm = document.getElementById('premiumUserForm');
-const premiumUserNumber = document.getElementById('premiumUserNumber');
-const premiumUserDays = document.getElementById('premiumUserDays');
 const adminUsersList = document.getElementById('adminUsersList');
 const broadcastText = document.getElementById('broadcastText');
 const broadcastBtn = document.getElementById('broadcastBtn');
@@ -907,10 +899,6 @@ function renderPremiumData(data={}){
     return `<div class="premium-list-row"><span>${token.preview} · ${state}</span><button class="premium-remove" data-premium-token="${token.id}" type="button">Eliminar</button></div>`;
   }).join('') : 'Sin tokens generados.');
 }
-premiumUserForm?.addEventListener('submit',(event)=>{
-  event.preventDefault();
-  socket.emit('admin-premium-add',{jid:premiumUserNumber.value.trim(),days:Number(premiumUserDays?.value||30)});
-});
 premiumTokenForm?.addEventListener('submit',(event)=>{
   event.preventDefault();
   premiumTokenResult.classList.remove('show');
@@ -928,7 +916,6 @@ socket.on('admin-premium-token',(result={})=>{
 socket.on('admin-premium-status',(result={})=>{
   premiumStatus.textContent=result.message || '';
   premiumStatus.style.color=result.ok ? 'var(--green)' : 'var(--danger)';
-  if(result.ok) premiumUserNumber.value='';
 });
 socket.on('admin-premium-data',renderPremiumData);
 premiumUsersList?.addEventListener('click',(event)=>{
