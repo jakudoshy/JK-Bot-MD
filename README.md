@@ -24,6 +24,7 @@ Incluye comandos de grupos, descargas, stickers, economía, perfiles, IA, herram
 - Respaldo cifrado AES-256-GCM opcional en GitHub.
 - Persistencia Premium en PostgreSQL/Supabase con migración automática desde los JSON existentes.
 - IA conversacional con contexto temporal, preguntas de aclaración, generación de imágenes y cortos MP4 de 5 segundos.
+- Comandos compatibles con los prefijos `.` y `/`.
 
 ## Instalación
 
@@ -85,6 +86,18 @@ Con `OPENAI_API_KEY` configurada, el bot incluye:
 ```
 
 La función `.videoia` actual crea un corto animado a partir de una imagen generada y necesita `ffmpeg` en el servidor. No llama directamente a Meta AI: Meta no ofrece una API pública universal para que cualquier bot de WhatsApp genere videos. Para video generativo real habría que conectar un proveedor de video que entregue una API y sus credenciales, sin exponerlas al usuario.
+
+### Prefijos y grupos
+
+Todos los comandos principales pueden escribirse con punto o con barra, por ejemplo:
+
+```text
+.menú   o   /menú
+.menu   o   /menu
+.ban    o   /ban
+```
+
+`ban` y `kick` son equivalentes. En un grupo, el administrador debe responder al mensaje de la persona o mencionarla. El bot también debe ser administrador para poder expulsarla.
 
 Los tokens generados desde el panel se guardan con su hash para validación y con su valor completo en el almacén privado cifrado/no público, por lo que permanecen visibles para el administrador después de una actualización. Los tokens creados antes de esta corrección solo pueden mostrar la vista previa, porque su valor original no se puede reconstruir desde un hash.
 

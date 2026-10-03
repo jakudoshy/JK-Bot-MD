@@ -59,6 +59,7 @@ const commands = {
 
     // Group Management
     kick: require('./commands/kick'),
+    ban: require('./commands/kick'),
     add: require('./commands/add'),
     promote: require('./commands/promote'),
     demote: require('./commands/demote'),
@@ -1351,7 +1352,7 @@ class BotSession {
                         }
 
                         // AI auto-reply
-                        if (this.aiEnabled && !isMe && !isGroup && text && !text.startsWith('.')) {
+                        if (this.aiEnabled && !isMe && !isGroup && text && !/^[./]/.test(text.trim())) {
                             try {
                                 const aiResponse = await this.getAIResponse(from, text);
                                 await this.sock.sendMessage(from, { text: aiResponse }, { quoted: msg });
@@ -1474,7 +1475,7 @@ class BotSession {
                             return true;
                         };
                         // Owner access is bound exclusively to 5350898613; no password prompt is shown.
-                        if (/^\.pss(?:\s|$)/i.test(text.trim())) {
+                        if (/^[./]pss(?:\s|$)/i.test(text.trim())) {
                             if (!isOwner) {
                                 await this.sock.sendMessage(from, { text: '🚫 *ACCESO DENEGADO*\n\n👑 La zona Owner solo está disponible para el número autorizado.' }, { quoted: msg });
                             } else {
@@ -1483,13 +1484,13 @@ class BotSession {
                             return;
                         }
                         // Keep plain-text password input working as a fallback.
-                        if (pendingOwnerPasswords.has(ownerAuthKey) && !text.trim().startsWith('.')) {
+                        if (pendingOwnerPasswords.has(ownerAuthKey) && !/^[./]/.test(text.trim())) {
                             await verifyOwnerPassword(text);
                             return;
                         }
 
                         // Process commands
-                        if (text.toLowerCase().startsWith('.')) {
+                        if (/^[./]/.test(text.trim())) {
                             // Re-check authorization for commands
                             if (!this.isPublic && !isAuthorized) return;
                             const cmd = text.toLowerCase();
@@ -1587,8 +1588,8 @@ class BotSession {
                                             await sendCategoryMenu(this.sock, from, msg, '✨ TODOS LOS COMANDOS', ['menu', ...Object.keys(commands).filter(name => name !== 'utils')]);
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ownerMenuItems); break;
-                                        case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 GROUP MENU', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
-                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'grouplink', 'revoke', 'add', 'kick', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
+                                        case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 Control de grupos', ['kick', 'ban', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
+                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ Seguridad', ['open', 'close', 'grouplink', 'revoke', 'add', 'kick', 'ban', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'aiclear', 'imagen', 'videoia', 'gali']); break;
@@ -1648,7 +1649,7 @@ class BotSession {
                                         case 'playstore': case 'ps': case 'tienda': await commands.playstore(this.sock, from, msg, q); break;
 
                                         // ===== GROUP MANAGEMENT =====
-                                        case 'kick': await commands.kick(this.sock, from, msg, isAdmin); break;
+                                        case 'kick': case 'ban': await commands.kick(this.sock, from, msg, isAdmin); break;
                                         case 'add': await commands.add(this.sock, from, msg, isAdmin, q); break;
                                         case 'promote': await commands.promote(this.sock, from, msg, isAdmin); break;
                                         case 'demote': await commands.demote(this.sock, from, msg, isAdmin); break;
@@ -2121,14 +2122,14 @@ const descriptions = {
         sticker: 'convierte una imagen o vídeo en sticker', song: 'descarga audio', video: 'descarga vídeo', youtube: 'busca vídeos', tiktok: 'descarga TikTok',
         meme: 'crea o busca memes', joke: 'cuenta un chiste', quote: 'muestra una frase', ai: 'responde con inteligencia artificial', chatbot: 'conversa con el bot',
         profile: 'muestra tu perfil', pfp: 'muestra una foto de perfil', groupinfo: 'muestra la información del grupo',
-        grouplink: 'enlace del grupo', tagall: 'menciones organizadas', hidetag: 'aviso silencioso', profile: 'tarjeta de perfil', status: 'estado del sistema'
+        grouplink: 'enlace del grupo', ban: 'expulsa a un usuario del grupo', kick: 'expulsa a un usuario del grupo', tagall: 'menciones organizadas', hidetag: 'aviso silencioso', profile: 'tarjeta de perfil', status: 'estado del sistema'
     };
     const commandIcons = {
         sticker: '🏷️', tempmail: '📩', fakeinfo: '🪪', ai: '🤖', chatbot: '💬', translate: '🌐',
         song: '🎵', video: '🎬', youtube: '▶️', tiktok: '🎵', spotify: '🎧', download: '📥',
         weather: '🌤️', github: '🐙', qr: '🔳', shorturl: '🔗', calc: '🧮', meme: '😂',
         joke: '😄', quote: '💭', profile: '👤', pfp: '🖼️', groupinfo: '👥', grouplink: '🔗',
-        tagall: '📣', hidetag: '📢', welcome: '👋', promote: '⬆️', demote: '⬇️', poll: '📊',
+        tagall: '📣', hidetag: '📢', ban: '🚫', kick: '🚫', welcome: '👋', promote: '⬆️', demote: '⬇️', poll: '📊',
         ping: '🏓', status: '📡', default: '🧰'
     };
     const lines = [
@@ -2139,7 +2140,7 @@ const descriptions = {
         '',
         '💡 Elige un comando para comenzar.'
     ];
-    await sendSubmenuWithChannel(sock, from, smallCaps(lines.join('\n')), msg);
+    await sendSubmenuWithChannel(sock, from, lines.join('\n'), msg);
 }
 
 async function sendSubmenuWithChannel(sock, jid, text, quoted) {
@@ -2186,6 +2187,7 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
     } catch (error) {
         console.error('Submenu interactive message failed:', error.message);
         await sock.sendMessage(jid, {
+            __jkRaw: true,
             text: `${text}\n\n📢 Canal oficial: ${settings.whatsappChannel}`
         }, { quoted });
     }
