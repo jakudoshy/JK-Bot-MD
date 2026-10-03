@@ -65,6 +65,7 @@ La interfaz usa un diseño propio rojo/hacker con:
 - Difusión y promoción disponibles para el administrador autenticado.
 
 > Nota de mantenimiento: los datos persistentes del bot se conservan fuera del código fuente.
+> Las actualizaciones del código no deben reemplazar el almacenamiento persistente.
 
 ## Uso responsable
 
