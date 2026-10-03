@@ -20,8 +20,8 @@
 <meta property="og:image" content="__JK_OG_IMAGE__">
 <meta property="og:image:secure_url" content="__JK_OG_IMAGE__">
 <meta property="og:image:type" content="image/jpeg">
-<meta property="og:image:width" content="1584">
-<meta property="og:image:height" content="672">
+<meta property="og:image:width" content="1616">
+<meta property="og:image:height" content="1584">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="ᴊᴋ ʙᴏᴛ — ᴡʜᴀᴛѕᴀᴘᴘ">
 <meta name="twitter:description" content="Novedades, actualizaciones y herramientas para tu WhatsApp.">
@@ -496,6 +496,72 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
 .flow-card{display:flex;flex-direction:column;justify-content:space-between}.flow-list{position:relative;display:grid;gap:10px;margin-top:14px}.flow-step{display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:9px;padding:10px;border:2px solid rgba(255,18,56,.27);border-radius:13px;background:rgba(255,0,31,.055)}.flow-icon{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:#ff1238;color:#140006;box-shadow:0 0 12px rgba(255,0,31,.6)}.flow-step strong{display:block;color:#fff;font-size:.7rem}.flow-step small{display:block;color:#bd858e;font-size:.59rem;margin-top:2px}.flow-state{color:#ff6277;font-size:.56rem;font-weight:900;text-transform:uppercase}.telemetry-footer{position:relative;margin-top:12px;color:#bd858e;font-size:.6rem;line-height:1.5}.telemetry-footer strong{color:#ff4562}
 @media(max-width:760px){.bot-telemetry{grid-template-columns:1fr;width:calc(100% - 20px)}.telemetry-card{border-radius:18px}.telemetry-metric b{font-size:.86rem}}
 </style>
+<style id="jk-square-neon-finish">
+  /* Acabado visual solicitado: rojo intenso, bordes gruesos y banner cuadrado. */
+  :root{
+    --green:#ff163f;
+    --green-dim:#e0002f;
+    --green-glass:rgba(255,0,40,.16);
+    --border:rgba(255,28,65,.9);
+    --neon-red:#ff1238;
+    --neon-red-soft:rgba(255,0,38,.42);
+  }
+  body{
+    background:
+      radial-gradient(circle at 50% -8%,rgba(255,0,38,.3),transparent 40%),
+      radial-gradient(circle at 8% 55%,rgba(160,0,25,.14),transparent 30%),
+      linear-gradient(135deg,#010001 0%,#100006 52%,#020001 100%)!important;
+  }
+  nav,.public-bots-panel,.stat-card,section.panel,.hero-banner,.telemetry-card,
+  .modal-content,.admin-card,.admin-head,#adminLoginBox,.feature-item,.official-card,
+  .review-card,.step-card,.quick-item,.premium-card,.channel-item,.banner-nav a,
+  .menu-drawer,.code-box,.input-group input,.premium-card select,.premium-card input,
+  .admin-broadcast-input,.console-output,.premium-list,.faq-list details,
+  .comments-empty,.comment-card,.instructions{
+    border-width:3px!important;
+    border-color:rgba(255,18,56,.88)!important;
+    box-shadow:0 0 18px rgba(255,0,38,.18),inset 0 0 18px rgba(255,0,38,.045)!important;
+  }
+  nav{border-bottom-width:3px!important;box-shadow:0 6px 28px rgba(255,0,38,.2)!important}
+  footer{border-top:3px solid rgba(255,18,56,.88)!important;box-shadow:0 -8px 26px rgba(255,0,38,.14)}
+  .hero-banner{
+    width:min(760px,calc(100% - 28px));
+    aspect-ratio:1/1;
+    border-radius:28px;
+    padding:0;
+    background:#080002!important;
+    box-shadow:0 0 24px rgba(255,0,38,.55),0 24px 90px rgba(255,0,38,.28)!important;
+  }
+  .hero-banner img{
+    width:100%;
+    height:100%;
+    aspect-ratio:1/1;
+    max-height:none;
+    object-fit:cover;
+    object-position:center;
+    border-radius:24px;
+    filter:contrast(1.1) saturate(1.16) brightness(1.03);
+  }
+  .hero-banner:after{background:linear-gradient(180deg,rgba(255,255,255,.04),transparent 35%,rgba(0,0,0,.3))!important}
+  .banner-nav a,.btn{border-width:3px!important;border-color:#ff1238!important}
+  .btn{background:linear-gradient(135deg,#ff163f 0%,#a50022 100%)!important;color:#fff!important;text-shadow:0 1px 5px #42000d;box-shadow:0 0 20px rgba(255,0,38,.48)!important}
+  .btn:hover{background:linear-gradient(135deg,#ff5270 0%,#e0002f 100%)!important;box-shadow:0 0 38px rgba(255,0,38,.82)!important}
+  .brand .mark,.menu-toggle{border-width:3px!important;border-color:#ff1238!important;box-shadow:0 0 22px rgba(255,0,38,.72)!important}
+  .brand .mark{background:linear-gradient(145deg,#ff163f,#760015 78%)!important}
+  .eyebrow,.panel h2,.stat-value,.telemetry-title,.admin-kicker,.admin-section-tag,
+  .premium-admin h3,.banner-nav a i,.channel-join,.feature-item i,.official-card i{color:#ff4562!important}
+  .pulse,.telemetry-dot,.flow-icon{background:#ff1238!important;box-shadow:0 0 14px #ff1238!important}
+  .instructions{border-left-width:5px!important;background:rgba(255,0,38,.08)!important}
+  .code-box{border-style:solid!important;color:#fff!important;text-shadow:0 0 16px #ff4562!important;box-shadow:0 0 32px rgba(255,0,38,.62)!important}
+  .input-group input:focus,.comment-field input:focus,.comment-field textarea:focus,
+  .admin-broadcast-input:focus{border-color:#ff6a80!important;box-shadow:0 0 0 4px rgba(255,0,38,.2),0 0 24px rgba(255,0,38,.42)!important}
+  .telemetry-chart,.telemetry-metric,.flow-step{border-width:2px!important;border-color:rgba(255,18,56,.68)!important}
+  @media(max-width:768px){
+    .hero-banner{width:calc(100% - 20px);border-radius:22px}
+    .hero-banner img{border-radius:18px}
+  }
+</style>
+
 </head>
 <body>
 <div id="jkBoot" class="jk-boot" role="status" aria-label="Iniciando JK BOT"><div class="jk-boot-inner"><div class="jk-boot-top"><strong>ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</strong></div><div id="jkBootLog" class="jk-boot-log"></div><div class="jk-boot-bar"><i id="jkBootBar"></i></div><div class="jk-boot-meta"><span id="jkBootStatus">ɪɴɪᴄɪᴀɴᴅᴏ ѕɪѕᴛᴇᴍᴀ...</span></div></div></div>
