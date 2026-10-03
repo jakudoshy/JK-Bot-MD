@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const QRCode = require('qrcode');
 const githubBackup = require('./lib/githubBackup');
 const postgresPremiumStore = require('./lib/postgresPremiumStore');
+const aiMedia = require('./lib/aiMedia');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
 
 // El acceso Owner es una lista blanca fija: ningún valor del panel o de Premium puede ampliarla.
@@ -117,6 +118,9 @@ const commands = {
 
     // AI
     ai: require('./commands/ai'),
+    imagine: require('./commands/imagine'),
+    aivideo: require('./commands/aivideo'),
+    aiclear: require('./commands/aiclear'),
 
     // Fun
     joke: require('./commands/joke'),
@@ -964,7 +968,9 @@ class BotSession {
         this.userId = userId;
         this.sock = null;
         this.isConnected = false;
-        this.aiEnabled = false;
+        this.aiEnabled = Boolean(botData.statusSettings[userId]?.aiEnabled);
+        this.aiHistory = new Map();
+        this.aiLastRequestAt = new Map();
         this.autoReact = botData.statusSettings[userId]?.autoReact || false;
         this.isPublic = botData.statusSettings[userId]?.isPublic !== undefined ? botData.statusSettings[userId].isPublic : true;
         this.authPath = path.join(AUTH_DIR, userId);
@@ -1011,10 +1017,17 @@ class BotSession {
             return '❌ La IA no está configurada todavía. Añade OPENAI_API_KEY en las variables de Railway y reinicia el servicio.';
         }
         try {
+            const key = String(userJid || 'global');
+            const now = Date.now();
+            const lastRequest = this.aiLastRequestAt.get(key) || 0;
+            if (now - lastRequest < 1200) return '⏳ Espera un momento antes de enviar otra pregunta.';
+            this.aiLastRequestAt.set(key, now);
+            const history = this.aiHistory.get(key) || [];
             const completion = await openai.chat.completions.create({
                 model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
                 messages: [
-                    { role: 'system', content: `${systemPrompt} Responde siempre en español, de forma clara, breve y útil. Eres el asistente de ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ.` },
+                    { role: 'system', content: `${systemPrompt} Responde siempre en español, de forma clara, amable y útil. Si la pregunta está incompleta, haz una pregunta concreta para aclararla. Si puedes ayudar con pasos, entrégalos ordenados. No inventes datos: indica cuando no estés seguro. Eres el asistente de ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ.` },
+                    ...history,
                     { role: 'user', content: prompt }
                 ],
                 temperature: 0.7,
@@ -1024,7 +1037,11 @@ class BotSession {
             const answer = Array.isArray(content)
                 ? content.map(part => typeof part === 'string' ? part : part?.text || '').join('').trim()
                 : String(content || '').trim();
-            if (answer) return answer;
+            if (answer) {
+                const nextHistory = [...history, { role: 'user', content: prompt }, { role: 'assistant', content: answer }].slice(-12);
+                this.aiHistory.set(key, nextHistory);
+                return answer;
+            }
             throw new Error('La API no devolvió texto.');
         } catch (error) {
             const status = error.status || error.response?.status;
@@ -1034,6 +1051,26 @@ class BotSession {
             if (error.code === 'ETIMEDOUT' || error.name === 'TimeoutError') return '⏳ La IA tardó demasiado en responder. Inténtalo otra vez.';
             return `❌ La IA no pudo responder ahora${status ? ` (HTTP ${status})` : ''}.`;
         }
+    }
+
+    clearAIHistory(userJid) {
+        this.aiHistory.delete(String(userJid || 'global'));
+    }
+
+    setAIEnabled(enabled) {
+        this.aiEnabled = Boolean(enabled);
+        if (!botData.statusSettings[this.userId]) botData.statusSettings[this.userId] = {};
+        botData.statusSettings[this.userId].aiEnabled = this.aiEnabled;
+        saveBotData();
+    }
+
+    async generateAIImage(prompt) {
+        return aiMedia.generateImage(openai, prompt);
+    }
+
+    async generateAIShortVideo(prompt) {
+        const image = await this.generateAIImage(prompt);
+        return aiMedia.imageToShortVideo(image);
     }
 
     startActiveCheck() {
@@ -1554,7 +1591,7 @@ class BotSession {
                                         case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'grouplink', 'revoke', 'add', 'kick', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
-                                        case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
+                                        case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'aiclear', 'imagen', 'videoia', 'gali']); break;
                                         case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
                                         case 'subbotmenu': case 'subbots': await sendSubmenuWithChannel(this.sock, from, '🤖 *VINCULACIÓN DE SUBBOTS*\n\n🔐 *.code número*\nGenera un código para vincular otro número como subbot.\n\n📲 *.qr*\nGenera un QR temporal para vincular otro número como subbot.\n\n🔒 Usa estos comandos en un chat privado.', msg); break;
                                         case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ MENÚ DE HERRAMIENTAS', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
@@ -1678,6 +1715,9 @@ class BotSession {
                                         // ===== AI =====
                                         case 'ai': await commands.ai(this.sock, from, msg, isAdmin, this, args); break;
                                         case 'chatbot': await commands.chatbot(this.sock, from, msg, this, args); break;
+                                        case 'imagen': case 'image': case 'imagine': await commands.imagine(this.sock, from, msg, this, args); break;
+                                        case 'videoia': case 'aivideo': await commands.aivideo(this.sock, from, msg, this, args); break;
+                                        case 'aiclear': case 'clearai': await commands.aiclear(this.sock, from, msg, this); break;
                                         case 'gali': await commands.gali(this.sock, from, msg, this, args); break;
 
                                         // ===== FUN =====

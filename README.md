@@ -23,6 +23,7 @@ Incluye comandos de grupos, descargas, stickers, economía, perfiles, IA, herram
 - Panel web con estadísticas, bots conectados, Premium, difusión y promoción.
 - Respaldo cifrado AES-256-GCM opcional en GitHub.
 - Persistencia Premium en PostgreSQL/Supabase con migración automática desde los JSON existentes.
+- IA conversacional con contexto temporal, preguntas de aclaración, generación de imágenes y cortos MP4 de 5 segundos.
 
 ## Instalación
 
@@ -69,6 +70,21 @@ La aplicación crea automáticamente `jkbot_premium_users` y `jkbot_premium_toke
 También puedes ejecutar manualmente [`supabase/schema.sql`](supabase/schema.sql) desde el SQL Editor de Supabase. Usa la conexión privada/directa de PostgreSQL únicamente en el servidor; no pongas `SUPABASE_DB_URL`, la contraseña de la base de datos ni una service-role key en `index.html` o en el navegador.
 
 Supabase guarda el estado Premium, pero las credenciales de sesión de WhatsApp de Baileys y los archivos subidos siguen necesitando un volumen persistente (`PERSISTENT_DATA_DIR`) o un respaldo de archivos. La actualización del código no debe borrar ese volumen.
+
+### Comandos de IA
+
+Con `OPENAI_API_KEY` configurada, el bot incluye:
+
+```text
+.ai tu pregunta              Respuesta con contexto temporal
+.chatbot on                  Activa respuestas automáticas en chats privados
+.chatbot off                 Desactiva las respuestas automáticas
+.aiclear                     Borra el contexto de la conversación
+.imagen descripción          Genera una imagen y la envía por WhatsApp
+.videoia descripción         Genera una imagen y crea un corto MP4 animado de 5 segundos
+```
+
+La función `.videoia` actual crea un corto animado a partir de una imagen generada y necesita `ffmpeg` en el servidor. No llama directamente a Meta AI: Meta no ofrece una API pública universal para que cualquier bot de WhatsApp genere videos. Para video generativo real habría que conectar un proveedor de video que entregue una API y sus credenciales, sin exponerlas al usuario.
 
 Los tokens generados desde el panel se guardan con su hash para validación y con su valor completo en el almacén privado cifrado/no público, por lo que permanecen visibles para el administrador después de una actualización. Los tokens creados antes de esta corrección solo pueden mostrar la vista previa, porque su valor original no se puede reconstruir desde un hash.
 
