@@ -13,6 +13,7 @@ const os = require('os');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
 const githubBackup = require('./lib/githubBackup');
+const postgresPremiumStore = require('./lib/postgresPremiumStore');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
 
 // El acceso Owner es una lista blanca fija: ningún valor del panel o de Premium puede ampliarla.
@@ -738,6 +739,7 @@ function savePremiumData() {
     fs.writeJsonSync(PREMIUM_DATA_TEMP, premium, { spaces: 2 });
     if (fs.existsSync(PREMIUM_DATA_FILE)) fs.copyFileSync(PREMIUM_DATA_FILE, PREMIUM_DATA_BACKUP);
     fs.renameSync(PREMIUM_DATA_TEMP, PREMIUM_DATA_FILE);
+    postgresPremiumStore.scheduleSave(botData.premiumUsers, botData.premiumTokens);
 }
 
 function saveBotData() {
@@ -2510,6 +2512,27 @@ server.listen(PORT, async () => {
         }
     } else {
         console.log('[Backup] GitHub cifrado no configurado; usando el almacenamiento local persistente.');
+    }
+    if (postgresPremiumStore.enabled()) {
+        try {
+            await postgresPremiumStore.init();
+            const remotePremium = await postgresPremiumStore.loadPremium();
+            if (remotePremium.hasData) {
+                // Supabase es la fuente de verdad después de la migración inicial.
+                botData.premiumUsers = remotePremium.users;
+                botData.premiumTokens = remotePremium.tokens;
+                savePremiumData();
+                console.log(`[Supabase] Premium cargado: ${Object.keys(remotePremium.users).length} usuarios, ${Object.keys(remotePremium.tokens).length} tokens.`);
+            } else {
+                // Primera ejecución: subir el Premium que ya existía en los JSON.
+                await postgresPremiumStore.replacePremium(botData.premiumUsers, botData.premiumTokens);
+                console.log(`[Supabase] Migración inicial completada: ${Object.keys(botData.premiumUsers).length} usuarios, ${Object.keys(botData.premiumTokens).length} tokens.`);
+            }
+        } catch (error) {
+            console.error('[Supabase] No se pudo inicializar PostgreSQL; se mantiene el almacenamiento JSON:', error.message);
+        }
+    } else {
+        console.log('[Supabase] No configurado; Premium usa el almacenamiento local persistente.');
     }
     await loadExistingSessions();
     broadcastDashboardStats();

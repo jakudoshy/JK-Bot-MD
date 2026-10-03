@@ -22,6 +22,7 @@ Incluye comandos de grupos, descargas, stickers, economía, perfiles, IA, herram
 - IA opcional mediante OpenAI-compatible API.
 - Panel web con estadísticas, bots conectados, Premium, difusión y promoción.
 - Respaldo cifrado AES-256-GCM opcional en GitHub.
+- Persistencia Premium en PostgreSQL/Supabase con migración automática desde los JSON existentes.
 
 ## Instalación
 
@@ -51,7 +52,23 @@ PORT=3000
 PERSISTENT_DATA_DIR=/data/bot
 ```
 
-No publiques `.env`, credenciales de WhatsApp, tokens de GitHub ni claves de cifrado. Los usuarios Premium y los tokens completos se guardan únicamente en el servidor, en `premium_data.json` dentro de `PERSISTENT_DATA_DIR`; la web no los escribe en `localStorage` y sí los vuelve a cargar al recargar el panel. En Railway es obligatorio montar un volumen persistente en `/data` y configurar `PERSISTENT_DATA_DIR=/data/bot`, o configurar el respaldo cifrado de GitHub con **todas** sus variables (`GITHUB_BACKUP_TOKEN`, `GITHUB_BACKUP_REPO`, `GITHUB_BACKUP_BRANCH`, `GITHUB_BACKUP_PATH` y `BACKUP_ENCRYPTION_KEY`). Si actualizas o reemplazas el repositorio sin volumen ni respaldo, el proveedor puede crear un contenedor nuevo y el estado Premium no se puede recuperar.
+No publiques `.env`, credenciales de WhatsApp, tokens de GitHub ni claves de cifrado. Sin Supabase, los usuarios Premium y los tokens completos se guardan únicamente en el servidor, en `premium_data.json` dentro de `PERSISTENT_DATA_DIR`; con Supabase configurado, PostgreSQL es la fuente principal y ese JSON queda como respaldo local. La web no los escribe en `localStorage` y sí los vuelve a cargar al recargar el panel. En Railway es obligatorio montar un volumen persistente en `/data` y configurar `PERSISTENT_DATA_DIR=/data/bot` para conservar sesiones y archivos, o configurar el respaldo cifrado de GitHub con **todas** sus variables (`GITHUB_BACKUP_TOKEN`, `GITHUB_BACKUP_REPO`, `GITHUB_BACKUP_BRANCH`, `GITHUB_BACKUP_PATH` y `BACKUP_ENCRYPTION_KEY`).
+
+### PostgreSQL en Supabase
+
+Para que el Premium sobreviva incluso cuando se reemplaza el contenedor, configura en el servicio donde ejecutas el bot la cadena privada de PostgreSQL de Supabase:
+
+```env
+SUPABASE_DB_URL=postgresql://postgres:<PASSWORD>@db.<PROJECT-REF>.supabase.co:5432/postgres?sslmode=require
+SUPABASE_DB_POOL_MAX=5
+SUPABASE_DB_SSL=true
+```
+
+La aplicación crea automáticamente `jkbot_premium_users` y `jkbot_premium_tokens` al iniciar. En la primera ejecución sube los usuarios y tokens existentes desde `premium_data.json`; después, PostgreSQL pasa a ser la fuente de verdad. Cada alta, reclamación, modificación o eliminación del panel se sincroniza automáticamente con Supabase.
+
+También puedes ejecutar manualmente [`supabase/schema.sql`](supabase/schema.sql) desde el SQL Editor de Supabase. Usa la conexión privada/directa de PostgreSQL únicamente en el servidor; no pongas `SUPABASE_DB_URL`, la contraseña de la base de datos ni una service-role key en `index.html` o en el navegador.
+
+Supabase guarda el estado Premium, pero las credenciales de sesión de WhatsApp de Baileys y los archivos subidos siguen necesitando un volumen persistente (`PERSISTENT_DATA_DIR`) o un respaldo de archivos. La actualización del código no debe borrar ese volumen.
 
 Los tokens generados desde el panel se guardan con su hash para validación y con su valor completo en el almacén privado cifrado/no público, por lo que permanecen visibles para el administrador después de una actualización. Los tokens creados antes de esta corrección solo pueden mostrar la vista previa, porque su valor original no se puede reconstruir desde un hash.
 
