@@ -424,7 +424,7 @@ function createPremiumToken(days = 30) {
         claimedBy: null,
         claimedAt: null
     };
-    saveBotData();
+    saveBotData({ backupNow: true });
     return { token, expiresAt: botData.premiumTokens[hashPremiumToken(token)].expiresAt };
 }
 
@@ -672,8 +672,10 @@ const LEGACY_DATA_DIR = path.resolve(__dirname, 'data');
 const LEGACY_RUNTIME_DIR = path.resolve(__dirname, 'bot');
 const LEGACY_AUTH_DIR = path.resolve(__dirname, 'auth_info');
 // Default runtime state lives beside the repository, never inside it. This survives git pull,
-// reclone and replacement of the working tree. Production should point this to a mounted volume.
-const PERSISTENT_DIR = path.resolve(process.env.PERSISTENT_DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, '..', 'jkbot-data'));
+// reclone and replacement of the working tree. On Railway, use the mounted /data volume even
+// when the variable was not copied into the service environment.
+const DEFAULT_PERSISTENT_DIR = fs.existsSync('/data') ? '/data/bot' : path.join(__dirname, '..', 'jkbot-data');
+const PERSISTENT_DIR = path.resolve(process.env.PERSISTENT_DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || DEFAULT_PERSISTENT_DIR);
 const AUTH_DIR = path.join(PERSISTENT_DIR, 'auth_info');
 const UPLOADS_DIR = path.join(PERSISTENT_DIR, 'uploads');
 const DATA_FILE = path.join(PERSISTENT_DIR, 'bot_data.json');
@@ -774,7 +776,7 @@ function loadPremiumDataFromDisk() {
 
 loadPremiumDataFromDisk();
 
-function savePremiumData() {
+function savePremiumData({ backupNow = false } = {}) {
     fs.ensureDirSync(PERSISTENT_DIR);
     const premium = { premiumUsers: botData.premiumUsers || {}, premiumTokens: botData.premiumTokens || {}, updatedAt: new Date().toISOString() };
     fs.writeJsonSync(PREMIUM_DATA_TEMP, premium, { spaces: 2 });
@@ -783,14 +785,17 @@ function savePremiumData() {
     postgresPremiumStore.scheduleSave(botData.premiumUsers, botData.premiumTokens);
 }
 
-function saveBotData() {
+function saveBotData({ backupNow = false } = {}) {
     fs.ensureDirSync(PERSISTENT_DIR);
     fs.writeJsonSync(DATA_TEMP, botData, { spaces: 2 });
     if (fs.existsSync(DATA_FILE)) fs.copyFileSync(DATA_FILE, DATA_BACKUP);
     fs.renameSync(DATA_TEMP, DATA_FILE);
-    savePremiumData();
+    savePremiumData({ backupNow });
     if (typeof broadcastPremiumData === 'function') broadcastPremiumData();
-    githubBackup.scheduleBackup({ dataFile: DATA_FILE, premiumDataFile: PREMIUM_DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
+    githubBackup.scheduleBackup(
+        { dataFile: DATA_FILE, premiumDataFile: PREMIUM_DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR },
+        { delayMs: backupNow ? 0 : undefined }
+    );
 }
 
 // Materialize the independent Premium store immediately, even before the first token is generated.
@@ -1619,7 +1624,7 @@ class BotSession {
                                             token.maxClaims = maxClaims;
                                             token.claimedBy = [...claims, claimJid];
                                             token.claimedAt = [...(Array.isArray(token.claimedAt) ? token.claimedAt : token.claimedAt ? [token.claimedAt] : []), new Date().toISOString()];
-                                            saveBotData();
+                                            saveBotData({ backupNow: true });
                                             const grantedUntil = new Date(token.expiresAt).toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' });
                                             await this.sock.sendMessage(from, { text: `🎉 *¡PREMIUM ACTIVADO!*\n\n✅ Tu acceso fue confirmado correctamente.\n🪪 Usuario: ${claimJid.split('@')[0]}\n📊 Token reclamado: *${token.claimedBy.length}/${maxClaims}*\n📅 Válido hasta: *${grantedUntil}*\n🔐 Ya puedes usar las funciones Premium.\n\n💡 Guarda este mensaje para recordar la fecha de vencimiento.` }, { quoted: msg });
                                             break;
@@ -2311,7 +2316,7 @@ io.on('connection', (socket) => {
             expiresAt,
             source: 'admin'
         };
-        saveBotData();
+        saveBotData({ backupNow: true });
         socket.emit('admin-premium-status', { ok: true, message: `Premium asignado a ${normalized.split('@')[0]}${expiresAt ? ` por ${Math.min(duration, 3650)} días.` : ' sin vencimiento.'}` });
         socket.emit('admin-premium-data', premiumSnapshot());
     });
@@ -2367,7 +2372,7 @@ io.on('connection', (socket) => {
             return;
         }
         delete botData.premiumUsers[normalized];
-        saveBotData();
+        saveBotData({ backupNow: true });
         socket.emit('admin-premium-status', { ok: true, message: `Premium retirado: ${normalized.split('@')[0]}` });
         socket.emit('admin-premium-data', premiumSnapshot());
     });
@@ -2379,7 +2384,7 @@ io.on('connection', (socket) => {
             return;
         }
         delete botData.premiumTokens[id];
-        saveBotData();
+        saveBotData({ backupNow: true });
         socket.emit('admin-premium-status', { ok: true, message: 'Token eliminado correctamente.' });
         socket.emit('admin-premium-data', premiumSnapshot());
     });
