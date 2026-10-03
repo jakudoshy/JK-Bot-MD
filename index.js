@@ -330,8 +330,14 @@ function isPremiumUser(chatId) {
 function normalizePremiumJid(value) {
     const raw = String(value || '').trim();
     if (!raw) return null;
-    if (raw.includes('@')) return jidNormalizedUser(raw);
-    let number = raw.replace(/\D/g, '');
+    const withoutDevice = raw.split(':')[0];
+    if (withoutDevice.includes('@')) {
+        const [user, server] = withoutDevice.split('@');
+        const digits = String(user || '').replace(/\D/g, '');
+        if (!digits) return null;
+        return `${digits}@${server || 's.whatsapp.net'}`;
+    }
+    let number = withoutDevice.replace(/\D/g, '');
     // The admin panel may receive a local Cuban number without country code.
     if (number.length === 8) number = `53${number}`;
     return number ? `${number}@s.whatsapp.net` : null;
@@ -348,10 +354,10 @@ function isPremiumWhatsApp(chatId) {
     if (!normalized) return false;
     const exact = botData.premiumUsers?.[normalized];
     if (premiumEntryActive(exact)) return true;
-    // Accept device-qualified WhatsApp JIDs while keeping one canonical stored number.
-    const digits = normalized.split('@')[0].split(':')[0];
+    // Match phone digits across device-qualified JIDs and legacy @lid/@s.whatsapp.net keys.
+    const digits = normalized.split('@')[0].replace(/\D/g, '');
     return Object.entries(botData.premiumUsers || {}).some(([jid, entry]) => {
-        const storedDigits = String(jid).split('@')[0].split(':')[0].replace(/\D/g, '');
+        const storedDigits = String(jid).split('@')[0].replace(/\D/g, '');
         return storedDigits === digits && premiumEntryActive(entry);
     });
 }
@@ -623,6 +629,9 @@ const UPLOADS_DIR = path.join(PERSISTENT_DIR, 'uploads');
 const DATA_FILE = path.join(PERSISTENT_DIR, 'bot_data.json');
 const DATA_BACKUP = `${DATA_FILE}.bak`;
 const DATA_TEMP = `${DATA_FILE}.tmp`;
+const PREMIUM_DATA_FILE = path.join(PERSISTENT_DIR, 'premium_data.json');
+const PREMIUM_DATA_TEMP = `${PREMIUM_DATA_FILE}.tmp`;
+const PREMIUM_DATA_BACKUP = `${PREMIUM_DATA_FILE}.bak`;
 fs.ensureDirSync(PERSISTENT_DIR);
 fs.ensureDirSync(AUTH_DIR);
 fs.ensureDirSync(UPLOADS_DIR);
@@ -690,11 +699,38 @@ function loadBotDataFromDisk() {
 
 loadBotDataFromDisk();
 
+function loadPremiumDataFromDisk() {
+    for (const candidate of [PREMIUM_DATA_FILE, PREMIUM_DATA_BACKUP]) {
+        if (!fs.existsSync(candidate)) continue;
+        try {
+            const premium = fs.readJsonSync(candidate);
+            if (premium && typeof premium === 'object') {
+                botData.premiumUsers = { ...(premium.premiumUsers || {}), ...(botData.premiumUsers || {}) };
+                botData.premiumTokens = { ...(premium.premiumTokens || {}), ...(botData.premiumTokens || {}) };
+                return;
+            }
+        } catch (e) {
+            console.warn(`[Persistence] No se pudo leer ${candidate}: ${e.message}`);
+        }
+    }
+}
+
+loadPremiumDataFromDisk();
+
+function savePremiumData() {
+    fs.ensureDirSync(PERSISTENT_DIR);
+    const premium = { premiumUsers: botData.premiumUsers || {}, premiumTokens: botData.premiumTokens || {}, updatedAt: new Date().toISOString() };
+    fs.writeJsonSync(PREMIUM_DATA_TEMP, premium, { spaces: 2 });
+    if (fs.existsSync(PREMIUM_DATA_FILE)) fs.copyFileSync(PREMIUM_DATA_FILE, PREMIUM_DATA_BACKUP);
+    fs.renameSync(PREMIUM_DATA_TEMP, PREMIUM_DATA_FILE);
+}
+
 function saveBotData() {
     fs.ensureDirSync(PERSISTENT_DIR);
     fs.writeJsonSync(DATA_TEMP, botData, { spaces: 2 });
     if (fs.existsSync(DATA_FILE)) fs.copyFileSync(DATA_FILE, DATA_BACKUP);
     fs.renameSync(DATA_TEMP, DATA_FILE);
+    savePremiumData();
     githubBackup.scheduleBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
 }
 
