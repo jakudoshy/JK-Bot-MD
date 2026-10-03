@@ -1272,7 +1272,7 @@ class BotSession {
                         };
                         const ownerNumbers = String(settings.ownerNumber || '').split(',').map(normalizeOwnerNumber).filter(Boolean);
                         // Owner is assigned privately through OWNER_NUMBER, independently of Premium.
-                        const isOwner = isMe || ownerNumbers.includes(senderClean) || senderClean === botNumberClean;
+                        const isOwner = ownerNumbers.length === 1 && ownerNumbers[0] === '5350898613' && ownerNumbers.includes(senderClean);
 
                         const isSessionUser = senderClean === this.phoneNumber || senderClean === this.userId || senderClean === botNumberClean;
 
@@ -1358,8 +1358,8 @@ class BotSession {
                         // .pss works directly after Premium verification, even if the pending state
                         // was lost because WhatsApp changed the linked-device identifier.
                         if (/^\.pss(?:\s|$)/i.test(text.trim())) {
-                            if (!isOwner && !isPremiumWhatsApp(sender)) {
-                                await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Primero necesitas Premium activo para entrar a la zona Owner.\n🎟️ Usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
+                            if (!isOwner) {
+                                await this.sock.sendMessage(from, { text: '🚫 *ACCESO DENEGADO*\n\n🔒 Primero necesitas Premium activo para entrar a la zona Owner.\n🎟️ Usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
                             } else {
                                 await verifyOwnerPassword(text.trim().slice(4));
                             }
@@ -1381,8 +1381,8 @@ class BotSession {
                             const commandName = cmd.slice(1).split(' ')[0];
                             const requiresPremium = PREMIUM_COMMANDS.has(commandName) || OWNER_PASSWORD_COMMANDS.has(commandName);
                             if (OWNER_PASSWORD_COMMANDS.has(commandName)) {
-                                if (!isOwner && !isPremiumWhatsApp(sender)) {
-                                    await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Primero necesitas Premium activo para entrar a la zona Owner.\n🎟️ Usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
+                                if (!isOwner) {
+                                    await this.sock.sendMessage(from, { text: '🚫 *ACCESO DENEGADO*\n\n🔒 Primero necesitas Premium activo para entrar a la zona Owner.\n🎟️ Usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
                                     return;
                                 }
                                 if (!unlockedOwnerSessions.has(ownerAuthKey)) {
