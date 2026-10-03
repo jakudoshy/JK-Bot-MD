@@ -2129,9 +2129,10 @@ io.on('connection', (socket) => {
             socket.emit('admin-auth-fail');
             return;
         }
-        const adminUser = process.env.ADMIN_USERNAME || 'jkadmin';
-        const adminPass = process.env.ADMIN_PASSWORD || '04060190';
-        if (username === adminUser && password === adminPass) {
+        const cleanCredential = (value) => String(value ?? '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+        const adminUser = cleanCredential(process.env.ADMIN_USERNAME || 'jkadmin');
+        const adminPass = cleanCredential(process.env.ADMIN_PASSWORD || '04060190');
+        if (cleanCredential(username) === adminUser && cleanCredential(password) === adminPass) {
             socket.authenticated = true;
             socket.adminAttempts = 0;
             adminSockets.add(socket);

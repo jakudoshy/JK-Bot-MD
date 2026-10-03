@@ -848,7 +848,7 @@ if(adminLoginForm){
   adminLoginForm.addEventListener('submit',(event)=>{
     event.preventDefault();
     adminStatus.textContent='Verificando acceso...';
-    socket.emit('admin-auth',{username:adminUsername.value,password:adminPassword.value});
+    socket.emit('admin-auth',{username:adminUsername.value.trim(),password:adminPassword.value.trim()});
   });
 }
 socket.on('admin-auth-success',()=>{
