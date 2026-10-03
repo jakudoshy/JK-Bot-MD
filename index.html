@@ -485,6 +485,16 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
 .menu-toggle{border-width:2px!important;border-radius:13px!important}
 .admin-live-pill,.admin-section-tag,.premium-token{border-width:2px!important}
 @media(max-width:768px){section.panel{padding:22px 16px}.hero-banner{width:calc(100% - 20px);border-radius:18px}.hero-banner img{max-height:360px}.brand .mark{width:38px;height:38px;border-radius:11px}}
+.bot-telemetry{width:min(1100px,calc(100% - 32px));margin:22px auto 0;display:grid;grid-template-columns:1.35fr .85fr;gap:14px;text-align:left}
+.telemetry-card{position:relative;overflow:hidden;padding:18px;border:3px solid rgba(255,18,56,.7);border-radius:22px;background:linear-gradient(145deg,rgba(29,0,8,.94),rgba(5,0,3,.98));box-shadow:0 0 26px rgba(255,0,31,.18),inset 0 0 28px rgba(255,0,31,.06)}
+.telemetry-card:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0,rgba(255,255,255,.025) 1px,transparent 1px,transparent 5px);pointer-events:none;opacity:.45}
+.telemetry-title{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;color:#ff4562;font-size:.68rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase}
+.telemetry-live{font-size:.58rem;color:#ffb2bc;letter-spacing:.08em}.telemetry-live i{color:#ff1238;margin-right:5px;animation:blink 1.2s infinite}
+.telemetry-chart{position:relative;width:100%;height:126px;margin-top:12px;border:2px solid rgba(255,18,56,.3);border-radius:15px;background:linear-gradient(rgba(255,18,56,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,18,56,.08) 1px,transparent 1px);background-size:28px 28px;overflow:hidden}
+.telemetry-chart svg{width:100%;height:100%;display:block}.telemetry-line{fill:none;stroke:#ff1238;stroke-width:3;filter:drop-shadow(0 0 5px #ff1238);stroke-linecap:round;stroke-linejoin:round;transition:d .6s ease}.telemetry-area{fill:url(#telemetryFill);opacity:.35}.telemetry-dot{fill:#fff;stroke:#ff1238;stroke-width:3;filter:drop-shadow(0 0 5px #ff1238)}
+.telemetry-metrics{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.telemetry-metric{padding:9px;border:2px solid rgba(255,18,56,.3);border-radius:12px;background:rgba(255,0,31,.06)}.telemetry-metric b{display:block;color:#fff;font-size:1rem}.telemetry-metric span{color:#c88d96;font-size:.58rem;text-transform:uppercase;letter-spacing:.08em}
+.flow-card{display:flex;flex-direction:column;justify-content:space-between}.flow-list{position:relative;display:grid;gap:10px;margin-top:14px}.flow-step{display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:9px;padding:10px;border:2px solid rgba(255,18,56,.27);border-radius:13px;background:rgba(255,0,31,.055)}.flow-icon{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:#ff1238;color:#140006;box-shadow:0 0 12px rgba(255,0,31,.6)}.flow-step strong{display:block;color:#fff;font-size:.7rem}.flow-step small{display:block;color:#bd858e;font-size:.59rem;margin-top:2px}.flow-state{color:#ff6277;font-size:.56rem;font-weight:900;text-transform:uppercase}.telemetry-footer{position:relative;margin-top:12px;color:#bd858e;font-size:.6rem;line-height:1.5}.telemetry-footer strong{color:#ff4562}
+@media(max-width:760px){.bot-telemetry{grid-template-columns:1fr;width:calc(100% - 20px)}.telemetry-card{border-radius:18px}.telemetry-metric b{font-size:.86rem}}
 </style>
 </head>
 <body>
@@ -553,6 +563,30 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
   <div class="public-bots-panel" aria-live="polite">
     <div class="public-bots-head"><span class="public-bots-title"><i class="fas fa-robot"></i> Bots conectados</span><span id="publicBotsLive" class="public-bots-live">Actualizando...</span></div>
     <div id="publicBotsList" class="public-bots-list"><div class="public-bots-empty">Esperando conexiones...</div></div>
+  </div>
+  <div class="bot-telemetry" aria-label="Telemetría visual del bot">
+    <article class="telemetry-card">
+      <div class="telemetry-title"><span><i class="fas fa-wave-square"></i> Señal del sistema</span><span class="telemetry-live"><i class="fas fa-circle"></i><span id="telemetryUpdated">EN VIVO</span></span></div>
+      <div class="telemetry-chart">
+        <svg viewBox="0 0 640 150" preserveAspectRatio="none" role="img" aria-label="Gráfico de actividad del bot">
+          <defs><linearGradient id="telemetryFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ff1238" stop-opacity=".7"/><stop offset="1" stop-color="#ff1238" stop-opacity="0"/></linearGradient></defs>
+          <path class="telemetry-area" d="M0 128 L0 112 L80 104 L160 116 L240 70 L320 91 L400 48 L480 76 L560 34 L640 55 L640 128 Z"/>
+          <path id="telemetryLine" class="telemetry-line" d="M0 112 L80 104 L160 116 L240 70 L320 91 L400 48 L480 76 L560 34 L640 55"/>
+          <circle id="telemetryDot" class="telemetry-dot" cx="640" cy="55" r="5"/>
+        </svg>
+      </div>
+      <div class="telemetry-metrics"><div class="telemetry-metric"><b id="telemetrySessions">0</b><span>sesiones</span></div><div class="telemetry-metric"><b id="telemetryUsers">0</b><span>usuarios</span></div><div class="telemetry-metric"><b id="telemetryPending">0</b><span>pendientes</span></div></div>
+      <div class="telemetry-footer"><strong>STREAM //</strong> datos sincronizados directamente con Socket.IO</div>
+    </article>
+    <article class="telemetry-card flow-card">
+      <div class="telemetry-title"><span><i class="fas fa-diagram-project"></i> Flujo operativo</span><span class="telemetry-live">JK CORE</span></div>
+      <div class="flow-list">
+        <div class="flow-step"><span class="flow-icon"><i class="fas fa-link"></i></span><div><strong>WhatsApp vinculado</strong><small>Sesión segura activa</small></div><span class="flow-state">LISTO</span></div>
+        <div class="flow-step"><span class="flow-icon"><i class="fas fa-bolt"></i></span><div><strong>Motor de comandos</strong><small>Procesamiento en tiempo real</small></div><span class="flow-state">ONLINE</span></div>
+        <div class="flow-step"><span class="flow-icon"><i class="fas fa-shield-halved"></i></span><div><strong>Premium / Owner</strong><small>Permisos coordinados</small></div><span class="flow-state">PROTEGIDO</span></div>
+      </div>
+      <div class="telemetry-footer"><strong>HEALTH //</strong> almacenamiento persistente y panel administrativo conectados.</div>
+    </article>
   </div>
 </header>
 
@@ -968,7 +1002,7 @@ socket.on('pair-error', (msg)=>{
   setStatus(msg || 'No se pudo generar el código. Inténtalo de nuevo.', 'error');
 });
 
-socket.on('connection-status', (status)=>{
+socket.on('connection-status',(status)=>{
   if(status && status.connected){
     pairingCode.innerText = 'LINKED';
     pairingCode.style.color = '#39ff14';
@@ -979,8 +1013,16 @@ socket.on('connection-status', (status)=>{
   }
 });
 
+function updateTelemetry(data={}){
+  const sessions=Number(data.activeSockets||0), users=Number(data.registeredUsers||data.totalUsers||0), pending=Number(data.pendingUsers||0);
+  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=String(value)};
+  set('telemetrySessions',sessions);set('telemetryUsers',users);set('telemetryPending',pending);set('telemetryUpdated',new Date().toLocaleTimeString('es-ES'));
+  const line=document.getElementById('telemetryLine'), dot=document.getElementById('telemetryDot');
+  if(line&&dot){const y=Math.max(18,Math.min(118,108-sessions*10-users*2+pending*3));const d=`M0 116 L80 ${Math.max(30,112-sessions*4)} L160 ${Math.max(38,116-users*3)} L240 ${Math.max(24,78-pending*5)} L320 ${Math.max(28,96-sessions*7)} L400 ${Math.max(20,58-users*2)} L480 ${Math.max(25,82-pending*4)} L560 ${Math.max(18,48-sessions*5)} L640 ${y}`;line.setAttribute('d',d);dot.setAttribute('cy',String(y));}
+}
 socket.on('stats', (data)=>{
   if(data){
+    updateTelemetry(data);
     renderPublicBots(data.bots || []);
     if(typeof data.activeSockets !== 'undefined') document.getElementById('activeSockets').innerText = data.activeSockets;
     if(typeof data.totalUsers !== 'undefined') document.getElementById('totalUsers').innerText = data.totalUsers;
