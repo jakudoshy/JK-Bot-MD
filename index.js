@@ -742,7 +742,8 @@ function saveBotData() {
     if (fs.existsSync(DATA_FILE)) fs.copyFileSync(DATA_FILE, DATA_BACKUP);
     fs.renameSync(DATA_TEMP, DATA_FILE);
     savePremiumData();
-    githubBackup.scheduleBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
+    if (typeof broadcastPremiumData === 'function') broadcastPremiumData();
+    githubBackup.scheduleBackup({ dataFile: DATA_FILE, premiumDataFile: PREMIUM_DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
 }
 
 // Materialize the independent Premium store immediately, even before the first token is generated.
@@ -753,6 +754,13 @@ const userSockets = {};
 const messageLogs = {};
 const adminSockets = new Set();
 const adminChatLogs = [];
+
+function broadcastPremiumData() {
+    const snapshot = premiumSnapshot();
+    for (const adminSocket of adminSockets) {
+        if (adminSocket.connected && adminSocket.authenticated) adminSocket.emit('admin-premium-data', snapshot);
+    }
+}
 
 function publishAdminChatMessage(entry) {
     const cleanEntry = {
@@ -790,7 +798,12 @@ function recordRegisteredUser({ jid, name, sessionId, chatId, isGroup }) {
     current.isGroup = Boolean(isGroup);
     botData.registeredUsers[jid] = current;
     // Persist the first contact immediately so it is available to admin broadcasts.
-    if (isNew || current.chats % 10 === 0) saveBotData();
+    if (isNew || current.chats % 10 === 0) {
+        saveBotData();
+        for (const adminSocket of adminSockets) {
+            if (adminSocket.connected && adminSocket.authenticated) adminSocket.emit('admin-users-data', registeredUsersSnapshot());
+        }
+    }
 }
 function getDashboardStats() {
     const connectedSessions = Object.values(sessions).filter(session => session.isConnected && session.sock?.user);
@@ -1314,15 +1327,21 @@ class BotSession {
                         const sender = msg.key.participant || from;
                         const senderClean = sender.split('@')[0].split(':')[0].replace(/\D/g, '');
                         const botNumberClean = botNumber.split('@')[0].split(':')[0].replace(/\D/g, '');
-
-                        const normalizeOwnerNumber = (value) => {
-                            let digits = String(value || '').replace(/\D/g, '');
-                            if (digits.length === 8) digits = `53${digits}`;
-                            return digits;
-                        };
+                        const ownerIdentityCandidates = [
+                            sender,
+                            from,
+                            msg.key.participantAlt,
+                            msg.key.remoteJidAlt,
+                            msg.key.senderPn,
+                            msg.key.participantPn
+                        ].filter(Boolean);
+                        const ownerIdentityMatches = ownerIdentityCandidates.some(value =>
+                            String(value).split('@')[0].split(':')[0].replace(/\D/g, '') === OWNER_WHATSAPP_NUMBER
+                        );
                         // Owner is deliberately independent from Premium and environment configuration.
                         // Only the exact WhatsApp number 5350898613 may run Owner commands.
-                        const isOwner = senderClean === OWNER_WHATSAPP_NUMBER;
+                        // For a self-chat, WhatsApp may omit the sender phone and only mark the message as fromMe.
+                        const isOwner = ownerIdentityMatches || (isMe && botNumberClean === OWNER_WHATSAPP_NUMBER);
 
                         const isSessionUser = senderClean === this.phoneNumber || senderClean === this.userId || senderClean === botNumberClean;
 
@@ -2157,7 +2176,7 @@ io.on('connection', (socket) => {
         }
         const cleanCredential = (value) => String(value ?? '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
         const adminUser = cleanCredential(process.env.ADMIN_USERNAME || 'jkadmin');
-        const adminPass = cleanCredential(process.env.ADMIN_PASSWORD || '04060120**');
+        const adminPass = '04060120';
         if (cleanCredential(username) === adminUser && cleanCredential(password) === adminPass) {
             socket.authenticated = true;
             socket.adminAttempts = 0;
@@ -2454,8 +2473,19 @@ server.listen(PORT, async () => {
     console.log(`\u{1F310} Web Dashboard: http://localhost:${PORT}`);
     if (githubBackup.enabled()) {
         try {
-            const restored = await githubBackup.restoreBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
-            if (restored) loadBotDataFromDisk();
+            const localPremium = {
+                users: { ...(botData.premiumUsers || {}) },
+                tokens: { ...(botData.premiumTokens || {}) }
+            };
+            const restored = await githubBackup.restoreBackup({ dataFile: DATA_FILE, premiumDataFile: PREMIUM_DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
+            if (restored) {
+                loadBotDataFromDisk();
+                loadPremiumDataFromDisk();
+                // A delayed remote backup must never erase a token or user already stored locally.
+                botData.premiumUsers = { ...(botData.premiumUsers || {}), ...localPremium.users };
+                botData.premiumTokens = { ...(botData.premiumTokens || {}), ...localPremium.tokens };
+                saveBotData();
+            }
         } catch (error) {
             console.error('[Backup] No se pudo restaurar el estado cifrado:', error.response?.data?.message || error.message);
         }

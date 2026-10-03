@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jk-bot-shell-v4-1-1';
+const CACHE_NAME = 'jk-bot-shell-v4-1-2';
 const STATIC_ASSETS = ['/manifest.webmanifest', '/Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg'];
 
 self.addEventListener('install', event => {

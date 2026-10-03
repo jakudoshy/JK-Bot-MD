@@ -888,15 +888,17 @@ adminBotsList?.addEventListener('click',(event)=>{
   if(button && confirm(`¿Detener la sesión ${button.dataset.stopBot}?`)) socket.emit('stop-bot',{sessionId:button.dataset.stopBot});
 });
 function renderPremiumData(data={}){
+  if(!premiumUsersList || !premiumTokensList) return;
   const users = data.users || [];
   const tokens = data.tokens || [];
   premiumUsersList.innerHTML='<strong>Usuarios Premium</strong>' + (users.length ? users.map(user=>{
     const expiry = user.expiresAt ? ` · vence ${new Date(user.expiresAt).toLocaleDateString('es-ES')}` : ' · permanente';
-    return `<div class="premium-list-row"><span>${user.active ? '🟢' : '⚪'} ${user.jid.replace('@s.whatsapp.net','')}${expiry}</span><button class="premium-remove" data-premium-user="${user.jid}" type="button">Quitar</button></div>`;
+    const jid = String(user.jid || '');
+    return `<div class="premium-list-row"><span>${user.active ? '🟢' : '⚪'} ${escapeAdminHtml(jid.replace('@s.whatsapp.net',''))}${escapeAdminHtml(expiry)}</span><button class="premium-remove" data-premium-user="${escapeAdminHtml(jid)}" type="button">Quitar</button></div>`;
   }).join('') : 'Sin usuarios agregados.');
   premiumTokensList.innerHTML='<strong>Tokens generados</strong>' + (tokens.length ? tokens.map(token=>{
     const state = token.claimed ? '✅ reclamado' : '🟡 disponible';
-    return `<div class="premium-list-row"><span>${token.preview} · ${state}</span><button class="premium-remove" data-premium-token="${token.id}" type="button">Eliminar</button></div>`;
+    return `<div class="premium-list-row"><span>${escapeAdminHtml(token.preview)} · ${state}</span><button class="premium-remove" data-premium-token="${escapeAdminHtml(token.id)}" type="button">Eliminar</button></div>`;
   }).join('') : 'Sin tokens generados.');
 }
 premiumTokenForm?.addEventListener('submit',(event)=>{
