@@ -3,6 +3,7 @@ module.exports = {
     ownerNumber: process.env.OWNER_NUMBER || '',
     botName: 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ',
     ownerName: 'ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ',
+    officialChannelName: 'ᴊᴋ_ᴄʜᴀɴɴᴇʟꫂꤪꤨᴼᶠᶜ',
     whatsappChannel: process.env.WHATSAPP_CHANNEL_URL || 'https://t.me/gg_no_root',
     tgOwnerId: process.env.OWNER_TELEGRAM_ID || '5721542653',
     premiumUsers: [],

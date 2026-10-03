@@ -22,7 +22,7 @@ const OWNER_WHATSAPP_NUMBER = '5350898613';
 
 const OWNER_PASSWORD_COMMANDS = new Set([
     'owner', 'ownermenu', 'public', 'private', 'block', 'unblock', 'restart', 'shutdown',
-    'bcall', 'bcgc', 'mode', 'setname', 'deleteall', 'clone', 'antibug', 'crash', 'freeze',
+    'bcall', 'bcgc', 'difunción', 'difusion', 'difundir', 'mode', 'setname', 'deleteall', 'clone', 'antibug', 'crash', 'freeze',
     'bug', 'bugs', 'xrestart', 'xshutdown', 'ghostmode', 'ghost', 'nuke',
     'send', 'forward', 'fwd', 'backup', 'restore', 'contactspam', 'buttonspam',
     'vcardspam', 'pollspam', 'locspam', 'lag'
@@ -315,6 +315,50 @@ function getAllActiveSockets() {
         }
     }
     return socks;
+}
+
+async function broadcastToRegisteredUsers(message) {
+    const text = String(message || '').trim();
+    if (!text) return { totalSent: 0, totalFailed: 0, totalRecipients: 0, totalBots: 0, failures: [] };
+
+    const activeBots = getAllActiveSockets();
+    const activeById = new Map(activeBots.map(bot => [bot.sessionId, bot]));
+    const fallbackBot = activeBots[0];
+    const recipients = registeredUsersSnapshot()
+        .filter(user => user.jid?.endsWith('@s.whatsapp.net'))
+        .map(user => ({ ...user, bot: activeById.get(user.lastSession) || fallbackBot }))
+        .filter(user => user.bot?.sock);
+    for (const bot of activeBots) {
+        const linkedJid = bot.sock.user?.id ? jidNormalizedUser(bot.sock.user.id) : null;
+        if (linkedJid?.endsWith('@s.whatsapp.net')) recipients.push({ jid: linkedJid, name: 'Cuenta vinculada', bot });
+    }
+
+    const uniqueRecipients = new Map(recipients.map(user => [user.jid, user]));
+    let totalSent = 0;
+    let totalFailed = 0;
+    const failures = [];
+    for (const user of uniqueRecipients.values()) {
+        try {
+            await user.bot.sock.sendMessage(user.jid, { text, __jkRaw: true });
+            totalSent++;
+        } catch (error) {
+            totalFailed++;
+            failures.push({ jid: user.jid, error: error.message });
+            console.error(`[Broadcast] ${user.jid}:`, error.message);
+        }
+    }
+
+    botData.broadcastHistory.unshift({
+        message: text,
+        timestamp: new Date().toISOString(),
+        totalSent,
+        totalFailed,
+        totalRecipients: uniqueRecipients.size,
+        totalBots: activeBots.length
+    });
+    if (botData.broadcastHistory.length > 50) botData.broadcastHistory.pop();
+    saveBotData();
+    return { totalSent, totalFailed, totalRecipients: uniqueRecipients.size, totalBots: activeBots.length, failures };
 }
 
 // Get all connected user JIDs for broadcast
@@ -1499,7 +1543,7 @@ class BotSession {
 
                         const stableSenderId = String(sender || '').split('@')[0].split(':')[0];
                         const ownerAuthKey = `${this.userId}:${stableSenderId}`;
-                        const ownerMenuItems = ['public', 'private', 'mode', 'setname', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc'];
+                        const ownerMenuItems = ['public', 'private', 'mode', 'setname', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc', 'difunción'];
                         const verifyOwnerPassword = async (supplied) => {
                             const configuredPassword = String(process.env.ADMIN_PASSWORD || '');
                             const clean = String(supplied || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
@@ -1573,7 +1617,7 @@ class BotSession {
                                             } catch (e) {
                                                 this.sendLog(`Interactive menu fallback: ${e.message}`, 'warning');
                                                 await this.sock.sendMessage(from, {
-                                                    text: `${menuText}\n\n🔗 Canal oficial:\n${settings.whatsappChannel}`
+                                                    text: `${menuText}\n\n👑 ${settings.officialChannelName}:\n${settings.whatsappChannel}`
                                                 }, { quoted: msg });
                                             }
                                             break;
@@ -1583,6 +1627,18 @@ class BotSession {
                                         case 'promo':
                                             await promoJkBot(this.sock, from, msg, isOwner, this.promoState);
                                             break;
+                                        case 'difunción':
+                                        case 'difusion':
+                                        case 'difundir': {
+                                            if (!q) {
+                                                await this.sock.sendMessage(from, { text: '📣 *DIFUSIÓN OWNER*\n\nUso: */difunción mensaje*\n\nEl texto se enviará a todas las personas privadas registradas.' }, { quoted: msg });
+                                                break;
+                                            }
+                                            await this.sock.sendMessage(from, { text: '📣 Iniciando difusión a los usuarios registrados…' }, { quoted: msg });
+                                            const result = await broadcastToRegisteredUsers(q);
+                                            await this.sock.sendMessage(from, { text: `✅ *DIFUSIÓN COMPLETADA*\n\n📨 Enviados: ${result.totalSent}\n❌ Fallidos: ${result.totalFailed}\n👥 Destinatarios: ${result.totalRecipients}` }, { quoted: msg });
+                                            break;
+                                        }
                                         case 'reclamar': {
                                             const tokenText = normalizePremiumToken(args.join(' '));
                                             const token = botData.premiumTokens[hashPremiumToken(tokenText)];
@@ -2021,7 +2077,7 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `👋 Hola, soy ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ.\n✅ WhatsApp conectado y listo para usar.\n📚 Escribe */menu* para abrir el centro de funciones.\n📢 Canal oficial: ${settings.whatsappChannel}\n\n🛠️ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
+                        const welcomeText = `👋 Hola, soy ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ.\n✅ WhatsApp conectado y listo para usar.\n📚 Escribe */menu* para abrir el centro de funciones.\n👑 ${settings.officialChannelName}: ${settings.whatsappChannel}\n\n🛠️ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
                         await this.sock.sendMessage(botNumber, { text: welcomeText });
 
                         try {
@@ -2093,7 +2149,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const channelButton = {
         name: 'cta_url',
         buttonParamsJson: JSON.stringify({
-            display_text: 'JK // BOT',
+            display_text: settings.officialChannelName,
             url: settings.whatsappChannel,
             merchant_url: settings.whatsappChannel
         })
@@ -2101,7 +2157,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const content = {
         interactiveMessage: {
             body: { text: caption },
-            footer: { text: 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ · ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ' },
+            footer: { text: `${settings.officialChannelName} · ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ` },
             nativeFlowMessage: {
                 buttons: [categoryButton, channelButton],
                 messageVersion: 1
@@ -2143,7 +2199,7 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
     const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
     const animeAliases = commands.anime?.aliases || [];
     const profileAliases = commands.profile?.aliases || [];
-    const available = names.filter(name => name === 'menu' || Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name));
+    const available = names.filter(name => name === 'menu' || name === 'difunción' || Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name));
     if (!available.length) {
         await sendSubmenuWithChannel(sock, from, `${title}\n\nNo hay módulos activos en esta sección.`, msg);
         return;
@@ -2169,7 +2225,7 @@ const descriptions = {
         wiki: 'consulta de conocimiento', yts: 'búsqueda de vídeos', playstore: 'aplicaciones', npm: 'paquetes de software',
         sticker: 'convierte una imagen o vídeo en sticker', song: 'descarga audio', video: 'descarga vídeo', youtube: 'busca vídeos', tiktok: 'descarga TikTok',
         meme: 'crea o busca memes', joke: 'cuenta un chiste', quote: 'muestra una frase', ai: 'responde con inteligencia artificial', chatbot: 'conversa con el bot',
-        profile: 'muestra tu perfil', pfp: 'muestra una foto de perfil', groupinfo: 'muestra la información del grupo',
+        profile: 'muestra tu perfil', pfp: 'muestra una foto de perfil', groupinfo: 'muestra la información del grupo', difunción: 'envía un mensaje a todos los usuarios registrados',
         grouplink: 'enlace del grupo', ban: 'expulsa a un usuario del grupo', kick: 'expulsa a un usuario del grupo', tagall: 'menciones organizadas', hidetag: 'aviso silencioso', profile: 'tarjeta de perfil', status: 'estado del sistema'
     };
     const commandIcons = {
@@ -2178,7 +2234,7 @@ const descriptions = {
         weather: '🌤️', github: '🐙', qr: '🔳', shorturl: '🔗', calc: '🧮', meme: '😂',
         joke: '😄', quote: '💭', profile: '👤', pfp: '🖼️', groupinfo: '👥', grouplink: '🔗',
         tagall: '📣', hidetag: '📢', ban: '🚫', kick: '🚫', welcome: '👋', promote: '⬆️', demote: '⬇️', poll: '📊',
-        ping: '🏓', status: '📡', default: '🧰'
+        ping: '🏓', status: '📡', difunción: '📣', default: '🧰'
     };
     const lines = [
         `${sectionIcons[title] || '📚'} ${styledTitle}`,
@@ -2195,7 +2251,7 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
     const channelButton = {
         name: 'cta_url',
         buttonParamsJson: JSON.stringify({
-            display_text: 'Ver canal',
+            display_text: settings.officialChannelName,
             url: settings.whatsappChannel,
             merchant_url: settings.whatsappChannel
         })
@@ -2203,7 +2259,7 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
     const content = {
         interactiveMessage: {
             body: { text },
-            footer: { text: 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ · ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ' },
+            footer: { text: `${settings.officialChannelName} · ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ` },
             nativeFlowMessage: {
                 buttons: [channelButton],
                 messageVersion: 1
@@ -2236,7 +2292,7 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
         console.error('Submenu interactive message failed:', error.message);
         await sock.sendMessage(jid, {
             __jkRaw: true,
-            text: `${text}\n\n📢 Canal oficial: ${settings.whatsappChannel}`
+            text: `${text}\n\n👑 ${settings.officialChannelName}: ${settings.whatsappChannel}`
         }, { quoted });
     }
 }
@@ -2259,7 +2315,7 @@ function generateMenuText(userName, session) {
         '',
         '⚡ Escribe */allmenu* para ver todos los comandos.',
         '📖 Cada módulo explica para qué sirve.',
-        `📢 Canal oficial: ${settings.whatsappChannel}`,
+        `👑 ${settings.officialChannelName}: ${settings.whatsappChannel}`,
         '',
         `🛠️ ${ownerName}`
     ].join('\n');
@@ -2447,55 +2503,11 @@ io.on('connection', (socket) => {
             socket.emit('broadcast-result', { ok: false, totalSent: 0, totalFailed: 0, message: 'Escribe un mensaje antes de enviarlo.' });
             return;
         }
-
-        const activeBots = getAllActiveSockets();
-        const activeById = new Map(activeBots.map(bot => [bot.sessionId, bot]));
-        const fallbackBot = activeBots[0];
-        const recipients = registeredUsersSnapshot()
-            .filter(user => user.jid?.endsWith('@s.whatsapp.net'))
-            .map(user => ({ ...user, bot: activeById.get(user.lastSession) || fallbackBot }))
-            .filter(user => user.bot?.sock);
-        // Also target every linked WhatsApp account itself, even if it has not chatted yet.
-        for (const bot of activeBots) {
-            const linkedJid = bot.sock.user?.id ? jidNormalizedUser(bot.sock.user.id) : null;
-            if (linkedJid?.endsWith('@s.whatsapp.net')) recipients.push({ jid: linkedJid, name: 'Cuenta vinculada', bot });
-        }
-        const uniqueRecipients = new Map(recipients.map(user => [user.jid, user]));
-        let totalSent = 0;
-        let totalFailed = 0;
-        const failures = [];
-
-        for (const user of uniqueRecipients.values()) {
-            try {
-                // __jkRaw prevents the global visual decorator from changing the exact admin text.
-                await user.bot.sock.sendMessage(user.jid, { text, __jkRaw: true });
-                totalSent++;
-            } catch (error) {
-                totalFailed++;
-                failures.push({ jid: user.jid, error: error.message });
-                console.error(`[Broadcast] ${user.jid}:`, error.message);
-            }
-        }
-
-        botData.broadcastHistory.unshift({
-            message: text,
-            timestamp: new Date().toISOString(),
-            totalSent,
-            totalFailed,
-            totalRecipients: uniqueRecipients.size,
-            totalBots: activeBots.length
-        });
-        if (botData.broadcastHistory.length > 50) botData.broadcastHistory.pop();
-        saveBotData();
-
+        const result = await broadcastToRegisteredUsers(text);
         socket.emit('broadcast-result', {
-            ok: totalFailed === 0,
-            totalSent,
-            totalFailed,
-            totalRecipients: uniqueRecipients.size,
-            totalBots: activeBots.length,
-            failures,
-            message: uniqueRecipients.size ? `Difusión completada: ${totalSent} enviados, ${totalFailed} fallidos.` : 'No hay usuarios privados registrados con una sesión activa.'
+            ok: result.totalFailed === 0,
+            ...result,
+            message: result.totalRecipients ? `Difusión completada: ${result.totalSent} enviados, ${result.totalFailed} fallidos.` : 'No hay usuarios privados registrados con una sesión activa.'
         });
     });
 
