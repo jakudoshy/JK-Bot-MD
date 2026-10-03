@@ -67,7 +67,7 @@ async function videoCommand(sock, chatId, message) {
         requestedQuery = query;
         
         if (!query || query.toLowerCase() === '.video') {
-            await sock.sendMessage(chatId, { text: 'Usage: .video <name or link>' }, { quoted: message });
+            await sock.sendMessage(chatId, { text: 'Usage: /video <name or link>' }, { quoted: message });
             return;
         }
 

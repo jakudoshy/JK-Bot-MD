@@ -4,7 +4,7 @@ module.exports = async function logoCommand(sock, chatId, msg, q = '') {
     const name = String(q || '').trim();
     if (!name) {
         return sock.sendMessage(chatId, {
-            text: '⚠️ Uso: .logo <nombre o concepto>\n\nEjemplo: .logo ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ gaming'
+            text: '⚠️ Uso: /logo <nombre o concepto>\n\nEjemplo: .logo ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ gaming'
         }, { quoted: msg });
     }
 

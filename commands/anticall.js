@@ -11,7 +11,7 @@ async function anticallCommand(sock, from, msg, isAdmin, botData, saveBotData, u
         saveBotData();
         await sock.sendMessage(from, { text: "❌ Anti-Call Disabled!" }, { quoted: msg });
     } else {
-        await sock.sendMessage(from, { text: "❌ Usage: .anticall [on/off]" }, { quoted: msg });
+        await sock.sendMessage(from, { text: "❌ Usage: /anticall [on/off]" }, { quoted: msg });
     }
 }
 

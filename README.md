@@ -77,29 +77,29 @@ Supabase guarda el estado Premium, pero las credenciales de sesión de WhatsApp 
 Con `OPENAI_API_KEY` configurada, el bot incluye:
 
 ```text
-.ai tu pregunta              Respuesta con contexto temporal
-.chatbot on                  Activa respuestas automáticas en chats privados
-.chatbot off                 Desactiva las respuestas automáticas
-.aiclear                     Borra el contexto de la conversación
-.imagen descripción          Genera una imagen y la envía por WhatsApp
-.videoia descripción         Genera una imagen y crea un corto MP4 animado de 5 segundos
+/ai tu pregunta              Respuesta con contexto temporal
+/chatbot on                  Activa respuestas automáticas en chats privados
+/chatbot off                 Desactiva las respuestas automáticas
+/aiclear                     Borra el contexto de la conversación
+/imagen descripción          Genera una imagen y la envía por WhatsApp
+/videoia descripción         Genera una imagen y crea un corto MP4 animado de 5 segundos
 ```
 
-La función `.videoia` actual crea un corto animado a partir de una imagen generada y necesita `ffmpeg` en el servidor. No llama directamente a Meta AI: Meta no ofrece una API pública universal para que cualquier bot de WhatsApp genere videos. Para video generativo real habría que conectar un proveedor de video que entregue una API y sus credenciales, sin exponerlas al usuario.
+La función `/videoia` actual crea un corto animado a partir de una imagen generada y necesita `ffmpeg` en el servidor. No llama directamente a Meta AI: Meta no ofrece una API pública universal para que cualquier bot de WhatsApp genere videos. Para video generativo real habría que conectar un proveedor de video que entregue una API y sus credenciales, sin exponerlas al usuario.
 
 ### Prefijos y grupos
 
-Todos los comandos de WhatsApp del bot pueden escribirse con punto o con barra; no hay una categoría especial limitada a un solo prefijo. Por ejemplo:
+Todos los comandos de WhatsApp del bot usan exclusivamente el prefijo slash `/`:
 
 ```text
-.menú   o   /menú
-.menu   o   /menu
-.ban    o   /ban
+/menú
+/menu
+/ban
 ```
 
 `ban` y `kick` son equivalentes. En un grupo, el administrador debe responder al mensaje de la persona o mencionarla. El bot también debe ser administrador para poder expulsarla.
 
-Los tokens generados desde el panel se guardan con su hash para validación y con su valor completo en el almacén privado cifrado/no público, por lo que permanecen visibles para el administrador después de una actualización. Los tokens creados antes de esta corrección solo pueden mostrar la vista previa, porque su valor original no se puede reconstruir desde un hash.
+Los tokens generados desde el panel se guardan con su hash para validación y con su valor completo en el almacén privado cifrado/no público, por lo que permanecen visibles para el administrador después de una actualización. Cada token nuevo permite hasta **5 personas**: `reclamado 1/5`, `2/5`, `3/5`, `4/5` y `5/5`. La misma persona no puede consumir dos cupos y los tokens antiguos se migran automáticamente al formato nuevo.
 
 ## Panel web
 

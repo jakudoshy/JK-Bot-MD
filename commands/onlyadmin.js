@@ -14,5 +14,5 @@ module.exports = async function onlyAdminCommand(sock, chatId, msg, isAdmin, bot
         return sock.sendMessage(chatId, { text: '🔓 Modo *Solo Admin* desactivado.' }, { quoted: msg });
     }
     const status = botData.adminOnlyGroups[chatId] ? 'Activado' : 'Desactivado';
-    return sock.sendMessage(chatId, { text: `🔐 Modo Solo Admin: *${status}*\n\nUsa *.onlyadmin on* u *.onlyadmin off*.` }, { quoted: msg });
+    return sock.sendMessage(chatId, { text: `🔐 Modo Solo Admin: *${status}*\n\nUsa */onlyadmin on* u */onlyadmin off*.` }, { quoted: msg });
 };

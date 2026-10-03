@@ -13,6 +13,6 @@ module.exports = async function(sock, chatId, msg, session, args = []) {
         return sock.sendMessage(chatId, { text: '⏸️ Chatbot IA desactivado.' }, { quoted: msg });
     }
     return sock.sendMessage(chatId, {
-        text: `🤖 *Configuración del chatbot*\n\nEstado: ${session.aiEnabled ? '✅ activado' : '⏸️ desactivado'}\n\n.chatbot on — activar respuestas automáticas\n.chatbot off — desactivar respuestas\n.aiclear — borrar el contexto de esta conversación`
+        text: `🤖 *Configuración del chatbot*\n\nEstado: ${session.aiEnabled ? '✅ activado' : '⏸️ desactivado'}\n\n/chatbot on — activar respuestas automáticas\n/chatbot off — desactivar respuestas\n/aiclear — borrar el contexto de esta conversación`
     }, { quoted: msg });
 };

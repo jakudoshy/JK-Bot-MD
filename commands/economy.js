@@ -109,11 +109,11 @@ function amount(value) {
     const parsed = Number(clean);
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
-function menu(prefix = '.') {
+function menu(prefix = '/') {
     return `╭───〔 🪙 ECONOMÍA 〕───╮\n│\n│ 💰 ${prefix}balance · Ver saldo\n│ 🏆 ${prefix}baltop · Ranking\n│ 🎁 ${prefix}daily · Recompensa diaria\n│ 💼 ${prefix}work · Trabajar\n│ 🏦 ${prefix}deposit · Depositar\n│ 💳 ${prefix}withdraw · Retirar\n│ 💸 ${prefix}pay · Transferir\n│ 🎰 ${prefix}coinflip · Cara o cruz\n│ 🎡 ${prefix}roulette · Ruleta\n│ 🕵️ ${prefix}crime · Cometer crimen\n│ 🦹 ${prefix}rob · Robar a un usuario\n│ 🎭 ${prefix}slut · Trabajo de riesgo\n│ ⏱️ ${prefix}einfo · Cooldowns\n│\n╰────────────────────────╯`;
 }
 
-async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotData, prefix = '.') {
+async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotData, prefix = '/') {
     if (command === 'economy' || command === 'economymenu') return reply(sock, chatId, msg, menu(prefix));
     const canonical = Object.keys(ALIASES).find(key => ALIASES[key].includes(command)) || command;
     if (!ALIASES[canonical]) return reply(sock, chatId, msg, menu(prefix));

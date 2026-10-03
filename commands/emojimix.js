@@ -18,7 +18,7 @@ async function emojimixCommand(sock, chatId, msg) {
 
         if (!text.includes('+')) {
             await sock.sendMessage(chatId, { 
-                text: '✳️ Separate the emoji with a *+* sign\n\n📌 Example: \n*.emojimix* 😎+🥰' 
+                text: '✳️ Separate the emoji with a *+* sign\n\n📌 Example: \n*/emojimix* 😎+🥰'
             });
             return;
         }

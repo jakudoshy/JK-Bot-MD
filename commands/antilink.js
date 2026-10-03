@@ -16,7 +16,7 @@ async function antilinkCommand(sock, from, msg, isAdmin, botData, saveBotData, a
         saveBotData();
         await sock.sendMessage(from, { text: "❌ Antienlace desactivado." }, { quoted: msg });
     } else {
-        await sock.sendMessage(from, { text: "ℹ️ Uso: .antilink on | off | kick" }, { quoted: msg });
+        await sock.sendMessage(from, { text: "ℹ️ Uso: /antilink on | off | kick" }, { quoted: msg });
     }
 }
 

@@ -4,7 +4,7 @@ module.exports = async function(sock, chatId, msg, q) {
     try {
         if (!q) {
             return await sock.sendMessage(chatId, {
-                text: '⚠️ Uso: .ipinfo 8.8.8.8\n\nEscribe una dirección IP para consultar.'
+                text: '⚠️ Uso: /ipinfo 8.8.8.8\n\nEscribe una dirección IP para consultar.'
             }, { quoted: msg });
         }
 

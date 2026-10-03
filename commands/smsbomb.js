@@ -9,7 +9,7 @@ module.exports = async function(sock, chatId, message, q) {
     try {
         await sock.sendMessage(chatId, { react: { text: '💣', key: message.key } });
 
-        if (!q) return await sock.sendMessage(chatId, { text: '⚠️ Usage: .smsbomb <number>' }, { quoted: message });
+        if (!q) return await sock.sendMessage(chatId, { text: '⚠️ Usage: /smsbomb <number>' }, { quoted: message });
 
         const target = onlyDigits(q);
         if (target.length < 10) return await sock.sendMessage(chatId, { text: '❌ Invalid number' }, { quoted: message });

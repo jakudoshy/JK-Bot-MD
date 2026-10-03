@@ -4,7 +4,7 @@ module.exports = async function(sock, chatId, msg, q) {
     try {
         if (!q) {
             return await sock.sendMessage(chatId, {
-                text: '⚠️ Uso: .binlookup 457173\n\nEscribe los primeros 6 dígitos de la tarjeta.'
+                text: '⚠️ Uso: /binlookup 457173\n\nEscribe los primeros 6 dígitos de la tarjeta.'
             }, { quoted: msg });
         }
 

@@ -19,7 +19,7 @@ async function kickOfflineCommand(sock, from, msg, isAdmin, botData, saveBotData
         saveBotData();
         await sock.sendMessage(from, { text: "❌ *Kick-Offline Disabled!*" }, { quoted: msg });
     } else {
-        await sock.sendMessage(from, { text: "❌ Usage: .kickoffline [on/off]" }, { quoted: msg });
+        await sock.sendMessage(from, { text: "❌ Usage: /kickoffline [on/off]" }, { quoted: msg });
     }
 }
 

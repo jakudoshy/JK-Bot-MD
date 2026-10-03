@@ -80,7 +80,7 @@ async function songCommand(sock, chatId, message) {
         const query = text.replace(/^\.song\s+/i, '').trim();
 
         if (!query || query.toLowerCase() === '.song') {
-            await sock.sendMessage(chatId, { text: 'Usage: .song <song name or YouTube link>' }, { quoted: message });
+            await sock.sendMessage(chatId, { text: 'Usage: /song <song name or YouTube link>' }, { quoted: message });
             return;
         }
 

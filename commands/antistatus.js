@@ -14,7 +14,7 @@ async function antistatusCommand(sock, from, msg, isAdmin, botData, saveBotData,
         saveBotData();
         await sock.sendMessage(from, { text: "❌ *Anti-Status Disabled!*" }, { quoted: msg });
     } else {
-        await sock.sendMessage(from, { text: "❌ Usage: .antistatus [on/off]" }, { quoted: msg });
+        await sock.sendMessage(from, { text: "❌ Usage: /antistatus [on/off]" }, { quoted: msg });
     }
 }
 

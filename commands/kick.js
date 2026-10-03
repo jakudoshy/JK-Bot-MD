@@ -9,7 +9,7 @@ async function kickCommand(sock, from, msg, isAdmin) {
 
     try {
         await sock.groupParticipantsUpdate(from, [quoted], "remove");
-        await sock.sendMessage(from, { text: '✅ Usuario expulsado del grupo. También puedes usar `.ban` o `/ban`.' }, { quoted: msg });
+        await sock.sendMessage(from, { text: '✅ Usuario expulsado del grupo. Usa `/ban` para esta acción.' }, { quoted: msg });
     } catch (e) {
         await sock.sendMessage(from, { text: '❌ No pude expulsar al usuario. Comprueba que el bot sea administrador.' }, { quoted: msg });
     }

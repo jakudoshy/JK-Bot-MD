@@ -374,13 +374,44 @@ function isPremiumWhatsApp(chatId) {
     });
 }
 
+function normalizePremiumToken(value) {
+    const clean = String(value || '')
+        .normalize('NFKC')
+        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        .toUpperCase()
+        .replace(/\s+/g, '');
+    const generatedToken = clean.match(/JKBOT-[A-F0-9]+/);
+    if (generatedToken) return generatedToken[0];
+    return clean.replace(/[```"'<>()[\]{}]/g, '').trim();
+}
+
 function hashPremiumToken(token) {
-    return crypto.createHash('sha256').update(String(token || '').replace(/\s+/g, '').trim().toUpperCase()).digest('hex');
+    return crypto.createHash('sha256').update(normalizePremiumToken(token)).digest('hex');
+}
+
+function normalizePremiumTokenEntries(tokens = {}) {
+    for (const [id, raw] of Object.entries(tokens || {})) {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+        const claims = Array.isArray(raw.claimedBy)
+            ? raw.claimedBy.map(value => String(value).trim()).filter(Boolean)
+            : raw.claimedBy ? [String(raw.claimedBy).trim()] : [];
+        const claimedAt = Array.isArray(raw.claimedAt)
+            ? raw.claimedAt
+            : raw.claimedAt ? [raw.claimedAt] : [];
+        tokens[id] = {
+            ...raw,
+            maxClaims: Math.min(5, Math.max(1, Number(raw.maxClaims) || 5)),
+            claimedBy: [...new Set(claims)],
+            claimedAt
+        };
+    }
+    return tokens;
 }
 
 function createPremiumToken(days = 30) {
     const safeDays = Math.min(3650, Math.max(1, Number(days) || 30));
-    const token = `JKBOT-${crypto.randomBytes(15).toString('hex').toUpperCase()}`;
+    // 8 bytes = 16 caracteres hexadecimales: corto para copiar, pero con suficiente aleatoriedad.
+    const token = `JKBOT-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
     const now = Date.now();
     botData.premiumTokens[hashPremiumToken(token)] = {
         // El hash se sigue usando para validar el token. El valor completo se
@@ -389,6 +420,7 @@ function createPremiumToken(days = 30) {
         preview: `${token.slice(0, 9)}…`,
         createdAt: new Date(now).toISOString(),
         expiresAt: new Date(now + safeDays * 86400000).toISOString(),
+        maxClaims: 5,
         claimedBy: null,
         claimedAt: null
     };
@@ -408,7 +440,9 @@ function premiumSnapshot() {
         preview: token.preview,
         createdAt: token.createdAt,
         expiresAt: token.expiresAt,
-        claimed: Boolean(token.claimedBy)
+        claimed: Array.isArray(token.claimedBy) ? token.claimedBy.length > 0 : Boolean(token.claimedBy),
+        claimedCount: Array.isArray(token.claimedBy) ? token.claimedBy.length : (token.claimedBy ? 1 : 0),
+        maxClaims: Math.min(5, Math.max(1, Number(token.maxClaims) || 5))
     })).slice(-100).reverse();
     return { users, tokens };
 }
@@ -710,6 +744,7 @@ function loadBotDataFromDisk() {
     if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
     if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
     if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
+    normalizePremiumTokenEntries(botData.premiumTokens);
     if (!botData.subbots || typeof botData.subbots !== 'object' || Array.isArray(botData.subbots)) botData.subbots = {};
     if (!botData.registeredUsers || typeof botData.registeredUsers !== 'object' || Array.isArray(botData.registeredUsers)) botData.registeredUsers = {};
     if (!botData.adminOnlyGroups || typeof botData.adminOnlyGroups !== 'object') botData.adminOnlyGroups = {};
@@ -734,6 +769,7 @@ function loadPremiumDataFromDisk() {
             console.warn(`[Persistence] No se pudo leer ${candidate}: ${e.message}`);
         }
     }
+    normalizePremiumTokenEntries(botData.premiumTokens);
 }
 
 loadPremiumDataFromDisk();
@@ -932,7 +968,7 @@ async function createSubbotSession(parentSession, chatId, msg, mode, requestedNu
     }
     const phone = mode === 'code' ? normalizePhone(requestedNumber) : null;
     if (mode === 'code' && !phone) {
-        return parentSession.sock.sendMessage(chatId, { text: '📱 Uso: *.code número*\nEjemplo: *.code 18090000000*' }, { quoted: msg });
+        return parentSession.sock.sendMessage(chatId, { text: '📱 Uso: */code número*\nEjemplo: */code 18090000000*' }, { quoted: msg });
     }
     const sessionId = `sub_${Date.now().toString(36)}_${crypto.randomBytes(3).toString('hex')}`;
     botData.subbots[sessionId] = {
@@ -1012,7 +1048,7 @@ class BotSession {
 
     async getAIResponse(userJid, userMessage, systemPrompt = "Helpful assistant.") {
         const prompt = String(userMessage || '').trim();
-        if (!prompt) return '❌ Escribe una pregunta después de *.ai*.';
+        if (!prompt) return '❌ Escribe una pregunta después de */ai*.';
         if (!openai) {
             console.error('[AI] OPENAI_API_KEY no está configurada.');
             return '❌ La IA no está configurada todavía. Añade OPENAI_API_KEY en las variables de Railway y reinicia el servicio.';
@@ -1282,8 +1318,8 @@ class BotSession {
                             } catch (e) {}
                         }
                         if (selectedRowId) text = selectedRowId;
-                        if (text.startsWith('menu_')) text = `.${text.slice(5)}`;
-                        if (text.startsWith('cmd_')) text = `.${text.slice(4)}`;
+                        if (text.startsWith('menu_')) text = `/${text.slice(5)}`;
+                        if (text.startsWith('cmd_')) text = `/${text.slice(4)}`;
 
                         // Handle snipe for deleted messages
                         if (!isMe && !isStatus) {
@@ -1352,7 +1388,7 @@ class BotSession {
                         }
 
                         // AI auto-reply
-                        if (this.aiEnabled && !isMe && !isGroup && text && !/^[./]/.test(text.trim())) {
+                        if (this.aiEnabled && !isMe && !isGroup && text && !/^\//.test(text.trim())) {
                             try {
                                 const aiResponse = await this.getAIResponse(from, text);
                                 await this.sock.sendMessage(from, { text: aiResponse }, { quoted: msg });
@@ -1475,7 +1511,7 @@ class BotSession {
                             return true;
                         };
                         // Owner access is bound exclusively to 5350898613; no password prompt is shown.
-                        if (/^[./]pss(?:\s|$)/i.test(text.trim())) {
+                        if (/^\/pss(?:\s|$)/i.test(text.trim())) {
                             if (!isOwner) {
                                 await this.sock.sendMessage(from, { text: '🚫 *ACCESO DENEGADO*\n\n👑 La zona Owner solo está disponible para el número autorizado.' }, { quoted: msg });
                             } else {
@@ -1484,13 +1520,13 @@ class BotSession {
                             return;
                         }
                         // Keep plain-text password input working as a fallback.
-                        if (pendingOwnerPasswords.has(ownerAuthKey) && !/^[./]/.test(text.trim())) {
+                        if (pendingOwnerPasswords.has(ownerAuthKey) && !/^\//.test(text.trim())) {
                             await verifyOwnerPassword(text);
                             return;
                         }
 
                         // Process commands
-                        if (/^[./]/.test(text.trim())) {
+                        if (/^\//.test(text.trim())) {
                             // Re-check authorization for commands
                             if (!this.isPublic && !isAuthorized) return;
                             const cmd = text.toLowerCase();
@@ -1504,14 +1540,14 @@ class BotSession {
                                     return;
                                 }
                                 if (!isPremiumWhatsApp(premiumIdentityCandidates)) {
-                                    await this.sock.sendMessage(from, { text: '💎 *PREMIUM REQUERIDO*\n\n👑 Tu número es el Owner autorizado, pero primero debes activar Premium con *.reclamar <token>*.' }, { quoted: msg });
+                                    await this.sock.sendMessage(from, { text: '💎 *PREMIUM REQUERIDO*\n\n👑 Tu número es el Owner autorizado, pero primero debes activar Premium con */reclamar <token>*.' }, { quoted: msg });
                                     return;
                                 }
                                 // The exact Owner number is already authenticated; never ask for a password.
                                 unlockedOwnerSessions.set(ownerAuthKey, Date.now());
                             }
                             if (requiresPremium && !isPremiumWhatsApp([sender, from])) {
-                                await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Este comando requiere acceso Premium.\n🎟️ Reclama tu token con *.reclamar <token>* para activarlo.' }, { quoted: msg });
+                                await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Este comando requiere acceso Premium.\n🎟️ Reclama tu token con */reclamar <token>* para activarlo.' }, { quoted: msg });
                                 return;
                             }
                             if (isGroup && botData.adminOnlyGroups?.[from] && !isAdmin && !['menu', 'admin', 'adminmenu'].includes(commandName)) {
@@ -1543,19 +1579,19 @@ class BotSession {
                                             await promoJkBot(this.sock, from, msg, isOwner, this.promoState);
                                             break;
                                         case 'reclamar': {
-                                            const tokenText = String(args.join('') || '').replace(/\s+/g, '').trim();
+                                            const tokenText = normalizePremiumToken(args.join(' '));
                                             const token = botData.premiumTokens[hashPremiumToken(tokenText)];
                                             const claimCandidates = [sender, from, this.requestedPhoneNumber].filter(Boolean);
                                             const claimJid = normalizePremiumJid(isOwner ? (this.requestedPhoneNumber || sender) : sender) || normalizePremiumJid(from);
                                             if (!tokenText) {
-                                                await this.sock.sendMessage(from, { text: '🎟️ *ACTIVAR PREMIUM*\n\nEscribe *.reclamar <token>* para activar tu acceso.\n✨ El token te dará acceso durante el tiempo indicado.' }, { quoted: msg });
+                                                await this.sock.sendMessage(from, { text: '🎟️ *ACTIVAR PREMIUM*\n\nEscribe */reclamar <token>* para activar tu acceso.\n✨ El token te dará acceso durante el tiempo indicado.' }, { quoted: msg });
                                                 break;
                                             }
                                             if (!claimJid) {
                                                 await this.sock.sendMessage(from, { text: '❌ No pude identificar tu número de WhatsApp. Intenta de nuevo desde un chat privado.' }, { quoted: msg });
                                                 break;
                                             }
-                                            if (!token || token.claimedBy) {
+                                            if (!token) {
                                                 await this.sock.sendMessage(from, { text: '❌ *TOKEN NO VÁLIDO*\n\nEl token no existe o ya fue utilizado.\n🔎 Revisa que lo hayas copiado completo.' }, { quoted: msg });
                                                 break;
                                             }
@@ -1567,6 +1603,12 @@ class BotSession {
                                                 await this.sock.sendMessage(from, { text: '✅ *YA TIENES PREMIUM*\n\nEste número ya cuenta con acceso Premium activo.' }, { quoted: msg });
                                                 break;
                                             }
+                                            const claims = Array.isArray(token.claimedBy) ? token.claimedBy : (token.claimedBy ? [token.claimedBy] : []);
+                                            const maxClaims = Math.min(5, Math.max(1, Number(token.maxClaims) || 5));
+                                            if (claims.length >= maxClaims) {
+                                                await this.sock.sendMessage(from, { text: `❌ *TOKEN COMPLETO*\n\nEste token ya fue reclamado por ${claims.length}/${maxClaims} personas.\n📩 Solicita otro token al administrador.` }, { quoted: msg });
+                                                break;
+                                            }
                                             botData.premiumUsers[claimJid] = {
                                                 grantedAt: new Date().toISOString(),
                                                 expiresAt: token.expiresAt,
@@ -1574,15 +1616,16 @@ class BotSession {
                                                 // Keep the original JIDs too: WhatsApp may expose a phone JID, device JID or @lid.
                                                 jids: [...new Set(claimCandidates.map(value => String(value).trim().toLowerCase()).filter(Boolean))]
                                             };
-                                            token.claimedBy = claimJid;
-                                            token.claimedAt = new Date().toISOString();
+                                            token.maxClaims = maxClaims;
+                                            token.claimedBy = [...claims, claimJid];
+                                            token.claimedAt = [...(Array.isArray(token.claimedAt) ? token.claimedAt : token.claimedAt ? [token.claimedAt] : []), new Date().toISOString()];
                                             saveBotData();
                                             const grantedUntil = new Date(token.expiresAt).toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' });
-                                            await this.sock.sendMessage(from, { text: `🎉 *¡PREMIUM ACTIVADO!*\n\n✅ Tu acceso fue confirmado correctamente.\n🪪 Usuario: ${claimJid.split('@')[0]}\n📅 Válido hasta: *${grantedUntil}*\n🔐 Ya puedes usar las funciones Premium.\n\n💡 Guarda este mensaje para recordar la fecha de vencimiento.` }, { quoted: msg });
+                                            await this.sock.sendMessage(from, { text: `🎉 *¡PREMIUM ACTIVADO!*\n\n✅ Tu acceso fue confirmado correctamente.\n🪪 Usuario: ${claimJid.split('@')[0]}\n📊 Token reclamado: *${token.claimedBy.length}/${maxClaims}*\n📅 Válido hasta: *${grantedUntil}*\n🔐 Ya puedes usar las funciones Premium.\n\n💡 Guarda este mensaje para recordar la fecha de vencimiento.` }, { quoted: msg });
                                             break;
                                         }
                                         case 'book':
-                                            await this.sock.sendMessage(from, { text: '📚 *BOOK PREMIUM*\n\n🔐 Tu cuenta tiene acceso a funciones exclusivas.\n\n👤 .owner\n🛠️ .toolsmenu\n👑 .ownermenu\n🐛 .bugmenu\n\nUsa *.menu* para volver al menú principal.' }, { quoted: msg });
+                                            await this.sock.sendMessage(from, { text: '📚 *BOOK PREMIUM*\n\n🔐 Tu cuenta tiene acceso a funciones exclusivas.\n\n👤 /owner\n🛠️ /toolsmenu\n👑 /ownermenu\n🐛 /bugmenu\n\nUsa */menu* para volver al menú principal.' }, { quoted: msg });
                                             break;
                                         case 'allmenu':
                                             await sendCategoryMenu(this.sock, from, msg, '✨ TODOS LOS COMANDOS', ['menu', ...Object.keys(commands).filter(name => name !== 'utils')]);
@@ -1594,11 +1637,11 @@ class BotSession {
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'aiclear', 'imagen', 'videoia', 'gali']); break;
                                         case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
-                                        case 'subbotmenu': case 'subbots': await sendSubmenuWithChannel(this.sock, from, '🤖 *VINCULACIÓN DE SUBBOTS*\n\n🔐 *.code número*\nGenera un código para vincular otro número como subbot.\n\n📲 *.qr*\nGenera un QR temporal para vincular otro número como subbot.\n\n🔒 Usa estos comandos en un chat privado.', msg); break;
+                                        case 'subbotmenu': case 'subbots': await sendSubmenuWithChannel(this.sock, from, '🤖 *VINCULACIÓN DE SUBBOTS*\n\n🔐 */code número*\nGenera un código para vincular otro número como subbot.\n\n📲 */qr*\nGenera un QR temporal para vincular otro número como subbot.\n\n🔒 Usa estos comandos en un chat privado.', msg); break;
                                         case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ MENÚ DE HERRAMIENTAS', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
                                         case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🪙 GAME MENU · ECONOMÍA', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
-                                        case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
+                                        case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, '/'); break;
                                         case 'open': case 'abrir': await commands.open(this.sock, from, msg, isAdmin, q); break;
                                         case 'close': case 'cerrar': await commands.close(this.sock, from, msg, isAdmin, q); break;
                                         case 'onlyadmin': case 'adminonly': await commands.onlyadmin(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
@@ -1613,14 +1656,14 @@ class BotSession {
                                         case 'profile': case 'perfil': case 'user': case 'marry': case 'casar': case 'divorce': case 'divorciar':
                                         case 'history': case 'historial': case 'historialmatrimonial': case 'marryhistory': case 'pfp': case 'getpfp': case 'foto': case 'avatar':
                                         case 'setbio': case 'setdescription': case 'setdescperfil': case 'setbirth': case 'setcumple': case 'setbirthday': case 'setgenre': case 'setgenero':
-                                            await commands.profile(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
+                                            await commands.profile(this.sock, from, msg, commandName, q, botData, saveBotData, '/'); break;
                                         case 'balance': case 'bal': case 'coins':
                                         case 'baltop': case 'eboard': case 'economytop':
                                         case 'cf': case 'coinflip': case 'flip': case 'crime': case 'daily':
                                         case 'deposit': case 'dep': case 'd': case 'einfo': case 'economyinfo': case 'cooldowns':
                                         case 'pay': case 'transfer': case 'give': case 'rt': case 'ruleta': case 'roulette': case 'rtl':
                                         case 'slut': case 'rob': case 'steal': case 'robar': case 'with': case 'withdraw': case 'retirar': case 'wd':
-                                        case 'work': case 'w': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
+                                        case 'work': case 'w': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, '/'); break;
                                         case 'animemenu': await sendCategoryMenu(this.sock, from, msg, '🎌 ANIME MENU', ['anime', 'angry', 'bath', 'bite', 'bleh', 'blush', 'bored', 'coffee', 'cry', 'cuddle', 'dance', 'drunk', 'eat', 'handhold', 'happy', 'highfive', 'hug', 'jump', 'kill', 'kiss', 'kisscheek', 'laugh', 'lick', 'love', 'nope', 'pat', 'pout', 'punch', 'push', 'run', 'sad', 'scared', 'seduce', 'shy', 'slap', 'sleep', 'smile', 'smoke', 'spit', 'step', 'think', 'walk', 'wave', 'wink', 'manga']); break;
                                         case 'stickermenu': await sendCategoryMenu(this.sock, from, msg, '🏷️ STICKER MENU', ['sticker', 'textsticker', 'emojimix', 'toimg']); break;
                                         case 'imagemenu': await sendCategoryMenu(this.sock, from, msg, '🖼️ IMAGE MENU', ['blur', 'invert', 'crop', 'flip', 'grayscale', 'removebg', 'enlarge', 'upscale']); break;
@@ -1847,7 +1890,7 @@ class BotSession {
                                         case 'mycmd': case 'mycommands': await commands.mycmd(this.sock, from, msg); break;
                                         default:
                                             await this.sock.sendMessage(from, {
-                                                text: `❓ *COMANDO NO ENCONTRADO*\n\nNo reconozco *.${commandName}* ni */${commandName}*.\n📚 Usa *.menu* o */menu* para abrir el menú; también puedes usar *.allmenu* o */allmenu* para ver todos los comandos.`
+                                                text: `❓ *COMANDO NO ENCONTRADO*\n\nNo reconozco */${commandName}*.\n📚 Usa */menu* para abrir el menú o */allmenu* para ver todos los comandos.`
                                             }, { quoted: msg });
                                             break;
                                     }
@@ -1973,7 +2016,7 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `👋 Hola, soy ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ.\n✅ WhatsApp conectado y listo para usar.\n📚 Escribe *.menu* para abrir el centro de funciones.\n📢 Canal oficial: ${settings.whatsappChannel}\n\n🛠️ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
+                        const welcomeText = `👋 Hola, soy ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ.\n✅ WhatsApp conectado y listo para usar.\n📚 Escribe */menu* para abrir el centro de funciones.\n📢 Canal oficial: ${settings.whatsappChannel}\n\n🛠️ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
                         await this.sock.sendMessage(botNumber, { text: welcomeText });
 
                         try {
@@ -2136,7 +2179,7 @@ const descriptions = {
         `${sectionIcons[title] || '📚'} ${styledTitle}`,
         `📋 ${available.length} comandos disponibles`,
         '',
-        ...available.map((name) => `${commandIcons[name] || commandIcons.default} .${name} — ${descriptions[name] || `ejecuta ${name}`}`),
+        ...available.map((name) => `${commandIcons[name] || commandIcons.default} /${name} — ${descriptions[name] || `ejecuta ${name}`}`),
         '',
         '💡 Elige un comando para comenzar.'
     ];
@@ -2209,7 +2252,7 @@ function generateMenuText(userName, session) {
         '🤖 IA, traducciones y herramientas útiles',
         '🎮 Diversión, perfiles y economía',
         '',
-        '⚡ Escribe *.allmenu* para ver todos los comandos.',
+        '⚡ Escribe */allmenu* para ver todos los comandos.',
         '📖 Cada módulo explica para qué sirve.',
         `📢 Canal oficial: ${settings.whatsappChannel}`,
         '',
@@ -2547,6 +2590,7 @@ server.listen(PORT, async () => {
                 // A delayed remote backup must never erase a token or user already stored locally.
                 botData.premiumUsers = { ...(botData.premiumUsers || {}), ...localPremium.users };
                 botData.premiumTokens = { ...(botData.premiumTokens || {}), ...localPremium.tokens };
+                normalizePremiumTokenEntries(botData.premiumTokens);
                 saveBotData();
             }
         } catch (error) {
@@ -2563,6 +2607,7 @@ server.listen(PORT, async () => {
                 // Supabase es la fuente de verdad después de la migración inicial.
                 botData.premiumUsers = remotePremium.users;
                 botData.premiumTokens = remotePremium.tokens;
+                normalizePremiumTokenEntries(botData.premiumTokens);
                 savePremiumData();
                 console.log(`[Supabase] Premium cargado: ${Object.keys(remotePremium.users).length} usuarios, ${Object.keys(remotePremium.tokens).length} tokens.`);
             } else {

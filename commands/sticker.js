@@ -81,7 +81,7 @@ module.exports = async function stickerCommand(sock, chatId, msg, textArg = '') 
         }
         if (!selected) {
             return await sock.sendMessage(chatId, {
-                text: '⚠️ Usa *.sticker <texto>* para crear un sticker con texto, o envía/responde a una imagen o video.'
+                text: '⚠️ Usa */sticker <texto>* para crear un sticker con texto, o envía/responde a una imagen o video.'
             }, { quoted: msg });
         }
 

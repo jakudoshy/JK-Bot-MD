@@ -73,7 +73,7 @@ async function fetchInteractionMedia(canonical) {
     throw lastError || new Error('No se pudo obtener la reacción');
 }
 async function animeInfo(sock, chatId, msg, query) {
-    if (!query) return sock.sendMessage(chatId, { text: `${animeMenu}\n\nTambién puedes buscar un anime con: *.anime <nombre>*` }, { quoted: msg });
+    if (!query) return sock.sendMessage(chatId, { text: `${animeMenu}\n\nTambién puedes buscar un anime con: */anime <nombre>*` }, { quoted: msg });
     try {
         const response = await axios.get('https://api.jikan.moe/v4/anime', { params: { q: query, limit: 1, sfw: true }, timeout: 15000, headers: { Accept: 'application/json', 'User-Agent': 'JK-BOT-MD/3.0' } });
         const anime = response.data?.data?.[0];

@@ -123,7 +123,7 @@ const utils = {
 
     // 11. Translate
     trt: async (sock, from, msg, q) => {
-        if (!q) return sock.sendMessage(from, { text: "❌ Usage: .trt [lang] [text]" });
+        if (!q) return sock.sendMessage(from, { text: "❌ Usage: /trt [lang] [text]" });
         const lang = q.split(' ')[0];
         const textToTrt = q.split(' ').slice(1).join(' ');
         try {

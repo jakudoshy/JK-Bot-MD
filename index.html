@@ -998,7 +998,9 @@ function renderPremiumData(data={}){
     return `<div class="premium-list-row"><span>${user.active ? '🟢' : '⚪'} ${escapeAdminHtml(jid.replace('@s.whatsapp.net',''))}${escapeAdminHtml(expiry)}</span><button class="premium-remove" data-premium-user="${escapeAdminHtml(jid)}" type="button">Quitar</button></div>`;
   }).join('') : 'Sin usuarios agregados.');
   premiumTokensList.innerHTML='<strong>Tokens generados</strong>' + (tokens.length ? tokens.map(token=>{
-    const state = token.claimed ? '✅ reclamado' : '🟡 disponible';
+    const claimedCount = Number(token.claimedCount || (token.claimed ? 1 : 0));
+    const maxClaims = Number(token.maxClaims || 5);
+    const state = claimedCount >= maxClaims ? `✅ reclamado ${claimedCount}/${maxClaims}` : `🟡 reclamado ${claimedCount}/${maxClaims}`;
     const value = token.value || token.preview || token.id;
     return `<div class="premium-list-row"><span title="Token Premium persistido"><code>${escapeAdminHtml(value)}</code> · ${state}</span><button class="premium-remove" data-premium-token="${escapeAdminHtml(token.id)}" type="button">Eliminar</button></div>`;
   }).join('') : 'Sin tokens generados.');

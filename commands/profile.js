@@ -60,11 +60,11 @@ function formatBirth(value) {
     return `${day} de ${MONTH_NAMES[month - 1] || 'mes desconocido'}${parts[2] ? ` de ${parts[2]}` : ''}`;
 }
 function targetName(botData, jid) { return botData.profiles?.[jid]?.name || `+${numberOf(jid)}`; }
-function profileMenu(prefix = '.') {
+function profileMenu(prefix = '/') {
     return `╭───〔 👤 PERFIL 〕───╮\n│\n│ 👤 ${prefix}perfil · Ver perfil\n│ 💍 ${prefix}marry · Casarse\n│ 💔 ${prefix}divorce · Divorciarse\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 🖼️ ${prefix}pfp · Ver foto de perfil\n│ 🎂 ${prefix}setbirth · Cumpleaños\n│ ✍️ ${prefix}setbio · Descripción\n│ ⚧️ ${prefix}setgenre · Género\n│\n╰────────────────────╯`;
 }
 
-async function profileCommand(sock, chatId, msg, command = 'profile', q = '', botData, saveBotData, prefix = '.') {
+async function profileCommand(sock, chatId, msg, command = 'profile', q = '', botData, saveBotData, prefix = '/') {
     const canonical = ALIAS_TO_COMMAND[String(command || '').toLowerCase()] || 'profile';
     const own = jidOf(msg, chatId);
     const ownProfile = ensure(botData, own, msg?.pushName || 'Usuario');

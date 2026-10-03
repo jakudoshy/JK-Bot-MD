@@ -8,7 +8,7 @@ module.exports = async function(sock, chatId, message, q) {
     try {
         await sock.sendMessage(chatId, { react: { text: '⏳', key: message.key } });
 
-        if (!q) return await sock.sendMessage(chatId, { text: '⚠️ Usage: .report <number/mention>' }, { quoted: message });
+        if (!q) return await sock.sendMessage(chatId, { text: '⚠️ Usage: /report <number/mention>' }, { quoted: message });
 
         let target = onlyDigits(q);
         if (message.message?.extendedTextMessage?.contextInfo?.mentionedJid) {

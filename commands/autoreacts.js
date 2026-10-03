@@ -9,7 +9,7 @@ async function autoreactsCommand(sock, from, msg, isAdmin, session, args) {
         session.autoReact = false;
         await sock.sendMessage(from, { text: "❌ Auto-React Disabled!" }, { quoted: msg });
     } else {
-        await sock.sendMessage(from, { text: "❌ Usage: .autoreacts [on/off]" }, { quoted: msg });
+        await sock.sendMessage(from, { text: "❌ Usage: /autoreacts [on/off]" }, { quoted: msg });
     }
 }
 
