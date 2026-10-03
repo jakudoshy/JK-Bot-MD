@@ -443,7 +443,7 @@ function premiumSnapshot() {
         claimed: Array.isArray(token.claimedBy) ? token.claimedBy.length > 0 : Boolean(token.claimedBy),
         claimedCount: Array.isArray(token.claimedBy) ? token.claimedBy.length : (token.claimedBy ? 1 : 0),
         maxClaims: Math.min(5, Math.max(1, Number(token.maxClaims) || 5))
-    })).slice(-100).reverse();
+    })).sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
     return { users, tokens };
 }
 
