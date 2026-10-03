@@ -734,6 +734,9 @@ function saveBotData() {
     githubBackup.scheduleBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
 }
 
+// Materialize the independent Premium store immediately, even before the first token is generated.
+if (!fs.existsSync(PREMIUM_DATA_FILE)) savePremiumData();
+
 const sessions = {};
 const userSockets = {};
 const messageLogs = {};
