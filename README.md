@@ -64,6 +64,8 @@ La interfaz usa un diseño propio rojo/hacker con:
 - Generación y gestión de acceso Premium.
 - Difusión y promoción disponibles para el administrador autenticado.
 
+> Nota de mantenimiento: los datos persistentes del bot se conservan fuera del código fuente.
+
 ## Uso responsable
 
 Usa el bot respetando las reglas de WhatsApp, la privacidad de las personas y las leyes aplicables. Las herramientas de automatización, difusión y pruebas deben utilizarse únicamente con autorización.
