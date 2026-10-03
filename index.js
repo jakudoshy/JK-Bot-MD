@@ -2035,8 +2035,8 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
                     ['miscmenu', '📦 Misceláneos'],
                     ['bugmenu', '🐞 Reportes']
                 ].map(([id, title]) => ({
-                    title,
-                    description: `Abrir ${title.replace(/^[^ ]+ /, '')}`,
+                    title: smallCaps(title),
+                    description: smallCaps(`Abrir ${title.replace(/^[^ ]+ /, '')}`),
                     id: `menu_${id}`
                 }))
             }]
@@ -2140,7 +2140,7 @@ const descriptions = {
         '',
         '💡 Elige un comando para comenzar.'
     ];
-    await sendSubmenuWithChannel(sock, from, lines.join('\n'), msg);
+    await sendSubmenuWithChannel(sock, from, smallCaps(lines.join('\n')), msg);
 }
 
 async function sendSubmenuWithChannel(sock, jid, text, quoted) {
