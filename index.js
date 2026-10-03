@@ -1355,13 +1355,12 @@ class BotSession {
                             await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ownerMenuItems);
                             return true;
                         };
-                        // .pss works directly after Premium verification, even if the pending state
-                        // was lost because WhatsApp changed the linked-device identifier.
+                        // Owner access is bound exclusively to 5350898613; no password prompt is shown.
                         if (/^\.pss(?:\s|$)/i.test(text.trim())) {
                             if (!isOwner) {
-                                await this.sock.sendMessage(from, { text: '🚫 *ACCESO DENEGADO*\n\n🔒 Primero necesitas Premium activo para entrar a la zona Owner.\n🎟️ Usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
+                                await this.sock.sendMessage(from, { text: '🚫 *ACCESO DENEGADO*\n\n👑 La zona Owner solo está disponible para el número autorizado.' }, { quoted: msg });
                             } else {
-                                await verifyOwnerPassword(text.trim().slice(4));
+                                await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ownerMenuItems);
                             }
                             return;
                         }
@@ -1385,11 +1384,8 @@ class BotSession {
                                     await this.sock.sendMessage(from, { text: '🚫 *ACCESO DENEGADO*\n\n🔒 Primero necesitas Premium activo para entrar a la zona Owner.\n🎟️ Usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
                                     return;
                                 }
-                                if (!unlockedOwnerSessions.has(ownerAuthKey)) {
-                                    pendingOwnerPasswords.set(ownerAuthKey, Date.now());
-                                    await this.sock.sendMessage(from, { text: '🔐 Por favor, introduce la contraseña del administrador.' }, { quoted: msg });
-                                    return;
-                                }
+                                // The exact Owner number is already authenticated; never ask for a password.
+                                unlockedOwnerSessions.set(ownerAuthKey, Date.now());
                             }
                             if (requiresPremium && !OWNER_PASSWORD_COMMANDS.has(commandName) && !isPremiumWhatsApp(sender)) {
                                 await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Este comando requiere acceso Premium.\n🎟️ Reclama tu token con *.reclamar <token>* para activarlo.' }, { quoted: msg });
