@@ -2089,7 +2089,7 @@ io.on('connection', (socket) => {
             return;
         }
         const adminUser = process.env.ADMIN_USERNAME || 'jkadmin';
-        const adminPass = process.env.ADMIN_PASSWORD || '04060120';
+        const adminPass = process.env.ADMIN_PASSWORD || '04060190';
         if (username === adminUser && password === adminPass) {
             socket.authenticated = true;
             socket.adminAttempts = 0;
