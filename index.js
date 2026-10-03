@@ -968,6 +968,7 @@ class BotSession {
         this.userChats = {};
         this.lastConnectMessageTime = null;
         this.phoneNumber = null;
+        this.requestedPhoneNumber = null;
         this.ghostMode = false;
         this.subbotMode = botData.subbots[userId]?.mode || 'bot';
         this.subbotOwner = botData.subbots[userId]?.ownerJid || null;
@@ -1051,6 +1052,7 @@ class BotSession {
             this.sendLog("Initialization already in progress...", "info");
             return;
         }
+        if (pairingNumber) this.requestedPhoneNumber = normalizePhone(pairingNumber);
         this.isInitializing = true;
         try {
             const { version } = await fetchLatestBaileysVersion();
@@ -1338,10 +1340,12 @@ class BotSession {
                         const ownerIdentityMatches = ownerIdentityCandidates.some(value =>
                             String(value).split('@')[0].split(':')[0].replace(/\D/g, '') === OWNER_WHATSAPP_NUMBER
                         );
+                        const linkedOwnerSession = this.requestedPhoneNumber === OWNER_WHATSAPP_NUMBER;
                         // Owner is deliberately independent from Premium and environment configuration.
                         // Only the exact WhatsApp number 5350898613 may run Owner commands.
                         // For a self-chat, WhatsApp may omit the sender phone and only mark the message as fromMe.
-                        const isOwner = ownerIdentityMatches || (isMe && botNumberClean === OWNER_WHATSAPP_NUMBER);
+                        const isOwner = ownerIdentityMatches || (isMe && (botNumberClean === OWNER_WHATSAPP_NUMBER || linkedOwnerSession));
+                        const premiumIdentityCandidates = [...ownerIdentityCandidates, this.requestedPhoneNumber].filter(Boolean);
 
                         const isSessionUser = senderClean === this.phoneNumber || senderClean === this.userId || senderClean === botNumberClean;
 
@@ -1453,7 +1457,7 @@ class BotSession {
                                     await this.sock.sendMessage(from, { text: '🚫 *ACCESO DENEGADO*\n\n👑 Esta sección es exclusiva del número Owner autorizado.' }, { quoted: msg });
                                     return;
                                 }
-                                if (!isPremiumWhatsApp([sender, from])) {
+                                if (!isPremiumWhatsApp(premiumIdentityCandidates)) {
                                     await this.sock.sendMessage(from, { text: '💎 *PREMIUM REQUERIDO*\n\n👑 Tu número es el Owner autorizado, pero primero debes activar Premium con *.reclamar <token>*.' }, { quoted: msg });
                                     return;
                                 }
@@ -1495,8 +1499,8 @@ class BotSession {
                                         case 'reclamar': {
                                             const tokenText = String(args.join('') || '').replace(/\s+/g, '').trim();
                                             const token = botData.premiumTokens[hashPremiumToken(tokenText)];
-                                            const claimCandidates = [sender, from].filter(Boolean);
-                                            const claimJid = normalizePremiumJid(sender) || normalizePremiumJid(from);
+                                            const claimCandidates = [sender, from, this.requestedPhoneNumber].filter(Boolean);
+                                            const claimJid = normalizePremiumJid(isOwner ? (this.requestedPhoneNumber || sender) : sender) || normalizePremiumJid(from);
                                             if (!tokenText) {
                                                 await this.sock.sendMessage(from, { text: '🎟️ *ACTIVAR PREMIUM*\n\nEscribe *.reclamar <token>* para activar tu acceso.\n✨ El token te dará acceso durante el tiempo indicado.' }, { quoted: msg });
                                                 break;
