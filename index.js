@@ -2176,7 +2176,7 @@ class BotSession {
                         const welcomeText = `╭─「 *${botName}* 」─╮\n│\n│ 👋 *WhatsApp conectado*\n│ ✅ Bot listo para usar\n│ 📚 Escribe */menu* para abrir el menú\n│\n╰➺ *Canal:* ${settings.officialChannelName}\n${settings.telegramChannel}\n\n🛠️ *ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ*`;
                         try {
                             await this.sock.sendMessage(botNumber, {
-                                image: { url: settings.startimage },
+                                image: { url: path.join(__dirname, BANNER_FILE) },
                                 caption: welcomeText
                             });
                         } catch (welcomeImageError) {
