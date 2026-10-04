@@ -692,10 +692,6 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
 
     <div class="input-box">
       <div class="input-group">
-        <i class="fas fa-id-badge"></i>
-        <input type="text" id="profileName" maxlength="40" placeholder="Nombre del bot (ej.: Facurochi o Enri)">
-      </div>
-      <div class="input-group">
         <i class="fas fa-phone"></i>
         <input type="tel" id="phone" placeholder="Ej.: 5491112345678 (con código de país)">
       </div>
@@ -845,7 +841,6 @@ function setStatus(msg, type){
 const menuToggle=document.getElementById('menuToggle'),menuDrawer=document.getElementById('menuDrawer'),menuClose=document.getElementById('menuClose');function setMenu(open){menuDrawer.classList.toggle('open',open);menuDrawer.setAttribute('aria-hidden',String(!open));menuToggle.setAttribute('aria-expanded',String(open));}menuToggle?.addEventListener('click',()=>setMenu(!menuDrawer.classList.contains('open')));menuClose?.addEventListener('click',()=>setMenu(false));menuDrawer?.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>setMenu(false)));
 	const socket = io();
 	const phoneInput = document.getElementById('phone');
-	const profileNameInput = document.getElementById('profileName');
 	const requestBtn = document.getElementById('requestPairing');
 const codeWrap = document.getElementById('codeWrap');
 const pairingCode = document.getElementById('pairingCode');
@@ -1056,8 +1051,7 @@ requestBtn.addEventListener('click', ()=>{
 
   const userId = 'user_' + Math.random().toString(36).substr(2,9);
   socket.emit('set-user', userId);
-	  const displayName = (profileNameInput?.value || '').trim();
-	  socket.emit('pair-request', { userId, number, displayName });
+	  socket.emit('pair-request', { userId, number });
 });
 
 socket.on('pairing-started', (msg)=>{
