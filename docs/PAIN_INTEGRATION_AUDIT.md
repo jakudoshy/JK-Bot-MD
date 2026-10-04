@@ -247,3 +247,10 @@ La integración debe hacerse por módulos compatibles y conservar la licencia GP
 - Arranque local validado: `/health` = `OK`; catálogo: `199 core + 430 importados + 592 Pain = 1221 registrados`.
 
 Los módulos de spam, ataques, llamadas/SMS masivos, crash/freeze/bug, nuke, modos ilegales, NSFW y modificaciones remotas del bot quedan fuera del cargador automático.
+
+## Menú y bienvenida
+
+- La bienvenida usa el banner de la web, muestra el Owner `ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ` y recomienda `/start`.
+- `/start` es el menú principal; `/menu` y `/menú` siguen funcionando como alias.
+- `/allmenu` muestra los aliases Pain cargados y el resumen combinado.
+- Métrica activa del servidor: **198 JK + 430 HuTao + 592 Pain = 1220**.

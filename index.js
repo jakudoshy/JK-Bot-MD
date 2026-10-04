@@ -17,7 +17,7 @@ const postgresPremiumStore = require('./lib/postgresPremiumStore');
 const aiMedia = require('./lib/aiMedia');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
 const { runHutaoCommand, getHutaoCommandCount } = require('./lib/hutaoBridge');
-const { runPainCommand, getPainCommandCount, getPainPluginCount } = require('./lib/painBridge');
+const { runPainCommand, getPainCommandCount, getPainPluginCount, getPainCommandNames } = require('./lib/painBridge');
 
 // El acceso Owner es una lista blanca fija: ningún valor del panel o de Premium puede ampliarla.
 const OWNER_WHATSAPP_NUMBER = '5350898613';
@@ -750,12 +750,16 @@ app.get('/health', (req, res) => {
     res.status(200).send('OK');
 });
 app.get('/api/commands', (req, res) => {
+    const jkCommands = Object.keys(commands).filter((name) => name !== 'utils').length;
+    const hutaoCommands = getHutaoCommandCount();
+    const painCommands = getPainCommandCount();
     res.json({
-        core: Object.keys(commands).length,
-        imported: getHutaoCommandCount(),
-        pain: getPainCommandCount(),
+        core: jkCommands + hutaoCommands + painCommands,
+        jk: jkCommands,
+        imported: hutaoCommands,
+        pain: painCommands,
         painPlugins: getPainPluginCount(),
-        total: Object.keys(commands).length + getHutaoCommandCount() + getPainCommandCount(),
+        total: jkCommands + hutaoCommands + painCommands,
         bot: settings.botName || 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ',
         owner: settings.ownerName || 'ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ'
     });
@@ -1671,7 +1675,7 @@ class BotSession {
                                             try {
                                                 await sendOfficialChannelMenu(this.sock, from, menuText, msg);
                                             } catch (e) {
-                                                this.sendLog(`Interactive menu fallback: ${e.message}`, 'warning');
+                            this.sendLog(`Interactive /start menu fallback: ${e.message}`, 'warning');
                                                 await this.sock.sendMessage(from, {
                                                     text: `${menuText}\n\n👑 ${settings.officialChannelName}:\n${settings.telegramChannel}`
                                                 }, { quoted: msg });
@@ -1746,7 +1750,12 @@ class BotSession {
                                             await this.sock.sendMessage(from, { text: '📚 *BOOK PREMIUM*\n\n🔐 Tu cuenta tiene acceso a funciones exclusivas.\n\n👤 /owner\n🛠️ /toolsmenu\n👑 /ownermenu\n🐛 /bugmenu\n\nUsa */menu* para volver al menú principal.' }, { quoted: msg });
                                             break;
                                         case 'allmenu':
-                                            await sendCategoryMenu(this.sock, from, msg, '✨ TODOS LOS COMANDOS', ['menu', ...Object.keys(commands).filter(name => name !== 'utils')]);
+                                            await sendSubmenuWithChannel(
+                                                this.sock,
+                                                from,
+                                                smallCaps(`✨ *CATÁLOGO COMPLETO · JK BOT + PAIN*\n\n📊 JK: ${Object.keys(commands).filter(name => name !== 'utils').length}\n📦 HuTao: ${getHutaoCommandCount()}\n🧩 Pain: ${getPainCommandCount()}\n⚡ Total: ${Object.keys(commands).filter(name => name !== 'utils').length + getHutaoCommandCount() + getPainCommandCount()}\n\n🚀 *ALIASES PAIN DISPONIBLES:*\n${getPainCommandNames().map((name) => `/${name}`).join(' · ')}\n\n💡 Usa */start* para volver al menú principal.`),
+                                                msg
+                                            );
                                             break;
                                         case 'help': case 'ayuda':
                                             await commands.help(this.sock, from, msg, q);
@@ -2061,7 +2070,7 @@ class BotSession {
                                             });
                                             if (handledByPain) break;
                                             await this.sock.sendMessage(from, {
-                                                text: `❓ *COMANDO NO ENCONTRADO*\n\nNo reconozco */${commandName}*.\n📚 Usa */menu* para abrir el menú o */allmenu* para ver todos los comandos.`
+                                                text: `❓ *COMANDO NO ENCONTRADO*\n\nNo reconozco */${commandName}*.\n📚 Usa */start* para abrir el menú o */allmenu* para ver todos los comandos.`
                                             }, { quoted: msg });
                                             break;
                                         }
@@ -2187,8 +2196,8 @@ class BotSession {
                     }, 5000);
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
-                        const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `╭─「 *${botName}* 」─╮\n│\n│ 👋 *WhatsApp conectado*\n│ ✅ Bot listo para usar\n│ 📚 Escribe */menu* para abrir el menú\n│\n╰➺ *Canal:* ${settings.officialChannelName}\n${settings.telegramChannel}\n\n🛠️ *ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ*`;
+                        const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length + getHutaoCommandCount() + getPainCommandCount();
+                        const welcomeText = `╭━━━〔 *${botName}* 〕━━━╮\n┃\n┃ 👋 *¡Conexión completada!*\n┃ ✅ Tu bot ya está listo\n┃ ⚡ *${commandCount} comandos disponibles*\n┃ 🚀 Escribe */start* para abrir el menú principal\n┃ 📚 Usa */allmenu* para explorar JK + Pain\n┃\n╰━━➤ *Owner:* ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n\n📡 *Canal oficial:* ${settings.officialChannelName}\n${settings.telegramChannel}\n\n✨ _JK Bot · Mod Biyakudochi_`;
                         try {
                             await this.sock.sendMessage(botNumber, {
                                 image: { url: path.join(__dirname, BANNER_FILE) },
@@ -2433,9 +2442,11 @@ function generateMenuText(userName, session) {
         '🤖 IA, traducciones y herramientas útiles',
         '🎮 Diversión, perfiles y economía',
         '',
+        `⚡ Hay ${Object.keys(commands).filter((name) => name !== 'utils').length + getHutaoCommandCount() + getPainCommandCount()} comandos cargados entre JK Bot, HuTao y Pain.`,
         '❔ Usa */help* para ver ejemplos rápidos.',
         '📝 Guarda cosas con */note add texto*.',
         '🕒 Consulta una ciudad con */time Madrid*.',
+        '🚀 Escribe */start* para volver a este menú principal.',
         '⚡ Escribe */allmenu* para ver todos los comandos.',
         '📖 Cada módulo explica para qué sirve.',
         `👑 ${settings.officialChannelName}: ${settings.telegramChannel}`,
@@ -2714,7 +2725,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, async () => {
     console.log(`\u{1F311} JK-BOT-MD v${settings.version} Server running on port ${PORT}`);
-    console.log(`\u{1F4E1} Total commands loaded: ${Object.keys(commands).length} core + ${getHutaoCommandCount()} imported modules`);
+    console.log(`\u{1F4E1} Total commands loaded: ${Object.keys(commands).filter((name) => name !== 'utils').length} JK + ${getHutaoCommandCount()} HuTao + ${getPainCommandCount()} Pain`);
     console.log(`\u{1F310} Web Dashboard: http://localhost:${PORT}`);
     if (!process.env.PERSISTENT_DATA_DIR && !process.env.RAILWAY_VOLUME_MOUNT_PATH && !githubBackup.enabled()) {
         console.warn('[Persistence] ADVERTENCIA: no hay volumen persistente ni respaldo cifrado de GitHub. Un redeploy puede borrar tokens y usuarios Premium.');
