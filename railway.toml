@@ -5,6 +5,6 @@ builder = "NIXPACKS"
 aptPkgs = ["ffmpeg"]
 
 [deploy]
-startCommand = "npm start"
+startCommand = "./start-all.sh"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
