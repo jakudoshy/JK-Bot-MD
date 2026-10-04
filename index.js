@@ -732,7 +732,9 @@ function sendIndexWithPreview(req, res) {
     res.set({ 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate', 'Pragma': 'no-cache', 'Expires': '0' });
     const protocol = req.get('x-forwarded-proto') || req.protocol || 'https';
     const imageUrl = `${protocol.split(',')[0].trim()}://${req.get('host')}/${BANNER_FILE}`;
-    res.type('html').send(INDEX_TEMPLATE.replaceAll('__JK_OG_IMAGE__', imageUrl));
+    res.type('html').send(INDEX_TEMPLATE
+        .replaceAll('__JK_OG_IMAGE__', imageUrl)
+        .replaceAll('__JK_TELEGRAM_CHANNEL__', settings.telegramChannel));
 }
 
 app.get('/', (req, res) => {
