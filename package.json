@@ -1,49 +1,55 @@
 {
-  "name": "jk-bot-md",
-  "version": "4.1.0",
-  "description": "ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ — automatización de WhatsApp de Jakudoshy",
+  "name": "hutao",
+  "version": "4.0",
+  "description": "WhatsApp Bot updated to the latest version.",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node index.js"
   },
-  "dependencies": {
-    "@whiskeysockets/baileys": "^7.0.0-rc10",
-    "axios": "^1.6.0",
-    "cheerio": "^1.2.0",
-    "dotenv": "^16.6.1",
-    "express": "^4.22.2",
-    "fluent-ffmpeg": "^2.1.3",
-    "form-data": "^4.0.5",
-    "fs-extra": "^11.3.5",
-    "multer": "^1.4.5-lts.1",
-    "node-fetch": "^2.7.0",
-    "node-telegram-bot-api": "^0.66.0",
-    "node-webpmux": "^3.2.1",
-    "openai": "^4.104.0",
-    "pg": "^8.23.1",
-    "pino": "^10.3.1",
-    "qrcode": "^1.5.4",
-    "qrcode-terminal": "^0.12.0",
-    "ruhend-scraper": "^10.0.3",
-    "sharp": "^0.34.5",
-    "socket.io": "^4.8.3",
-    "youtube-dl-exec": "^3.1.15",
-    "yt-search": "^2.13.1"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.1"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+  "imports": {
+    "#serialize": "./lib/serialize.js",
+    "#handler": "./handler.js",
+    "#db": "./lib/system/database.js",
+    "#cmdsloader": "./lib/system/cmdsloader.js",
+    "#events": "./cmds/events.js",
+    "#cmds/*": "./cmds/*.js"
   },
   "keywords": [
-    "whatsapp-bot",
-    "baileys",
-    "jk-bot",
-    "whatsapp-automation",
-    "jakudoshy"
+    "whatsapp",
+    "baileys"
   ],
-  "author": "ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꨤᴼᶠᶜ",
-  "license": "MIT"
+  "author": "CheirZ",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0",
+    "npm": ">=10.9.4"
+  },
+  "dependencies": {
+    "@hapi/boom": "latest",
+    "baileys": "github:CheirZ/bail",
+    "yargs": "^18.0.0",
+    "axios": "^1.16.1",
+    "chalk": "^4.1.2",
+    "http": "latest",
+    "fluent-ffmpeg": "^2.1.2",
+    "form-data": "^4.0.0",
+    "gradient-string": "^2.0.2",
+    "human-readable": "^0.2.1",
+    "jimp": "^1.6.0",
+    "moment-timezone": "^0.5.48",
+    "moment": "^2.29.4",
+    "mime-types": "^3.0.2",
+    "node-fetch": "^2.7.0",
+    "node-cache": "^5.1.2",
+    "node-webpmux": "^3.2.0",
+    "grapheme-splitter": "^1.0.4",
+    "pino": "^10.3.1",
+    "qrcode": "^1.5.3",
+    "qrcode-terminal": "^0.12.0",
+    "readline-sync": "^1.4.10",
+    "syntax-error": "^1.4.0",
+    "uuid": "^14.0.0",
+    "yt-search": "^2.10.4"
+  }
 }

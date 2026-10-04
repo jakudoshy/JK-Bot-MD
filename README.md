@@ -1,140 +1,208 @@
-# ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ
+> [!NOTE]
+> **Este proyecto está en constante evolución. Estamos comprometidos en ofrecer a nuestra comunidad un Bot increíble. Te invitamos a instalarlo y para estar al tanto de todas las novedades. [¡Únete a nuestro nuevo canal!](https://stellarwa.xyz/channel/hutao)**
 
-Bot de automatización para WhatsApp basado en **Baileys**, creado y personalizado para **ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꨤᴼᶠᶜ**.
+<p align="center"> 
+<img src="https://files.catbox.moe/n46cln.png" alt="JK Bot" style="width: 75%; height: auto; max-width: 100px;">
 
-Incluye comandos de grupos, descargas, stickers, economía, perfiles, IA, herramientas de red, Premium, múltiples sesiones, Telegram opcional y un dashboard web rojo con estilo hacker.
+<p align="center"> 
+<a href="#"><img title="JK Bot" src="https://img.shields.io/badge/¡Disfruta de un Bot totalmente gratuito, con múltiples funciones y de código abierto! -purple?colorA=%239b33b0&colorB=%231c007b&style=for-the-badge"></a> 
+</p>
 
-## Identidad
+---
 
-- **Bot:** ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ
-- **Autor:** ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꨤᴼᶠᶜ
-- **Repositorio:** https://github.com/jakudoshy/JK-Bot-MD
-- **Versión:** 4.0.0
+## 🪾 Descripción 
 
-## Funciones principales
+JK Bot es un bot de WhatsApp multifuncional basado en `baileys`. Este bot ofrece una variedad de características para mejorar tu experiencia en WhatsApp.
 
-- Vinculación de WhatsApp mediante código de emparejamiento.
-- Administración de grupos, permisos, bienvenida, despedida, antienlace y modo solo-admin.
-- Menús y comandos Owner disponibles únicamente para el número WhatsApp `+5350898613`; las funciones Owner también requieren Premium activo.
-- Descargas de YouTube, TikTok, Instagram, Facebook, Spotify, APK y otras fuentes.
-- Stickers, conversión multimedia, edición de imágenes y utilidades.
-- Economía, perfiles, juegos y comandos interactivos.
-- IA opcional mediante OpenAI-compatible API.
-- Panel web con estadísticas, bots conectados, Premium, difusión y promoción.
-- Respaldo cifrado AES-256-GCM opcional en GitHub.
-- Persistencia Premium en PostgreSQL/Supabase con migración automática desde los JSON existentes.
-- IA conversacional con contexto temporal, preguntas de aclaración, generación de imágenes y cortos MP4 de 5 segundos.
-- Todos los comandos usan el prefijo `/` y los menús muestran ejemplos listos para copiar.
+---
 
-## Instalación
+## ☃️ Características
 
-Requiere **Node.js 18+**, FFmpeg y Python disponible para algunas herramientas multimedia.
+- Respuestas automáticas
+- Gestión de grupos
+- Juegos interactivos
+- Integración con APIs externas
+
+---
+
+## 🌾 Informaciones Importantes
+
+<details>
+<summary><strong>⛄ Información</strong> — Recomendado</summary>
+
+Evita completamente usar forks, mods o versiones alteradas de Baileys.
+No utilices “baileys mods” ni variantes no oficiales.
+Siempre usa la librería principal y oficial de Baileys.
+
+</details>
+
+<details>
+<summary><strong>⛄ Información</strong> — Oficial</summary>
+
+Si editas el bot, debes mantener los créditos principales y no borrarlos bajo ninguna circunstancia.
+
+</details>
+
+---
+
+### Instalaciónes Básicas
+
+<details>
+<summary><strong>🦦 Cloud</strong> — Shell</summary>
 
 ```bash
-git clone https://github.com/jakudoshy/JK-Bot-MD.git
-cd JK-Bot-MD
-npm ci
-cp .env.example .env
-# Edita .env y configura ADMIN_USERNAME; la contraseña del panel es `04060120**`
+git clone https://github.com/CheirZ/JK Bot
+```
+
+```bash
+cd JK Bot
+```
+
+```bash
+yarn install
+```
+
+```bash
+npm install
+```
+
+```bash
 npm start
 ```
 
-Después abre el panel en `http://localhost:3000` y vincula el número desde **Vincular WhatsApp**.
+</details>
 
-## Configuración mínima
+<details>
+<summary><strong>🦦 Termux</strong> — Manualmente</summary>
 
-```env
-# El Owner WhatsApp está fijado al número autorizado 5350898613.
-# OWNER_NUMBER se conserva solo por compatibilidad con instalaciones antiguas.
-OWNER_NUMBER=5350898613
-ADMIN_USERNAME=tu_usuario_admin
-ADMIN_PASSWORD=04060120**
-PORT=3000
-# Usa una ruta absoluta en un volumen persistente; no la pongas dentro del repositorio.
-PERSISTENT_DATA_DIR=/data/bot
+```bash
+termux-setup-storage
+```
+```bash
+apt update && apt upgrade && pkg install -y git nodejs ffmpeg imagemagick yarn
 ```
 
-No publiques `.env`, credenciales de WhatsApp, tokens de GitHub ni claves de cifrado. Sin Supabase, los usuarios Premium y los tokens completos se guardan únicamente en el servidor, en `premium_data.json` dentro de `PERSISTENT_DATA_DIR`; con Supabase configurado, PostgreSQL es la fuente principal y ese JSON queda como respaldo local. La web no los escribe en `localStorage` y sí los vuelve a cargar al recargar el panel. En Railway es obligatorio montar un volumen persistente en `/data` y configurar `PERSISTENT_DATA_DIR=/data/bot` para conservar sesiones y archivos, o configurar el respaldo cifrado de GitHub con **todas** sus variables (`GITHUB_BACKUP_TOKEN`, `GITHUB_BACKUP_REPO`, `GITHUB_BACKUP_BRANCH`, `GITHUB_BACKUP_PATH` y `BACKUP_ENCRYPTION_KEY`).
-
-### PostgreSQL en Supabase
-
-Para que el Premium sobreviva incluso cuando se reemplaza el contenedor, configura en el servicio donde ejecutas el bot la cadena privada de PostgreSQL de Supabase:
-
-```env
-SUPABASE_DB_URL=postgresql://postgres:<PASSWORD>@db.<PROJECT-REF>.supabase.co:5432/postgres?sslmode=require
-SUPABASE_DB_POOL_MAX=5
-SUPABASE_DB_SSL=true
+```bash
+git clone https://github.com/CheirZ/JK Bot
 ```
 
-La aplicación crea automáticamente `jkbot_premium_users` y `jkbot_premium_tokens` al iniciar. En la primera ejecución sube los usuarios y tokens existentes desde `premium_data.json`; después, PostgreSQL pasa a ser la fuente de verdad. Cada alta, reclamación, modificación o eliminación del panel se sincroniza automáticamente con Supabase.
-
-También puedes ejecutar manualmente [`supabase/schema.sql`](supabase/schema.sql) desde el SQL Editor de Supabase. Usa la conexión privada/directa de PostgreSQL únicamente en el servidor; no pongas `SUPABASE_DB_URL`, la contraseña de la base de datos ni una service-role key en `index.html` o en el navegador.
-
-Supabase guarda el estado Premium, pero las credenciales de sesión de WhatsApp de Baileys y los archivos subidos siguen necesitando un volumen persistente (`PERSISTENT_DATA_DIR`) o un respaldo de archivos. La actualización del código no debe borrar ese volumen.
-
-### Comandos de IA
-
-Con `OPENAI_API_KEY` configurada, el bot incluye:
-
-```text
-/ai tu pregunta              Respuesta con contexto temporal
-/chatbot on                  Activa respuestas automáticas en chats privados
-/chatbot off                 Desactiva las respuestas automáticas
-/aiclear                     Borra el contexto de la conversación
-/imagen descripción          Genera una imagen y la envía por WhatsApp
-/videoia descripción         Genera una imagen y crea un corto MP4 animado de 5 segundos
+```bash
+cd JK Bot
 ```
 
-La función `/videoia` actual crea un corto animado a partir de una imagen generada y necesita `ffmpeg` en el servidor. Para video generativo real hay que configurar un proveedor que entregue una API y sus credenciales, sin exponerlas al usuario.
-
-### Comandos útiles
-
-```text
-/help [comando]                 Ayuda rápida y ejemplos
-/start                          Abre el menú principal
-/id                             Muestra IDs del chat y del usuario
-/time Madrid                    Consulta la hora de una ciudad
-/note add texto                 Guarda una nota personal
-/note list                      Lista tus notas
-/note done 1                    Marca una nota como completada
-/note del 1                     Elimina una nota
-/remind 30 revisar la tarea     Programa un recordatorio
+```bash
+yarn install
 ```
 
-Las notas se guardan por usuario en el almacenamiento persistente del bot. `/time` funciona sin API externa y acepta ciudades como Madrid, México, Cuba, Lima, Bogotá, Miami, Londres y Tokyo.
-
-### Prefijos y grupos
-
-Todos los comandos de WhatsApp del bot usan exclusivamente el prefijo slash `/`:
-
-```text
-/menú
-/menu
-/ban
+```bash
+npm install
 ```
 
-`ban` y `kick` son equivalentes. En un grupo, el administrador debe responder al mensaje de la persona o mencionarla. El bot también debe ser administrador para poder expulsarla.
+```bash
+npm start
+```
 
-Los tokens generados desde el panel se guardan con su hash para validación y con su valor completo en el almacén privado cifrado/no público, por lo que permanecen visibles para el administrador después de una actualización. Cada token nuevo permite hasta **5 personas**: `reclamado 1/5`, `2/5`, `3/5`, `4/5` y `5/5`. La misma persona no puede consumir dos cupos y los tokens antiguos se migran automáticamente al formato nuevo.
+> *Si aparece **(Y/I/N/O/D/Z) [default=N] ?** use la letra **"y"** y luego **"ENTER"** para continuar con la instalación.*
 
-## Panel web
+</details>
 
-La interfaz usa un diseño propio rojo/hacker con:
+<details>
+<summary><strong>🦦 Comandos para tener mas tiempo activo</strong> — el Bot</summary>
 
-- Pantalla de arranque y estado del sistema.
-- Vinculación independiente de WhatsApp.
-- Login administrativo protegido por Socket.IO.
-- Estadísticas de sesiones y bots.
-- Generación y gestión de acceso Premium.
-- Difusión y promoción disponibles para el administrador autenticado.
+> *Ejecutar estos comandos dentro de la carpeta JK Bot*
+```bash
+termux-wake-lock && npm i -g pm2 && pm2 start index.js && pm2 save && pm2 logs 
+``` 
 
-> Nota de mantenimiento: los datos persistentes del bot se conservan fuera del código fuente.
-> Las actualizaciones del código no deben reemplazar el almacenamiento persistente.
+#### Opciones Disponibles
+> *Esto eliminará todo el historial que hayas establecido con PM2:*
+```bash 
+pm2 delete index
+``` 
 
-## Uso responsable
+> *Si tienes cerrado Termux y quiere ver de nuevo la ejecución use:*
+```bash 
+pm2 logs 
+``` 
 
-Usa el bot respetando las reglas de WhatsApp, la privacidad de las personas y las leyes aplicables. Las herramientas de automatización, difusión y pruebas deben utilizarse únicamente con autorización.
+> *Si desea detener la ejecución de Termux use:*
+```bash 
+pm2 stop index
+``` 
 
-## Licencia
+> *Si desea iniciar de nuevo la ejecución de Termux use:*
+```bash 
+pm2 start index
+```
 
-MIT
+--- 
+
+### En caso de detenerse
+> _Si despues que ya instalastes tu bot y termux te salta en blanco, se fue tu internet o reiniciaste tu celular, solo realizaras estos pasos:_
+```bash
+cd && cd JK Bot && npm start
+```
+---
+
+### Obtener nuevo inicio de Sessión 
+> *Detén el bot, haz click en el símbolo (ctrl) [default=z] usar la letra "z" + "ENTER" hasta que salga algo verdes similar a: `JK Bot $`*
+ 
+```bash 
+cd && cd JK Bot && rm -rf Sessions/Owner && npm start
+```
+</details>
+
+---
+
+### Patrocinadores del Proyecto
+
+<details>
+<summary><strong>☁️ Stellar</strong> — API</summary>
+
+<div align="center">
+  <a href="https://api.stellarwa.xyz">
+    <img src="https://api.stellarwa.xyz/favicon.ico" alt="Logo" height="125px">
+  </a>
+</div>
+
+### 🐢 Enlaces Principales
+| Servicio | Enlace |
+|------------|-----------|
+| Dashboard | [Abrir](https://api.stellarwa.xyz) |
+| Store | [Abrir](https://api.stellarwa.xyz/store) 
+| Soporte | [Visitar](https://api.stellarwa.xyz/ticket) |
+| Canal | [Abrir](https://stellarwa.xyz/channel)  
+
+</details>
+
+<details>
+<summary><strong>☁️ Boxmine</strong> — Hosting</summary>
+
+<div align="center">
+  <a href="https://boxmineworld.com">
+    <img src="https://i.imgur.com/allAyd4.png" alt="Logo" height="125px">
+  </a>
+</div>
+
+### 🐢 Enlaces Principales
+| Servicio | Enlace |
+|------------|-----------|
+| Sitio Web | [Visitar](https://boxmineworld.com) |
+| Dashboard | [Abrir](https://dash.boxmineworld.com) |
+| Panel | [Abrir](https://panel.boxmineworld.com)
+
+</details>
+
+---
+
+### 🪶 Colaboradores
+<a href="https://api.stellarwa.xyz">
+  <img src="https://contrib.rocks/image?repo=CheirZ/JK Bot" />
+</a>
+
+### 🌺 Creditos Principales
+[![ZyxlJs](https://github.com/DevZyxlJs.png?size=100)](https://github.com/DevZyxlJs)
+[![Carlos](https://github.com/AzamiJs.png?size=100)](https://github.com/AzamiJs)
+
+### 🦩 Propietario
+[![CheirZ](https://github.com/CheirZ.png?size=150)](https://github.com/CheirZ) 
