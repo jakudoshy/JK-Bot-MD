@@ -2182,7 +2182,7 @@ class BotSession {
                             await this.sock.query({
                                 tag: 'iq',
                                 attrs: { to: '@s.whatsapp.net', type: 'set', xmlns: 'status' },
-                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.1.0 - 120+ Commands | Powered by ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ", 'utf-8') }]
+                                content: [{ tag: 'status', attrs: {}, content: Buffer.from(`ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.1.0 - ${Object.keys(commands).filter((name) => name !== 'utils').length + getHutaoCommandCount() + getPainCommandCount()} Commands | Powered by ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`, 'utf-8') }]
                             });
                             this.sendLog("Bio updated successfully! \u{2705}", "success");
                         } catch (e) {
