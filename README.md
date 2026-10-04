@@ -103,6 +103,18 @@ La función `/videoia` actual crea un corto animado a partir de una imagen gener
 
 Las notas se guardan por usuario en el almacenamiento persistente del bot. `/time` funciona sin API externa y acepta ciudades como Madrid, México, Cuba, Lima, Bogotá, Miami, Londres y Tokyo.
 
+### Puente experimental con Meta AI
+
+```text
+/hi ¿Cómo estás?
+/meta Genera una idea para un video
+/ia Explícame este texto
+```
+
+El bot muestra `Generando respuesta con Meta AI…`, envía la pregunta al JID especial configurado en `META_AI_JID` y reenvía el texto o multimedia si la sesión recibe una respuesta. El valor recomendado es `867051314767696@bot`; `+393309297172` es el número del bot JK, no el identificador de Meta AI.
+
+**Importante:** el enlace `wa.me/ais/...` abre un chat especial, no un contacto telefónico normal. La versión actual de Baileys no implementa el nodo y el secreto HKDF necesarios para enviar mensajes a un Bot JID de Meta AI; por eso este puente queda en modo experimental y puede mostrar un tiempo de espera hasta conectar un transporte compatible con Meta AI.
+
 ### Prefijos y grupos
 
 Todos los comandos de WhatsApp del bot usan exclusivamente el prefijo slash `/`:
