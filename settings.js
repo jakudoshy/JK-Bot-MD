@@ -9,5 +9,5 @@ module.exports = {
     premiumUsers: [],
     connectedBots: [],
     version: '4.0.0',
-    prefix: '.'
+    prefix: '/'
 };

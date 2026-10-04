@@ -63,10 +63,10 @@ async function videoCommand(sock, chatId, message) {
         }
         const messageContent = message.message?.ephemeralMessage?.message || message.message?.viewOnceMessage?.message || message.message?.viewOnceMessageV2?.message || message.message;
         const text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
-        const query = text.replace(/^\.video\s+/i, '').trim();
+        const query = text.replace(/^\/video\s+/i, '').trim();
         requestedQuery = query;
         
-        if (!query || query.toLowerCase() === '.video') {
+        if (!query || query.toLowerCase() === '/video') {
             await sock.sendMessage(chatId, { text: 'Usage: /video <name or link>' }, { quoted: message });
             return;
         }

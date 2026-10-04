@@ -27,7 +27,7 @@ const LABELS = {
 
 const ALIAS_TO_COMMAND = Object.fromEntries(Object.entries(INTERACTIONS).flatMap(([key, aliases]) => aliases.map(alias => [alias, key])));
 const animeAliases = Object.values(INTERACTIONS).flat();
-const animeMenu = `╭───〔 🎌 ANIME 〕───╮\n│\n│ 😡 .angry · Enojarse\n│ 🛁 .bath · Baño\n│ 😳 .blush · Sonrojarse\n│ ☕ .coffee · Café\n│ 😭 .cry · Llorar\n│ 💃 .dance · Bailar\n│ 🍜 .eat · Comer\n│ 😊 .happy · Felicidad\n│ 🙌 .highfive · Chocar los cinco\n│ 🤗 .hug · Abrazar\n│ 💋 .kiss · Besar\n│ ❤️ .love · Amor\n│ 👋 .wave · Saludar\n│ 👊 .punch · Golpear\n│ 🏃 .run · Correr\n│ 😢 .sad · Tristeza\n│ 😳 .shy · Vergüenza\n│ 😊 .smile · Sonreír\n│ 😴 .sleep · Dormir\n│ 😉 .wink · Guiñar\n│\n│ ✨ 43 reacciones disponibles\n│ Usa una reacción con @mención\n╰────────────────────╯`;
+const animeMenu = `╭───〔 🎌 ANIME 〕───╮\n│\n│ 😡 /angry · Enojarse\n│ 🛁 /bath · Baño\n│ 😳 /blush · Sonrojarse\n│ ☕ /coffee · Café\n│ 😭 /cry · Llorar\n│ 💃 /dance · Bailar\n│ 🍜 /eat · Comer\n│ 😊 /happy · Felicidad\n│ 🙌 /highfive · Chocar los cinco\n│ 🤗 /hug · Abrazar\n│ 💋 /kiss · Besar\n│ ❤️ /love · Amor\n│ 👋 /wave · Saludar\n│ 👊 /punch · Golpear\n│ 🏃 /run · Correr\n│ 😢 /sad · Tristeza\n│ 😳 /shy · Vergüenza\n│ 😊 /smile · Sonreír\n│ 😴 /sleep · Dormir\n│ 😉 /wink · Guiñar\n│\n│ ✨ 43 reacciones disponibles\n│ Usa una reacción con @mención\n╰────────────────────╯`;
 
 function senderOf(msg, chatId) { return msg?.key?.participant || (msg?.key?.fromMe ? msg?.key?.remoteJid : chatId); }
 function numberOf(jid) { return String(jid || '').split('@')[0].split(':')[0].replace(/[^0-9]/g, ''); }
