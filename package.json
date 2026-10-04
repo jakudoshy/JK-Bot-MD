@@ -1,7 +1,7 @@
 {
-  "name": "hutao",
+  "name": "jk-bot-md",
   "version": "4.0",
-  "description": "WhatsApp Bot updated to the latest version.",
+  "description": "JK Bot WhatsApp — ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ · ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -19,7 +19,7 @@
     "whatsapp",
     "baileys"
   ],
-  "author": "CheirZ",
+  "author": "ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ",
   "license": "MIT",
   "engines": {
     "node": ">=22.13.0",

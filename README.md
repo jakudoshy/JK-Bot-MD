@@ -205,4 +205,4 @@ cd && cd JK Bot && rm -rf Sessions/Owner && npm start
 [![Carlos](https://github.com/AzamiJs.png?size=100)](https://github.com/AzamiJs)
 
 ### 🦩 Propietario
-[![CheirZ](https://github.com/CheirZ.png?size=150)](https://github.com/CheirZ) 
+[![CheirZ](https://github.com/jakudoshy.png?size=150)](https://github.com/jakudoshy) 
