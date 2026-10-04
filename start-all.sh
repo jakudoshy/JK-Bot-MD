@@ -16,24 +16,24 @@ else
   esac
 fi
 
-if [ ! -x ./meta-bridge/meta-bridge ]; then
-  echo "ERROR: falta ./meta-bridge/meta-bridge; el despliegue debe ejecutar la fase de build de Nixpacks." >&2
-  exit 1
-fi
-
-./meta-bridge/meta-bridge &
-META_PID=$!
-sleep 2
-if ! kill -0 "$META_PID" 2>/dev/null; then
-  echo "ERROR: el puente Whatsmeow se cerró al iniciar; revisa el error anterior del sidecar." >&2
-  exit 1
+META_PID=""
+if [ -x ./meta-bridge/meta-bridge ]; then
+  ./meta-bridge/meta-bridge &
+  META_PID=$!
+  sleep 2
+  if ! kill -0 "$META_PID" 2>/dev/null; then
+    echo "WARN: Whatsmeow no quedó activo; la web, Baileys y la IA por API continuarán funcionando." >&2
+    META_PID=""
+  fi
+else
+  echo "WARN: falta meta-bridge/meta-bridge; la web y la IA por API continuarán funcionando." >&2
 fi
 
 npm run start:bot &
 BOT_PID=$!
 
 cleanup() {
-  kill "$META_PID" 2>/dev/null || true
+  [ -z "$META_PID" ] || kill "$META_PID" 2>/dev/null || true
   kill "$BOT_PID" 2>/dev/null || true
 }
 trap cleanup INT TERM EXIT
