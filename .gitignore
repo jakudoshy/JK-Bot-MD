@@ -11,5 +11,3 @@ session/
 auth_info_baileys/
 creds.json
 *.session
-meta-bridge/meta-bridge
-meta-bridge/wametaai.db*
