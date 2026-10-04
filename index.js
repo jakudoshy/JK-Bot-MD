@@ -17,7 +17,7 @@ const postgresPremiumStore = require('./lib/postgresPremiumStore');
 const aiMedia = require('./lib/aiMedia');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
 const { runHutaoCommand, getHutaoCommandCount, getHutaoCommandNames } = require('./lib/hutaoBridge');
-const { runPainCommand, getPainCommandCount, getPainPluginCount, getPainCommandCatalog } = require('./lib/painBridge');
+const { runPainCommand, getPainCommandCount, getPainCommandCatalog } = require('./lib/painBridge');
 
 // El acceso Owner es una lista blanca fija: ningún valor del panel o de Premium puede ampliarla.
 const OWNER_WHATSAPP_NUMBER = '5350898613';
@@ -753,13 +753,10 @@ app.get('/api/commands', (req, res) => {
     const jkCommands = Object.keys(commands).filter((name) => name !== 'utils').length;
     const hutaoCommands = getHutaoCommandCount();
     const painCommands = getPainCommandCount();
+    const totalCommands = jkCommands + hutaoCommands + painCommands;
     res.json({
-        core: jkCommands + hutaoCommands + painCommands,
-        jk: jkCommands,
-        imported: hutaoCommands,
-        pain: painCommands,
-        painPlugins: getPainPluginCount(),
-        total: jkCommands + hutaoCommands + painCommands,
+        commands: totalCommands,
+        total: totalCommands,
         bot: settings.botName || 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ',
         owner: settings.ownerName || 'ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ'
     });
@@ -2192,7 +2189,7 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length + getHutaoCommandCount() + getPainCommandCount();
-                        const welcomeText = `╭━━━〔 *${botName}* 〕━━━╮\n┃\n┃ 👋 *¡Conexión completada!*\n┃ ✅ Tu bot ya está listo\n┃ ⚡ *${commandCount} comandos disponibles*\n┃ 🚀 Escribe */start* para abrir el menú principal\n┃ 📚 Usa */allmenu* para explorar JK + Pain\n┃\n╰━━➤ *Owner:* ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n\n📡 *Canal oficial:* ${settings.officialChannelName}\n${settings.telegramChannel}\n\n✨ _JK Bot · Mod Biyakudochi_`;
+                        const welcomeText = `╭━━━〔 *${botName}* 〕━━━╮\n┃\n┃ 👋 *¡Conexión completada!*\n┃ ✅ Tu bot ya está listo\n┃ ⚡ *${commandCount} comandos disponibles*\n┃ 🚀 Escribe */start* para abrir el menú principal\n┃ 📚 Usa */allmenu* para explorar todos los comandos\n┃\n╰━━➤ *Owner:* ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n\n📡 *Canal oficial:* ${settings.officialChannelName}\n${settings.telegramChannel}\n\n✨ _JK Bot · Mod Biyakudochi_`;
                         try {
                             await this.sock.sendMessage(botNumber, {
                                 image: { url: path.join(__dirname, BANNER_FILE) },
@@ -2502,7 +2499,7 @@ function buildDetailedCommandMenu() {
         lines.push('╰────────────────────────╯');
         return lines.join('\n');
     });
-    return `╭━━━〔 *ᴊᴋ ʙᴏᴛ · ᴘᴀɪɴ* 〕━━━╮\n┃ ⚡ *TOTAL DE COMANDOS: ${total}*\n┃ 🚀 Menú principal: */start*\n┃ 👑 Owner: ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n╰━━━━━━━━━━━━━━━━━━━━╯\n\n${sections.join('\n\n')}\n\n📡 Canal: ${settings.telegramChannel}`;
+    return `╭━━━〔 *ᴄᴏᴍᴀɴᴅᴏs* 〕━━━╮\n┃ ⚡ *TOTAL DE COMANDOS: ${total}*\n┃ 🚀 Menú principal: */start*\n┃ 👑 Owner: ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n╰━━━━━━━━━━━━━━━━━━━━╯\n\n${sections.join('\n\n')}\n\n📡 Canal: ${settings.telegramChannel}`;
 }
 function generateMenuText(userName, session) {
     return `👋 Hola, ${userName || 'amigo'}\n\n${buildDetailedCommandMenu()}`;
@@ -2778,7 +2775,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, async () => {
     console.log(`\u{1F311} JK-BOT-MD v${settings.version} Server running on port ${PORT}`);
-    console.log(`\u{1F4E1} Total commands loaded: ${Object.keys(commands).filter((name) => name !== 'utils').length} JK + ${getHutaoCommandCount()} HuTao + ${getPainCommandCount()} Pain`);
+    console.log(`\u{1F4E1} Total commands loaded: ${Object.keys(commands).filter((name) => name !== 'utils').length + getHutaoCommandCount() + getPainCommandCount()} comandos`);
     console.log(`\u{1F310} Web Dashboard: http://localhost:${PORT}`);
     if (!process.env.PERSISTENT_DATA_DIR && !process.env.RAILWAY_VOLUME_MOUNT_PATH && !githubBackup.enabled()) {
         console.warn('[Persistence] ADVERTENCIA: no hay volumen persistente ni respaldo cifrado de GitHub. Un redeploy puede borrar tokens y usuarios Premium.');
