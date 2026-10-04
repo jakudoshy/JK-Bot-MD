@@ -17,6 +17,7 @@ const postgresPremiumStore = require('./lib/postgresPremiumStore');
 const aiMedia = require('./lib/aiMedia');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
 const { runHutaoCommand, getHutaoCommandCount } = require('./lib/hutaoBridge');
+const { runPainCommand, getPainCommandCount, getPainPluginCount } = require('./lib/painBridge');
 
 // El acceso Owner es una lista blanca fija: ningún valor del panel o de Premium puede ampliarla.
 const OWNER_WHATSAPP_NUMBER = '5350898613';
@@ -752,7 +753,9 @@ app.get('/api/commands', (req, res) => {
     res.json({
         core: Object.keys(commands).length,
         imported: getHutaoCommandCount(),
-        total: Object.keys(commands).length + getHutaoCommandCount(),
+        pain: getPainCommandCount(),
+        painPlugins: getPainPluginCount(),
+        total: Object.keys(commands).length + getHutaoCommandCount() + getPainCommandCount(),
         bot: settings.botName || 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ',
         owner: settings.ownerName || 'ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ'
     });
@@ -2045,6 +2048,18 @@ class BotSession {
                                                 isAdmin
                                             });
                                             if (handledByHuTao) break;
+                                            const handledByPain = await runPainCommand({
+                                                command: commandName,
+                                                sock: this.sock,
+                                                rawMessage: msg,
+                                                fullText: text,
+                                                args,
+                                                text: q,
+                                                isOwner,
+                                                isAdmin,
+                                                isBotAdmin
+                                            });
+                                            if (handledByPain) break;
                                             await this.sock.sendMessage(from, {
                                                 text: `❓ *COMANDO NO ENCONTRADO*\n\nNo reconozco */${commandName}*.\n📚 Usa */menu* para abrir el menú o */allmenu* para ver todos los comandos.`
                                             }, { quoted: msg });

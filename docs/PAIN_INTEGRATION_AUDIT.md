@@ -235,3 +235,15 @@ Fuente: https://github.com/nexusday/pain-bot
 Pain Bot usa `type: module`, un cargador de plugins propio, objetos `m`/`conn` distintos y dependencias adicionales. Por eso no se copiaron plugins directamente al dispatcher de JK-Bot: hacerlo activaría errores en runtime y podría reemplazar configuraciones del usuario.
 
 La integración debe hacerse por módulos compatibles y conservar la licencia GPL-3.0-or-later y los créditos de Pain Bot/Sunkovv. Se excluyen de la importación automática comandos de spam, ataques, llamadas/SMS masivos, crash/freeze/bug, nuke, modos ilegales, NSFW y modificación remota del bot.
+
+## Integración ejecutable — 2026-10-04
+
+- Fuente Pain vendorizada en `legacy/Pain-Bot/` sin `node_modules` ni datos runtime.
+- Puente activo: `lib/painBridge.js`.
+- Plugins Pain detectados: **215**.
+- Aliases Pain registrados y no bloqueados: **592**.
+- Los comandos JK tienen prioridad; Pain se intenta después de JK y HuTao.
+- Prueba real realizada: `/setname Facurochi` respondió con un solo mensaje.
+- Arranque local validado: `/health` = `OK`; catálogo: `199 core + 430 importados + 592 Pain = 1221 registrados`.
+
+Los módulos de spam, ataques, llamadas/SMS masivos, crash/freeze/bug, nuke, modos ilegales, NSFW y modificaciones remotas del bot quedan fuera del cargador automático.

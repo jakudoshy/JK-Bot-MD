@@ -1,0 +1,6 @@
+{
+  "name": "jkbot-pain-plugins",
+  "private": true,
+  "type": "module",
+  "description": "Pain Bot plugins vendored for the JK Bot compatibility bridge"
+}
