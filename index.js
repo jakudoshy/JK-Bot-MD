@@ -2173,8 +2173,16 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `👋 Hola, soy ${botName}.\n✅ WhatsApp conectado y listo para usar.\n📚 Escribe */menu* para abrir el centro de funciones.\n👑 ${settings.officialChannelName}: ${settings.telegramChannel}\n\n🛠️ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
-                        await this.sock.sendMessage(botNumber, { text: welcomeText });
+                        const welcomeText = `╭─「 *${botName}* 」─╮\n│\n│ 👋 *WhatsApp conectado*\n│ ✅ Bot listo para usar\n│ 📚 Escribe */menu* para abrir el menú\n│\n╰➺ *Canal:* ${settings.officialChannelName}\n${settings.telegramChannel}\n\n🛠️ *ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ*`;
+                        try {
+                            await this.sock.sendMessage(botNumber, {
+                                image: { url: settings.startimage },
+                                caption: welcomeText
+                            });
+                        } catch (welcomeImageError) {
+                            this.sendLog(`Welcome image failed, sending text fallback: ${welcomeImageError.message}`, 'warning');
+                            await this.sock.sendMessage(botNumber, { text: welcomeText });
+                        }
 
                         try {
                             const channelLink = settings.telegramChannel;
