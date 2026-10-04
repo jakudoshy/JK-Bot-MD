@@ -16,8 +16,8 @@ const githubBackup = require('./lib/githubBackup');
 const postgresPremiumStore = require('./lib/postgresPremiumStore');
 const aiMedia = require('./lib/aiMedia');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
-const { runHutaoCommand, getHutaoCommandCount } = require('./lib/hutaoBridge');
-const { runPainCommand, getPainCommandCount, getPainPluginCount, getPainCommandNames } = require('./lib/painBridge');
+const { runHutaoCommand, getHutaoCommandCount, getHutaoCommandNames } = require('./lib/hutaoBridge');
+const { runPainCommand, getPainCommandCount, getPainPluginCount, getPainCommandCatalog } = require('./lib/painBridge');
 
 // El acceso Owner es una lista blanca fija: ningún valor del panel o de Premium puede ampliarla.
 const OWNER_WHATSAPP_NUMBER = '5350898613';
@@ -1750,12 +1750,7 @@ class BotSession {
                                             await this.sock.sendMessage(from, { text: '📚 *BOOK PREMIUM*\n\n🔐 Tu cuenta tiene acceso a funciones exclusivas.\n\n👤 /owner\n🛠️ /toolsmenu\n👑 /ownermenu\n🐛 /bugmenu\n\nUsa */menu* para volver al menú principal.' }, { quoted: msg });
                                             break;
                                         case 'allmenu':
-                                            await sendSubmenuWithChannel(
-                                                this.sock,
-                                                from,
-                                                smallCaps(`✨ *CATÁLOGO COMPLETO · JK BOT + PAIN*\n\n📊 JK: ${Object.keys(commands).filter(name => name !== 'utils').length}\n📦 HuTao: ${getHutaoCommandCount()}\n🧩 Pain: ${getPainCommandCount()}\n⚡ Total: ${Object.keys(commands).filter(name => name !== 'utils').length + getHutaoCommandCount() + getPainCommandCount()}\n\n🚀 *ALIASES PAIN DISPONIBLES:*\n${getPainCommandNames().map((name) => `/${name}`).join(' · ')}\n\n💡 Usa */start* para volver al menú principal.`),
-                                                msg
-                                            );
+                                            await sendSubmenuWithChannel(this.sock, from, buildDetailedCommandMenu(), msg);
                                             break;
                                         case 'help': case 'ayuda':
                                             await commands.help(this.sock, from, msg, q);
@@ -2426,33 +2421,70 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
     }
 }
 
+function menuCategoryForPainFile(file) {
+    const name = String(file).toLowerCase();
+    if (name.includes('owner-') || name.includes('serbot')) return ['ᴏᴡɴᴇʀ', '👑'];
+    if (name.includes('anti-') || name.includes('group-') || name.includes('welcome') || name.includes('solo-admin')) return ['ɢʀᴜᴘᴏs ʏ sᴇɢᴜʀɪᴅᴀᴅ', '🛡️'];
+    if (name.includes('download-') || name.includes('search-') || name.includes('tiktok') || name.includes('youtube')) return ['ᴅᴇsᴄᴀʀɢᴀs', '📥'];
+    if (name.includes('ia-')) return ['ɪɴᴛᴇʟɪɢᴇɴᴄɪᴀ ᴀʀᴛɪғɪᴄɪᴀʟ', '🤖'];
+    if (name.includes('audio-') || name.includes('sticker') || name.includes('img-') || name.includes('pdf')) return ['ᴍᴇᴅɪᴀ ʏ sᴛɪᴄᴋᴇʀs', '🎨'];
+    if (name.includes('rpg-') || name.includes('game-') || name.includes('econom')) return ['ᴊᴜᴇɢᴏs ʏ ᴇᴄᴏɴᴏᴍíᴀ', '🎮'];
+    if (name.includes('perfil') || name.includes('top-') || name.includes('reaccion')) return ['ᴘᴇʀғɪʟᴇs ʏ ᴅɪᴠᴇʀsɪóɴ', '👤'];
+    if (name.includes('info-') || name.includes('get-') || name.includes('set-') || name.includes('timer')) return ['sᴇʀᴠᴇʀ ʏ ᴜᴛɪʟɪᴅᴀᴅᴇs', '🖥️'];
+    return ['ᴏᴛʀᴏs ᴄᴏᴍᴀɴᴅᴏs', '🧩'];
+}
+function describeMenuCommand(command, source = '') {
+    const key = String(command).toLowerCase();
+    const known = {
+        start: 'abre el menú principal', menu: 'abre el menú principal', ping: 'mide la respuesta del bot', ip: 'consulta información de una IP',
+        time: 'muestra la hora de una ciudad', weather: 'consulta el clima', sticker: 'crea un sticker', s: 'crea un sticker', play: 'descarga audio',
+        video: 'descarga vídeo', youtube: 'busca vídeos', tiktok: 'descarga contenido de TikTok', profile: 'muestra tu perfil', setname: 'cambia tu nombre',
+        help: 'muestra ayuda y ejemplos', translate: 'traduce un texto', qr: 'genera un código QR', menu: 'abre el menú principal',
+        owner: 'muestra las funciones del owner', restart: 'reinicia la sesión autorizada', antilink: 'configura protección contra enlaces',
+        welcome: 'configura la bienvenida del grupo', daily: 'reclama la recompensa diaria', work: 'trabaja para ganar monedas',
+        riddle: 'propone una adivinanza', meme: 'genera un meme', google: 'busca en Google', github: 'busca repositorios en GitHub'
+    };
+    if (known[key]) return known[key];
+    const file = String(source).toLowerCase();
+    if (file.includes('anti-')) return 'configura una protección del grupo';
+    if (file.includes('group-')) return 'administra una función del grupo';
+    if (file.includes('download-') || file.includes('search-')) return 'busca o descarga contenido';
+    if (file.includes('ia-')) return 'usa una función de inteligencia artificial';
+    if (file.includes('sticker')) return 'trabaja con stickers';
+    if (file.includes('audio-')) return 'convierte o procesa audio';
+    if (file.includes('rpg-') || file.includes('game-')) return 'juega o usa el sistema de juego';
+    if (file.includes('owner-')) return 'función exclusiva del owner';
+    return 'ejecuta el módulo correspondiente';
+}
+function buildDetailedCommandMenu() {
+    const groups = new Map();
+    const add = (category, command, source = '') => {
+        if (!command || /^utils$/i.test(command)) return;
+        const [title, icon] = category;
+        if (!groups.has(title)) groups.set(title, { icon, commands: new Map() });
+        if (!groups.get(title).commands.has(command)) groups.get(title).commands.set(command, describeMenuCommand(command, source));
+    };
+    const core = Object.keys(commands).filter(name => name !== 'utils');
+    const ownerNames = new Set(['owner', 'ownermenu', 'restart', 'shutdown', 'backup', 'restore', 'setname']);
+    for (const command of core) add(ownerNames.has(command) ? ['ᴏᴡɴᴇʀ', '👑'] : menuCategoryForPainFile(command), command);
+    for (const command of getHutaoCommandNames()) add(menuCategoryForPainFile(command), command, command);
+    for (const group of getPainCommandCatalog()) {
+        const category = menuCategoryForPainFile(group.file);
+        for (const command of group.commands) add(category, command, group.file);
+    }
+    const total = [...groups.values()].reduce((sum, group) => sum + group.commands.size, 0);
+    const order = ['ᴏᴡɴᴇʀ', 'sᴇʀᴠᴇʀ ʏ ᴜᴛɪʟɪᴅᴀᴅᴇs', 'ɢʀᴜᴘᴏs ʏ sᴇɢᴜʀɪᴅᴀᴅ', 'ᴅᴇsᴄᴀʀɢᴀs', 'ɪɴᴛᴇʟɪɢᴇɴᴄɪᴀ ᴀʀᴛɪғɪᴄɪᴀʟ', 'ᴍᴇᴅɪᴀ ʏ sᴛɪᴄᴋᴇʀs', 'ᴊᴜᴇɢᴏs ʏ ᴇᴄᴏɴᴏᴍíᴀ', 'ᴘᴇʀғɪʟᴇs ʏ ᴅɪᴠᴇʀsɪóɴ', 'ᴏᴛʀᴏs ᴄᴏᴍᴀɴᴅᴏs'];
+    const sections = order.filter(title => groups.has(title)).map(title => {
+        const group = groups.get(title);
+        const lines = [`╭─────── ${group.icon} ${title} ───────╮`];
+        for (const [command, description] of group.commands) lines.push(`├➢ /${command} — ${description}`);
+        lines.push('╰────────────────────────╯');
+        return lines.join('\n');
+    });
+    return `╭━━━〔 *ᴊᴋ ʙᴏᴛ · ᴘᴀɪɴ* 〕━━━╮\n┃ ⚡ *TOTAL DE COMANDOS: ${total}*\n┃ 🚀 Menú principal: */start*\n┃ 👑 Owner: ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n╰━━━━━━━━━━━━━━━━━━━━╯\n\n${sections.join('\n\n')}\n\n📡 Canal: ${settings.telegramChannel}`;
+}
 function generateMenuText(userName, session) {
-    const mode = session.isPublic ? 'PÚBLICO' : 'PRIVADO';
-    const botName = settings.botName || 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ';
-    const ownerName = settings.ownerName || 'ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ';
-    return [
-        `👋 Hola, ${userName || 'amigo'}`,
-        `🤖 ${botName}`,
-        '✅ Estado: disponible',
-        `🔐 Modo: ${mode}`,
-        '',
-        '📚 Funciones principales:',
-        '🛡️ Protección y administración de grupos',
-        '🎵 Música, vídeos, stickers y descargas',
-        '🤖 IA, traducciones y herramientas útiles',
-        '🎮 Diversión, perfiles y economía',
-        '',
-        `⚡ Hay ${Object.keys(commands).filter((name) => name !== 'utils').length + getHutaoCommandCount() + getPainCommandCount()} comandos cargados entre JK Bot, HuTao y Pain.`,
-        '❔ Usa */help* para ver ejemplos rápidos.',
-        '📝 Guarda cosas con */note add texto*.',
-        '🕒 Consulta una ciudad con */time Madrid*.',
-        '🚀 Escribe */start* para volver a este menú principal.',
-        '⚡ Escribe */allmenu* para ver todos los comandos.',
-        '📖 Cada módulo explica para qué sirve.',
-        `👑 ${settings.officialChannelName}: ${settings.telegramChannel}`,
-        '',
-        `🛠️ ${ownerName}`
-    ].join('\n');
+    return `👋 Hola, ${userName || 'amigo'}\n\n${buildDetailedCommandMenu()}`;
 }
 
 // =================== SOCKET.IO ===================
