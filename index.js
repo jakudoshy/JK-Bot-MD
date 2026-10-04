@@ -6,7 +6,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, downloadContentFromMessage, jidNormalizedUser, delay, generateWAMessageContent, generateWAMessageFromContent, normalizeMessageContent, isJidGroup, generateMessageIDV2 } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, downloadContentFromMessage, jidNormalizedUser, Browsers, delay, generateWAMessageContent, generateWAMessageFromContent, normalizeMessageContent, isJidGroup, generateMessageIDV2 } = require('@whiskeysockets/baileys');
 const P = require('pino');
 const { OpenAI } = require('openai');
 const os = require('os');
@@ -685,7 +685,6 @@ if (tgBot) {
             const profileName = pendingPairNames.get(userId);
             if (profileName) {
                 botData.userNames[userId] = profileName;
-                sessions[userId].deviceName = profileName;
                 saveBotData();
                 pendingPairNames.delete(userId);
             }
@@ -1105,7 +1104,6 @@ async function createSubbotSession(parentSession, chatId, msg, mode, requestedNu
 class BotSession {
     constructor(userId) {
         this.userId = userId;
-        this.deviceName = normalizeProfileName(botData.userNames?.[userId], settings.botName);
         this.sock = null;
         this.isConnected = false;
         this.aiEnabled = Boolean(botData.statusSettings[userId]?.aiEnabled);
@@ -1249,8 +1247,7 @@ class BotSession {
                 },
                 printQRInTerminal: false,
                 logger: P({ level: 'fatal' }),
-                // Baileys usa browser[1] como etiqueta del dispositivo compañero.
-                browser: ['Ubuntu', this.deviceName, '22.04.4'],
+                browser: Browsers.macOS('Chrome'),
                 syncFullHistory: false,
                 shouldSyncHistoryMessage: () => false,
                 markOnlineOnConnect: true,
@@ -2556,18 +2553,16 @@ io.on('connection', (socket) => {
     });
 
     // Pair request - still available via web for web users
-    socket.on('pair-request', async ({ userId, number, deviceName, displayName } = {}) => {
+    socket.on('pair-request', async ({ userId, number, displayName } = {}) => {
         const cleanNumber = normalizePhone(number);
         if (!userId || !cleanNumber) {
             socket.emit('pair-error', 'Escribe un número válido con código de país, solo dígitos.');
             return;
         }
         try {
-        const normalizedDeviceName = normalizeProfileName(deviceName || displayName, settings.botName);
-        botData.userNames[userId] = normalizedDeviceName;
+        botData.userNames[userId] = normalizeProfileName(displayName, settings.botName);
         saveBotData();
         if (sessions[userId]) {
-            sessions[userId].deviceName = normalizedDeviceName;
             if (!botData.statusSettings[userId]) {
                 botData.statusSettings[userId] = {
                     autoStatus: false,
@@ -2582,7 +2577,6 @@ io.on('connection', (socket) => {
             await sessions[userId].initialize(cleanNumber);
         } else {
             sessions[userId] = new BotSession(userId);
-            sessions[userId].deviceName = normalizedDeviceName;
             if (!botData.statusSettings[userId]) {
                 botData.statusSettings[userId] = {
                     autoStatus: false,
