@@ -150,3 +150,13 @@ Usa el bot respetando las reglas de WhatsApp, la privacidad de las personas y la
 ## Licencia
 
 MIT
+
+### Arquitectura final del puente Meta AI
+
+El bot continúa ejecutándose en Node.js con Baileys para todos los comandos normales: menú, grupos, descargas, anime, economía, perfiles, stickers, IA y herramientas. El único componente separado es `meta-bridge/`, un sidecar Go con Whatsmeow que se conecta al JID especial `867051314767696@bot`.
+
+En el primer despliegue, define `WA_PHONE=393309297172` usando solo dígitos. El sidecar mostrará en los logs un código de vinculación. En el WhatsApp del número del bot abre **Ajustes → Dispositivos vinculados → Vincular dispositivo con número de teléfono** e introduce ese código. No se debe crear una segunda cuenta ni reemplazar la sesión principal.
+
+Después de vincularlo, `/hi`, `/meta` y `/ia` envían texto plano al sidecar Whatsmeow; la respuesta vuelve al proceso Node y se publica en el chat original. Las demás funciones no pasan por Whatsmeow.
+
+`npm start` arranca automáticamente el sidecar y después el bot Baileys. El script usa `WA_PHONE=393309297172` y una carpeta persistente `PERSISTENT_DATA_DIR` si no se especifican, y guarda la sesión en `wametaai.db`. Si aparece `fetch failed`, revisa primero que el build haya creado `meta-bridge/meta-bridge` y que el proceso muestre el código de vinculación en los logs.

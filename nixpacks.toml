@@ -1,5 +1,8 @@
 [phases.setup]
-nixPkgs = ["...", "ffmpeg", "deno", "python3"]
+nixPkgs = ["...", "ffmpeg", "deno", "python3", "go"]
+
+[phases.build]
+cmds = ["cd meta-bridge && go build -o meta-bridge ."]
 
 [start]
-cmd = "npm start"
+cmd = "./start-all.sh"
