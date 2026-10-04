@@ -1747,7 +1747,7 @@ class BotSession {
                                             await this.sock.sendMessage(from, { text: '📚 *BOOK PREMIUM*\n\n🔐 Tu cuenta tiene acceso a funciones exclusivas.\n\n👤 /owner\n🛠️ /toolsmenu\n👑 /ownermenu\n🐛 /bugmenu\n\nUsa */menu* para volver al menú principal.' }, { quoted: msg });
                                             break;
                                         case 'allmenu':
-                                            await sendSubmenuWithChannel(this.sock, from, buildDetailedCommandMenu(), msg);
+                                            await sendSubmenuWithChannel(this.sock, from, buildDetailedCommandMenu(Number(args[0]) || 1), msg);
                                             break;
                                         case 'help': case 'ayuda':
                                             await commands.help(this.sock, from, msg, q);
@@ -2474,7 +2474,7 @@ function describeMenuCommand(command, source = '') {
     if (file.includes('owner-')) return 'función exclusiva del owner';
     return 'ejecuta el módulo correspondiente';
 }
-function buildDetailedCommandMenu() {
+function buildDetailedCommandMenu(requestedPage = 1) {
     const groups = new Map();
     const add = (category, command, source = '') => {
         if (!command || /^utils$/i.test(command)) return;
@@ -2499,7 +2499,22 @@ function buildDetailedCommandMenu() {
         lines.push('╰────────────────────────╯');
         return lines.join('\n');
     });
-    return `╭━━━〔 *ᴄᴏᴍᴀɴᴅᴏs* 〕━━━╮\n┃ ⚡ *TOTAL DE COMANDOS: ${total}*\n┃ 🚀 Menú principal: */start*\n┃ 👑 Owner: ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n╰━━━━━━━━━━━━━━━━━━━━╯\n\n${sections.join('\n\n')}\n\n📡 Canal: ${settings.telegramChannel}`;
+    const maxPageChars = 42000;
+    const pages = [];
+    let current = '';
+    for (const section of sections) {
+        const candidate = current ? `${current}\n\n${section}` : section;
+        if (current && candidate.length > maxPageChars) {
+            pages.push(current);
+            current = section;
+        } else {
+            current = candidate;
+        }
+    }
+    if (current) pages.push(current);
+    const page = Math.min(Math.max(Number(requestedPage) || 1, 1), Math.max(pages.length, 1));
+    const navigation = pages.length > 1 ? `\n📄 Página ${page}/${pages.length} · siguiente: */allmenu ${page >= pages.length ? 1 : page + 1}*` : '';
+    return `╭━━━〔 *ᴄᴏᴍᴀɴᴅᴏs* 〕━━━╮\n┃ ⚡ *TOTAL DE COMANDOS: ${total}*\n┃ 🚀 Menú principal: */start*\n┃ 👑 Owner: ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n╰━━━━━━━━━━━━━━━━━━━━╯\n\n${pages[page - 1] || ''}${navigation}\n\n📡 Canal: ${settings.telegramChannel}`;
 }
 function generateMenuText(userName, session) {
     return `👋 Hola, ${userName || 'amigo'}\n\n${buildDetailedCommandMenu()}`;
