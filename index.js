@@ -688,7 +688,7 @@ const io = socketIo(server, {
 });
 
 let openai = null;
-const aiProvider = String(process.env.AI_PROVIDER || 'openai').toLowerCase();
+const aiProvider = String(process.env.AI_PROVIDER || (process.env.GEMINI_API_KEY ? 'gemini' : 'openai')).toLowerCase();
 const aiSettings = {
     openai: { key: process.env.OPENAI_API_KEY, baseURL: 'https://api.openai.com/v1', model: process.env.OPENAI_MODEL || 'gpt-4o-mini' },
     chatgpt: { key: process.env.OPENAI_API_KEY, baseURL: 'https://api.openai.com/v1', model: process.env.OPENAI_MODEL || 'gpt-4o-mini' },
@@ -1153,7 +1153,7 @@ class BotSession {
         } catch (error) {
             const status = error.status || error.response?.status;
             console.error('[AI] OpenAI error:', status || error.code || error.message);
-            if (status === 401) return '❌ La clave de OpenAI en Railway no es válida. Revisa OPENAI_API_KEY.';
+            if (status === 401) return `❌ La clave de ${aiProvider} en Railway no es válida. Revisa la variable secreta del proveedor.`;
             if (status === 429) return '⏳ La IA alcanzó el límite temporal de solicitudes del proveedor.';
             if (error.code === 'ETIMEDOUT' || error.name === 'TimeoutError') return '⏳ La IA tardó demasiado en responder. Inténtalo otra vez.';
             return `❌ La IA no pudo responder ahora${status ? ` (HTTP ${status})` : ''}.`;
