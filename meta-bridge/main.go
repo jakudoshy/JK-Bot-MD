@@ -772,7 +772,11 @@ func msgID() string { return whatsmeow.GenerateMessageID() }
 func main() {
 	ctx := context.Background()
 	dbLog := waLog.Stdout("db", "WARN", true)
-	container, err := sqlstore.New(ctx, "sqlite3", "file:wametaai.db?_foreign_keys=on", dbLog)
+	dbPath := os.Getenv("WA_DB_PATH")
+	if dbPath == "" {
+		dbPath = "file:wametaai.db?_foreign_keys=on"
+	}
+	container, err := sqlstore.New(ctx, "sqlite3", dbPath, dbLog)
 	if err != nil {
 		log.Fatalf("store: %v", err)
 	}

@@ -11,6 +11,6 @@ Configura `WA_PHONE` con solo dígitos y ejecuta el servicio. En el primer arran
 1. Abre WhatsApp del número del bot.
 2. Ve a **Ajustes → Dispositivos vinculados → Vincular dispositivo con número de teléfono**.
 3. Introduce el código que aparece en los logs.
-4. Conserva el volumen donde se crea `wametaai.db`; así no tendrás que vincularlo de nuevo.
+4. Configura `WA_DB_PATH` dentro del volumen persistente, por ejemplo `file:/data/bot/wametaai.db?_foreign_keys=on`; así no tendrás que vincularlo de nuevo.
 
 El sidecar usa una sesión adicional del mismo número; no reemplaza la sesión Baileys.
