@@ -16,6 +16,7 @@ const githubBackup = require('./lib/githubBackup');
 const postgresPremiumStore = require('./lib/postgresPremiumStore');
 const aiMedia = require('./lib/aiMedia');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
+const { runHutaoCommand, getHutaoCommandCount } = require('./lib/hutaoBridge');
 
 // El acceso Owner es una lista blanca fija: ningún valor del panel o de Premium puede ampliarla.
 const OWNER_WHATSAPP_NUMBER = '5350898613';
@@ -732,6 +733,15 @@ app.get('/admin', (req, res) => {
 app.get('/health', (req, res) => {
     res.status(200).send('OK');
 });
+app.get('/api/commands', (req, res) => {
+    res.json({
+        core: Object.keys(commands).length,
+        imported: getHutaoCommandCount(),
+        total: Object.keys(commands).length + getHutaoCommandCount(),
+        bot: settings.botName || 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ',
+        owner: settings.ownerName || 'ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ'
+    });
+});
 
 const LEGACY_DATA_DIR = path.resolve(__dirname, 'data');
 const LEGACY_RUNTIME_DIR = path.resolve(__dirname, 'bot');
@@ -1133,7 +1143,7 @@ class BotSession {
             const completion = await openai.chat.completions.create({
                 model: aiModel,
                 messages: [
-                    { role: 'system', content: `${systemPrompt} Responde siempre en español, de forma clara, amable y útil. Si la pregunta está incompleta, haz una pregunta concreta para aclararla. Si puedes ayudar con pasos, entrégalos ordenados. No inventes datos: indica cuando no estés seguro. Eres el asistente de ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ.` },
+                    { role: 'system', content: `${systemPrompt} Responde siempre en español, de forma clara, amable y útil. Si la pregunta está incompleta, haz una pregunta concreta para aclararla. Si puedes ayudar con pasos, entrégalos ordenados. No inventes datos: indica cuando no estés seguro. Eres el asistente de ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ.` },
                     ...history,
                     { role: 'user', content: prompt }
                 ],
@@ -2002,11 +2012,23 @@ class BotSession {
                                         case 'backup': await commands.backup(this.sock, from, msg, isOwner); break;
                                         case 'restore': await commands.restore(this.sock, from, msg, isOwner); break;
                                         case 'mycmd': case 'mycommands': await commands.mycmd(this.sock, from, msg); break;
-                                        default:
+                                        default: {
+                                            const handledByHuTao = await runHutaoCommand({
+                                                command: commandName,
+                                                sock: this.sock,
+                                                rawMessage: msg,
+                                                fullText: text,
+                                                args,
+                                                text: q,
+                                                isOwner,
+                                                isAdmin
+                                            });
+                                            if (handledByHuTao) break;
                                             await this.sock.sendMessage(from, {
                                                 text: `❓ *COMANDO NO ENCONTRADO*\n\nNo reconozco */${commandName}*.\n📚 Usa */menu* para abrir el menú o */allmenu* para ver todos los comandos.`
                                             }, { quoted: msg });
                                             break;
+                                        }
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
@@ -2646,7 +2668,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, async () => {
     console.log(`\u{1F311} JK-BOT-MD v${settings.version} Server running on port ${PORT}`);
-    console.log(`\u{1F4E1} Total commands loaded: 120+`);
+    console.log(`\u{1F4E1} Total commands loaded: ${Object.keys(commands).length} core + ${getHutaoCommandCount()} imported modules`);
     console.log(`\u{1F310} Web Dashboard: http://localhost:${PORT}`);
     if (!process.env.PERSISTENT_DATA_DIR && !process.env.RAILWAY_VOLUME_MOUNT_PATH && !githubBackup.enabled()) {
         console.warn('[Persistence] ADVERTENCIA: no hay volumen persistente ni respaldo cifrado de GitHub. Un redeploy puede borrar tokens y usuarios Premium.');

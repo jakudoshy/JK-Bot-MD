@@ -41,7 +41,7 @@ module.exports = async function(sock, chatId, msg, args) {
 ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
 ┃  👑 *Version*   : ${settings?.version || '3.0'}  ┃
 ┃  🔐 *Security*  : Premium Encrypted      ┃
-┃  ☠️ *Powered by* : ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ          ┃
+┃  ☠️ *Powered by* : ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ          ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
         `;
 

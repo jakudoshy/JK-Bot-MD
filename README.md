@@ -1,13 +1,13 @@
-# ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ
+# ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ
 
-Bot de automatización para WhatsApp basado en **Baileys**, creado y personalizado para **ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꨤᴼᶠᶜ**.
+Bot de automatización para WhatsApp basado en **Baileys**, creado y personalizado para **ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ**.
 
 Incluye comandos de grupos, descargas, stickers, economía, perfiles, IA, herramientas de red, Premium, múltiples sesiones, Telegram opcional y un dashboard web rojo con estilo hacker.
 
 ## Identidad
 
-- **Bot:** ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ
-- **Autor:** ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꨤᴼᶠᶜ
+- **Bot:** ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ
+- **Autor:** ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ
 - **Repositorio:** https://github.com/jakudoshy/JK-Bot-MD
 - **Versión:** 4.0.0
 

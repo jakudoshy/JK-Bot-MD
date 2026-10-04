@@ -1,0 +1,27 @@
+{
+  "name": "jk-bot-hutao-modules",
+  "version": "4.0",
+  "description": "JK Bot WhatsApp — ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ · ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {},
+  "imports": {
+    "#serialize": "./lib/serialize-compat.js",
+    "#handler": "./handler.js",
+    "#db": "./lib/system/database.js",
+    "#cmdsloader": "./lib/system/cmdsloader.js",
+    "#events": "./cmds/events.js",
+    "#cmds/*": "./cmds/*.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "baileys"
+  ],
+  "author": "ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0",
+    "npm": ">=10.9.4"
+  },
+  "dependencies": {}
+}

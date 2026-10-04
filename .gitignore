@@ -11,3 +11,5 @@ session/
 auth_info_baileys/
 creds.json
 *.session
+legacy/HuTao-Proyect-master/node_modules/
+database.json

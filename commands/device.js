@@ -9,7 +9,7 @@ module.exports = async function(sock, chatId, msg) {
             `Platform: ${platform}\n` +
             `Connected: Yes\n` +
             `Protocol: Baileys (WhatsApp Web)\n\n` +
-            `_ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ v4.0.0_`;
+            `_ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.0.0_`;
         
         await sock.sendMessage(chatId, { text }, { quoted: msg });
     } catch (e) {

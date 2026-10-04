@@ -3,7 +3,7 @@ module.exports = async function(sock, chatId, msg) {
         `Total commands used: Tracking...\n` +
         `Favorite command: /menu\n` +
         `Session active: Yes\n\n` +
-        `_Keep using ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ!_`;
+        `_Keep using ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ!_`;
     
     await sock.sendMessage(chatId, { text }, { quoted: msg });
 };
