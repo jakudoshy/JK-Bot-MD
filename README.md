@@ -10,9 +10,9 @@
 
 ---
 
-## 🪾 Descripción 
+## Descripción
 
-JK Bot es un bot de WhatsApp multifuncional basado en `baileys`. Este bot ofrece una variedad de características para mejorar tu experiencia en WhatsApp.
+JK Bot es un bot de WhatsApp multifuncional basado en `baileys`, personalizado para **ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ**.
 
 ---
 
@@ -45,17 +45,17 @@ Si editas el bot, debes mantener los créditos principales y no borrarlos bajo n
 
 ---
 
-### Instalaciónes Básicas
+### Instalación básica
 
 <details>
 <summary><strong>🦦 Cloud</strong> — Shell</summary>
 
 ```bash
-git clone https://github.com/CheirZ/JK Bot
+git clone https://github.com/jakudoshy/JK-Bot-MD.git
 ```
 
 ```bash
-cd JK Bot
+cd JK-Bot-MD
 ```
 
 ```bash
@@ -83,11 +83,11 @@ apt update && apt upgrade && pkg install -y git nodejs ffmpeg imagemagick yarn
 ```
 
 ```bash
-git clone https://github.com/CheirZ/JK Bot
+git clone https://github.com/jakudoshy/JK-Bot-MD.git
 ```
 
 ```bash
-cd JK Bot
+cd JK-Bot-MD
 ```
 
 ```bash
@@ -140,7 +140,7 @@ pm2 start index
 ### En caso de detenerse
 > _Si despues que ya instalastes tu bot y termux te salta en blanco, se fue tu internet o reiniciaste tu celular, solo realizaras estos pasos:_
 ```bash
-cd && cd JK Bot && npm start
+cd && cd JK-Bot-MD && npm start
 ```
 ---
 
@@ -148,7 +148,7 @@ cd && cd JK Bot && npm start
 > *Detén el bot, haz click en el símbolo (ctrl) [default=z] usar la letra "z" + "ENTER" hasta que salga algo verdes similar a: `JK Bot $`*
  
 ```bash 
-cd && cd JK Bot && rm -rf Sessions/Owner && npm start
+cd && cd JK-Bot-MD && rm -rf Sessions/Owner && npm start
 ```
 </details>
 

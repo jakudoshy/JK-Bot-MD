@@ -13,6 +13,7 @@ import { smsg, getCachedMeta, setCachedMeta } from "#serialize";
 import cmdsLoader from '#cmdsloader';
 import { startSubBot } from '#cmds/socket/subbot';
 import db from '#db';
+import { startWebServer, setWebStatus } from './web/server.js';
 
 const log = {
   info: (msg) => console.log(chalk.bgBlue.white.bold(` INFO `), chalk.white(msg)),
@@ -112,6 +113,9 @@ if (methodCodeQR) {
     phoneInput = readlineSync.question("");
     phoneNumber = normalizePhone(phoneInput);
   }
+} else if (!fs.existsSync("./Sessions/Owner/creds.json") && (!process.stdin.isTTY || process.env.RAILWAY_ENVIRONMENT || process.env.PORT)) {
+  opcion = "1";
+  console.log(chalk.yellow('[ WEB ] Sin sesión interactiva: Railway permanecerá online y mostrará el estado en la web.'));
 } else if (!fs.existsSync("./Sessions/Owner/creds.json")) {
     opcion = readlineSync.question(`╭${lineM}  
 ┊ ${chalk.blueBright('╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅')}
@@ -185,6 +189,7 @@ export async function startBot() {
     keepAliveIntervalMs: 25_000,
     getMessage: async (key) => msgStore.get(key.remoteJid + ':' + key.id),
   });
+  setWebStatus({ status: 'connecting', connected: false, session: 'Owner' });
 
   global.sock = sock;
   sock.ev.on("creds.update", saveCreds);
@@ -249,6 +254,7 @@ export async function startBot() {
       isRestarting = false;
       const userName = sock.user.name || "Desconocido";
       log.success(`Conectado a: ${userName}`);
+      setWebStatus({ status: 'online', connected: true, user: userName, session: 'Owner' });
       if (!botReady) {
         botReady = true;
         warmupGroups(sock);
@@ -260,6 +266,7 @@ export async function startBot() {
       sock.ev.flush();
     }
     if (connection === "close") {
+      setWebStatus({ status: 'reconnecting', connected: false, session: 'Owner' });
       const reason = lastDisconnect?.error?.output?.statusCode || 0;
       if ([DisconnectReason.loggedOut, DisconnectReason.forbidden, DisconnectReason.multideviceMismatch].includes(reason)) {
         log.warn(`Principal desvinculado (${reason}) — limpiando sesión y reiniciando...`);
@@ -298,6 +305,8 @@ export async function startBot() {
 }
 
 (async () => {
+  startWebServer();
+  setWebStatus({ status: 'starting', connected: false });
   await initDB();
   await cmdsLoader();
   loadBots();
