@@ -691,15 +691,21 @@ const io = socketIo(server, {
 
 let openai = null;
 const aiProvider = String(process.env.AI_PROVIDER || 'openai').toLowerCase();
-const aiApiKey = aiProvider === 'deepseek'
-    ? (process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY)
-    : process.env.OPENAI_API_KEY;
-const aiModel = process.env.AI_MODEL || (aiProvider === 'deepseek' ? (process.env.DEEPSEEK_MODEL || 'deepseek-chat') : (process.env.OPENAI_MODEL || 'gpt-4o-mini'));
+const aiSettings = {
+    openai: { key: process.env.OPENAI_API_KEY, baseURL: 'https://api.openai.com/v1', model: process.env.OPENAI_MODEL || 'gpt-4o-mini' },
+    chatgpt: { key: process.env.OPENAI_API_KEY, baseURL: 'https://api.openai.com/v1', model: process.env.OPENAI_MODEL || 'gpt-4o-mini' },
+    deepseek: { key: process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY, baseURL: 'https://api.deepseek.com/v1', model: process.env.DEEPSEEK_MODEL || 'deepseek-chat' },
+    gemini: { key: process.env.GEMINI_API_KEY, baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai', model: process.env.GEMINI_MODEL || 'gemini-2.5-flash' },
+    groq: { key: process.env.GROQ_API_KEY, baseURL: 'https://api.groq.com/openai/v1', model: process.env.GROQ_MODEL || 'openai/gpt-oss-20b' }
+};
+const selectedAI = aiSettings[aiProvider] || aiSettings.openai;
+const aiApiKey = selectedAI.key;
+const aiModel = process.env.AI_MODEL || selectedAI.model;
 if (aiApiKey) {
     try {
         openai = new OpenAI({
             apiKey: aiApiKey,
-            baseURL: process.env.AI_BASE_URL || (aiProvider === 'deepseek' ? 'https://api.deepseek.com/v1' : 'https://api.openai.com/v1')
+            baseURL: process.env.AI_BASE_URL || selectedAI.baseURL
         });
     } catch (e) {}
 }
@@ -1116,8 +1122,8 @@ class BotSession {
         const prompt = String(userMessage || '').trim();
         if (!prompt) return '❌ Escribe una pregunta después de */ai*.';
         if (!openai) {
-            console.error('[AI] No hay una clave de IA configurada.');
-            return '❌ La IA no está configurada. Añade OPENAI_API_KEY o DEEPSEEK_API_KEY y reinicia el servicio.';
+            console.error(`[AI] No hay una clave configurada para ${aiProvider}.`);
+            return '❌ La IA no está configurada. Añade la clave del proveedor elegido y reinicia el servicio.';
         }
         try {
             const key = String(userJid || 'global');
