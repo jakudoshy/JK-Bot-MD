@@ -14,12 +14,6 @@ export default {
     const apiUrl = `${api.url}/ai/chatgpt?text=${encodeURIComponent(text)}&key=${api.key}`
 
     try {
-      const { key } = await sock.sendMessage(
-        msg.chat,
-        { text: '✎ *ChatGPT* está procesando tu respuesta...' },
-        { quoted: msg },
-      )
-
       const res = await fetch(apiUrl)
       const json = await res.json()
 
@@ -29,7 +23,7 @@ export default {
 
       const response = `${json.result}`.trim()
 
-        await sock.sendMessage(msg.chat, { text: response, edit: key })
+      await sock.sendMessage(msg.chat, { text: response }, { quoted: msg })
     } catch (error) {
       console.error(error)
       await msg.reply(msgglobal)

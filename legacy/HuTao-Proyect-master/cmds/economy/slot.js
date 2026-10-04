@@ -1,5 +1,4 @@
 import db from "#db"
-import { delay } from "baileys"
 
 export default {
   command: ['slot'],
@@ -45,24 +44,6 @@ export default {
       return { x, y, z }
     }
 
-    const initialText = 'ꕤ | *SLOTS* \n────────\n'
-    let { key } = await sock.sendMessage(msg.chat, { text: initialText }, { quoted: msg })
-
-    const animateSlots = async () => {
-      for (let i = 0; i < 5; i++) {
-        const { x, y, z } = getRandomEmojis()
-        const animationText = `ꕤ | *SLOTS* 
-────────
-${x[0]} : ${y[0]} : ${z[0]}
-${x[1]} : ${y[1]} : ${z[1]}
-${x[2]} : ${y[2]} : ${z[2]}
-────────`
-        await sock.sendMessage(msg.chat, { text: animationText, edit: key }, { quoted: msg })
-        await delay(300)
-      }
-    }
-    await animateSlots()
-
     const { x, y, z } = getRandomEmojis()
     let resultado
     if (x[0] === y[0] && y[0] === z[0]) {
@@ -94,7 +75,7 @@ ${x[1]} : ${y[1]} : ${z[1]}
 ${x[2]} : ${y[2]} : ${z[2]}
 ────────
 ${resultado}`
-    await sock.sendMessage(msg.chat, { text: finalText, edit: key }, { quoted: msg })
+    await sock.sendMessage(msg.chat, { text: finalText }, { quoted: msg })
   }
 }
 
