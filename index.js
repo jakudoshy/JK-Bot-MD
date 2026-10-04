@@ -2319,10 +2319,31 @@ const TOOL_DISPLAY_NAMES = {
 };
 
 async function sendCategoryMenu(sock, from, msg, title, names) {
+    const painCategoryByTitle = {
+        '👑 OWNER MENU': 'ᴏᴡɴᴇʀ',
+        '👥 Control de grupos': 'ɢʀᴜᴘᴏs ʏ sᴇɢᴜʀɪᴅᴀᴅ',
+        '🛡️ Seguridad': 'ɢʀᴜᴘᴏs ʏ sᴇɢᴜʀɪᴅᴀᴅ',
+        '⬇️ DOWNLOAD MENU': 'ᴅᴇsᴄᴀʀɢᴀs',
+        '📥 DOWNLOAD MENU': 'ᴅᴇsᴄᴀʀɢᴀs',
+        '🤖 AI MENU': 'ɪɴᴛᴇʟɪɢᴇɴᴄɪᴀ ᴀʀᴛɪғɪᴄɪᴀʟ',
+        '🪙 ECONOMY MENU · ECONOMÍA': 'ᴊᴜᴇɢᴏs ʏ ᴇᴄᴏɴᴏᴍíᴀ',
+        '🪙 GAME MENU · ECONOMÍA': 'ᴊᴜᴇɢᴏs ʏ ᴇᴄᴏɴᴏᴍíᴀ',
+        '👤 PROFILE MENU': 'ᴘᴇʀғɪʟᴇs ʏ ᴅɪᴠᴇʀsɪóɴ',
+        '🏷️ STICKER MENU': 'ᴍᴇᴅɪᴀ ʏ sᴛɪᴄᴋᴇʀs',
+        '🖼️ IMAGE MENU': 'ᴍᴇᴅɪᴀ ʏ sᴛɪᴄᴋᴇʀs',
+        '🎯 MISC MENU': 'sᴇʀᴠᴇʀ ʏ ᴜᴛɪʟɪᴅᴀᴅᴇs',
+        '🛠️ MENÚ DE HERRAMIENTAS': 'sᴇʀᴠᴇʀ ʏ ᴜᴛɪʟɪᴅᴀᴅᴇs'
+    };
+    const painCategory = painCategoryByTitle[title];
+    const painNames = painCategory
+        ? getPainCommandCatalog().filter(group => menuCategoryForPainFile(group.file)[0] === painCategory).flatMap(group => group.commands)
+        : [];
+    const menuNames = [...new Set([...names, ...painNames])];
     const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
     const animeAliases = commands.anime?.aliases || [];
     const profileAliases = commands.profile?.aliases || [];
-    const available = names.filter(name => name === 'menu' || name === 'difunción' || Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name));
+    const painSet = new Set(painNames);
+    const available = menuNames.filter(name => name === 'menu' || name === 'start' || name === 'difunción' || painSet.has(name) || Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name));
     if (!available.length) {
         await sendSubmenuWithChannel(sock, from, `${title}\n\nNo hay módulos activos en esta sección.`, msg);
         return;
