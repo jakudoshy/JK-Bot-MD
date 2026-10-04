@@ -4,8 +4,7 @@
   "description": "ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ — automatización de WhatsApp de Jakudoshy",
   "main": "index.js",
   "scripts": {
-    "start": "sh start-all.sh",
-    "start:bot": "node index.js",
+    "start": "node index.js",
     "dev": "nodemon index.js"
   },
   "dependencies": {

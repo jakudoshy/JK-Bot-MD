@@ -85,7 +85,7 @@ Con `OPENAI_API_KEY` configurada, el bot incluye:
 /videoia descripción         Genera una imagen y crea un corto MP4 animado de 5 segundos
 ```
 
-La función `/videoia` actual crea un corto animado a partir de una imagen generada y necesita `ffmpeg` en el servidor. No llama directamente a Meta AI: Meta no ofrece una API pública universal para que cualquier bot de WhatsApp genere videos. Para video generativo real habría que conectar un proveedor de video que entregue una API y sus credenciales, sin exponerlas al usuario.
+La función `/videoia` actual crea un corto animado a partir de una imagen generada y necesita `ffmpeg` en el servidor. Para video generativo real hay que configurar un proveedor que entregue una API y sus credenciales, sin exponerlas al usuario.
 
 ### Comandos útiles
 
@@ -102,18 +102,6 @@ La función `/videoia` actual crea un corto animado a partir de una imagen gener
 ```
 
 Las notas se guardan por usuario en el almacenamiento persistente del bot. `/time` funciona sin API externa y acepta ciudades como Madrid, México, Cuba, Lima, Bogotá, Miami, Londres y Tokyo.
-
-### Puente experimental con Meta AI
-
-```text
-/hi ¿Cómo estás?
-/meta Genera una idea para un video
-/ia Explícame este texto
-```
-
-El bot muestra `Generando respuesta con Meta AI…`, envía la pregunta al JID especial configurado en `META_AI_JID` y reenvía el texto o multimedia si la sesión recibe una respuesta. El valor recomendado es `867051314767696@bot`; `+393309297172` es el número del bot JK, no el identificador de Meta AI.
-
-**Importante:** el enlace `wa.me/ais/...` abre un chat especial, no un contacto telefónico normal. La versión actual de Baileys no implementa el nodo y el secreto HKDF necesarios para enviar mensajes a un Bot JID de Meta AI; por eso este puente queda en modo experimental y puede mostrar un tiempo de espera hasta conectar un transporte compatible con Meta AI.
 
 ### Prefijos y grupos
 
@@ -150,13 +138,3 @@ Usa el bot respetando las reglas de WhatsApp, la privacidad de las personas y la
 ## Licencia
 
 MIT
-
-### Arquitectura final del puente Meta AI
-
-El bot continúa ejecutándose en Node.js con Baileys para todos los comandos normales: menú, grupos, descargas, anime, economía, perfiles, stickers, IA y herramientas. El único componente separado es `meta-bridge/`, un sidecar Go con Whatsmeow que se conecta al JID especial `867051314767696@bot`.
-
-En el primer despliegue, define `WA_PHONE=393309297172` usando solo dígitos. El sidecar mostrará en los logs un código de vinculación. En el WhatsApp del número del bot abre **Ajustes → Dispositivos vinculados → Vincular dispositivo con número de teléfono** e introduce ese código. No se debe crear una segunda cuenta ni reemplazar la sesión principal.
-
-Después de vincularlo, `/hi`, `/meta` y `/ia` envían texto plano al sidecar Whatsmeow; la respuesta vuelve al proceso Node y se publica en el chat original. Las demás funciones no pasan por Whatsmeow.
-
-`npm start` arranca automáticamente el sidecar y después el bot Baileys. El script usa `WA_PHONE=393309297172` y una carpeta persistente `PERSISTENT_DATA_DIR` si no se especifican, y guarda la sesión en `wametaai.db`. Si aparece `fetch failed`, revisa primero que el build haya creado `meta-bridge/meta-bridge` y que el proceso muestre el código de vinculación en los logs.

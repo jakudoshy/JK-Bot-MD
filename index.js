@@ -15,7 +15,6 @@ const QRCode = require('qrcode');
 const githubBackup = require('./lib/githubBackup');
 const postgresPremiumStore = require('./lib/postgresPremiumStore');
 const aiMedia = require('./lib/aiMedia');
-const metaAiBridge = require('./lib/metaAiBridge');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
 
 // El acceso Owner es una lista blanca fija: ningún valor del panel o de Premium puede ampliarla.
@@ -255,7 +254,6 @@ const commands = {
     id: require('./commands/id'),
     time: require('./commands/time'),
     note: require('./commands/note'),
-    meta: require('./commands/meta'),
     uuid: require('./commands/uuid'),
     hash: require('./commands/hash'),
     timestamp: require('./commands/timestamp'),
@@ -1377,7 +1375,6 @@ class BotSession {
                         const messageContent = msg.message?.ephemeralMessage?.message || msg.message?.viewOnceMessage?.message || msg.message?.viewOnceMessageV2?.message || msg.message;
                         if (!messageContent) return;
 
-                        if (!msg.key.fromMe && await metaAiBridge.handleIncoming(this.sock, msg, messageContent, downloadContentFromMessage)) return;
 
                         let type = Object.keys(messageContent)[0];
                         let text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
@@ -1730,9 +1727,6 @@ class BotSession {
                                         case 'note': case 'nota':
                                             await commands.note(this.sock, from, msg, q, botData, saveBotData);
                                             break;
-                                        case 'hi': case 'meta': case 'ia':
-                                            await commands.meta(this.sock, from, msg, q);
-                                            break;
                                         case 'uuid': case 'guid':
                                             await commands.uuid(this.sock, from, msg, q);
                                             break;
@@ -1756,7 +1750,7 @@ class BotSession {
                                         case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ Seguridad', ['open', 'close', 'grouplink', 'revoke', 'add', 'kick', 'ban', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
-                                        case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['hi', 'meta', 'ia', 'ai', 'chatbot', 'aiclear', 'imagen', 'videoia', 'gali']); break;
+                                        case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'aiclear', 'imagen', 'videoia', 'gali']); break;
                                         case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
                                         case 'subbotmenu': case 'subbots': await sendSubmenuWithChannel(this.sock, from, '🤖 *VINCULACIÓN DE SUBBOTS*\n\n🔐 */code número*\nGenera un código para vincular otro número como subbot.\n\n📲 */qr*\nGenera un QR temporal para vincular otro número como subbot.\n\n🔒 Usa estos comandos en un chat privado.', msg); break;
                                         case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ MENÚ DE HERRAMIENTAS', ['help', 'id', 'time', 'note', 'hi', 'meta', 'ia', 'uuid', 'hash', 'timestamp', 'age', 'convert', 'json', 'ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
@@ -2277,7 +2271,7 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
     };
     const styledTitle = titleAliases[title] || title.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ]+/u, '').trim();
 const descriptions = {
-        help: 'ayuda rápida y ejemplos', id: 'IDs del chat y usuarios', time: 'hora mundial', note: 'notas personales', meta: 'puente experimental con Meta AI', hi: 'pregunta a Meta AI', ia: 'pregunta a Meta AI',
+        help: 'ayuda rápida y ejemplos', id: 'IDs del chat y usuarios', time: 'hora mundial', note: 'notas personales',
         ping: 'comprobación de conexión', dp: 'foto de perfil', vv: 'visualización temporal', translate: 'traducción de textos',
         base64: 'codificación de datos', qr: 'códigos QR', shorturl: 'enlaces cortos', calc: 'cálculos rápidos',
         weather: 'consulta del clima', github: 'proyectos y repositorios', ipinfo: 'información de red', tempmail: 'correo temporal',
@@ -2290,7 +2284,7 @@ const descriptions = {
         grouplink: 'enlace del grupo', ban: 'expulsa a un usuario del grupo', kick: 'expulsa a un usuario del grupo', tagall: 'menciones organizadas', hidetag: 'aviso silencioso', profile: 'tarjeta de perfil', status: 'estado del sistema'
     };
     const commandIcons = {
-        help: '❔', id: '🪪', time: '🕒', note: '📝', meta: '🤖', hi: '🤖', ia: '🤖', sticker: '🏷️', tempmail: '📩', fakeinfo: '🪪', ai: '🤖', chatbot: '💬', translate: '🌐',
+        help: '❔', id: '🪪', time: '🕒', note: '📝', sticker: '🏷️', tempmail: '📩', fakeinfo: '🪪', ai: '🤖', chatbot: '💬', translate: '🌐',
         song: '🎵', video: '🎬', youtube: '▶️', tiktok: '🎵', spotify: '🎧', download: '📥',
         weather: '🌤️', github: '🐙', qr: '🔳', shorturl: '🔗', calc: '🧮', meme: '😂',
         joke: '😄', quote: '💭', profile: '👤', pfp: '🖼️', groupinfo: '👥', grouplink: '🔗',

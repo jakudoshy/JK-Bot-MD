@@ -13,9 +13,6 @@ const HELP = {
     calc: 'Calcula operaciones. Ejemplo: /calc (25*4)/2',
     weather: 'Consulta el clima. Ejemplo: /weather Madrid',
     poll: 'Crea una encuesta. Ejemplo: /poll ¿Te gusta?|Sí|No',
-    hi: 'Pregunta al chat de Meta AI y reenvía la respuesta. Ejemplo: /hi ¿Cómo estás?',
-    meta: 'Alias de /hi para usar el puente experimental con Meta AI.',
-    ia: 'Alias de /hi para enviar una pregunta al chat de Meta AI.'
 };
 
 function menu() {
@@ -29,7 +26,7 @@ function menu() {
         '│ ⏰ /remind · Recordatorios',
         '│ 🌍 /time · Hora mundial',
         '│ 🪪 /id · IDs del chat',
-        '│ 🤖 /hi · Preguntar a Meta AI',
+        '│ 🤖 /ai · Preguntar a la IA configurada',
         '│',
         '│ Escribe /help nombre para ver ejemplos.',
         '╰────────────────────────╯'
