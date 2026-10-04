@@ -690,11 +690,16 @@ const io = socketIo(server, {
 });
 
 let openai = null;
-if (process.env.OPENAI_API_KEY) {
+const aiProvider = String(process.env.AI_PROVIDER || 'openai').toLowerCase();
+const aiApiKey = aiProvider === 'deepseek'
+    ? (process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY)
+    : process.env.OPENAI_API_KEY;
+const aiModel = process.env.AI_MODEL || (aiProvider === 'deepseek' ? (process.env.DEEPSEEK_MODEL || 'deepseek-chat') : (process.env.OPENAI_MODEL || 'gpt-4o-mini'));
+if (aiApiKey) {
     try {
         openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
-            baseURL: process.env.AI_BASE_URL || "https://api.openai.com/v1"
+            apiKey: aiApiKey,
+            baseURL: process.env.AI_BASE_URL || (aiProvider === 'deepseek' ? 'https://api.deepseek.com/v1' : 'https://api.openai.com/v1')
         });
     } catch (e) {}
 }
@@ -1111,8 +1116,8 @@ class BotSession {
         const prompt = String(userMessage || '').trim();
         if (!prompt) return '❌ Escribe una pregunta después de */ai*.';
         if (!openai) {
-            console.error('[AI] OPENAI_API_KEY no está configurada.');
-            return '❌ La IA no está configurada todavía. Añade OPENAI_API_KEY en las variables de Railway y reinicia el servicio.';
+            console.error('[AI] No hay una clave de IA configurada.');
+            return '❌ La IA no está configurada. Añade OPENAI_API_KEY o DEEPSEEK_API_KEY y reinicia el servicio.';
         }
         try {
             const key = String(userJid || 'global');
@@ -1122,7 +1127,7 @@ class BotSession {
             this.aiLastRequestAt.set(key, now);
             const history = this.aiHistory.get(key) || [];
             const completion = await openai.chat.completions.create({
-                model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+                model: aiModel,
                 messages: [
                     { role: 'system', content: `${systemPrompt} Responde siempre en español, de forma clara, amable y útil. Si la pregunta está incompleta, haz una pregunta concreta para aclararla. Si puedes ayudar con pasos, entrégalos ordenados. No inventes datos: indica cuando no estés seguro. Eres el asistente de ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ.` },
                     ...history,
