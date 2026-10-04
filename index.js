@@ -644,6 +644,13 @@ if (tgBot) {
         await tgBot.sendMessage(chatId, `\u{1F451} *Premium Users:*\n\n${list}`, { parse_mode: 'Markdown' });
     });
 
+    tgBot.onText(/^\/(?:nombre|name)\s+(.+)$/i, async (msg, match) => {
+        const chatId = msg.chat.id.toString();
+        const profileName = normalizeProfileName(match?.[1], 'JK Bot');
+        pendingPairNames.set(chatId, profileName);
+        await tgBot.sendMessage(msg.chat.id, `✅ Nombre guardado: *${profileName}*\nAhora envía tu número con código de país para vincularlo.`, { parse_mode: 'Markdown' });
+    });
+
     // Pairing handler - when user sends a number
     tgBot.on('message', async (msg) => {
         const chatId = msg.chat.id;
@@ -675,6 +682,12 @@ if (tgBot) {
                 `_Please wait a few seconds..._`;
 
             await tgBot.sendMessage(chatId, initMsg, { parse_mode: 'Markdown' });
+            const profileName = pendingPairNames.get(userId);
+            if (profileName) {
+                botData.userNames[userId] = profileName;
+                saveBotData();
+                pendingPairNames.delete(userId);
+            }
             sessions[userId].tgChatId = chatId;
             await sessions[userId].initialize(text);
         }
@@ -877,6 +890,7 @@ function saveBotData({ backupNow = false } = {}) {
 if (!fs.existsSync(PREMIUM_DATA_FILE)) savePremiumData();
 
 const sessions = {};
+const pendingPairNames = new Map();
 const userSockets = {};
 const messageLogs = {};
 const adminSockets = new Set();
@@ -911,6 +925,10 @@ function publishAdminChatMessage(entry) {
 
 function registeredUsersSnapshot() {
     return Object.values(botData.registeredUsers || {}).sort((a, b) => String(b.lastSeen || '').localeCompare(String(a.lastSeen || '')));
+}
+function normalizeProfileName(value, fallback = 'JK Bot') {
+    const clean = String(value || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 40);
+    return clean || fallback;
 }
 function recordRegisteredUser({ jid, name, sessionId, chatId, isGroup }) {
     if (!jid || jid === 'status@broadcast' || jid.endsWith('@g.us') || !jid.endsWith('@s.whatsapp.net')) return;
@@ -951,6 +969,7 @@ function publicBotsSnapshot() {
             const digits = String(session.phoneNumber || '').replace(/\D/g, '');
             return {
                 id: `public-${index}-${sessionId.slice(-6)}`,
+                name: botData.userNames?.[sessionId] || settings.botName,
                 type: botData.subbots?.[sessionId] ? 'Subbot' : 'Bot principal',
                 phone: digits ? `+•••• ${digits.slice(-4)}` : 'Número vinculado',
                 status: 'En línea'
@@ -1649,7 +1668,7 @@ class BotSession {
                                             } catch (e) {
                                                 this.sendLog(`Interactive menu fallback: ${e.message}`, 'warning');
                                                 await this.sock.sendMessage(from, {
-                                                    text: `${menuText}\n\n👑 ${settings.officialChannelName}:\n${settings.whatsappChannel}`
+                                                    text: `${menuText}\n\n👑 ${settings.officialChannelName}:\n${settings.telegramChannel}`
                                                 }, { quoted: msg });
                                             }
                                             break;
@@ -2127,7 +2146,7 @@ class BotSession {
 
                     if (this.tgChatId && tgBot) {
                         const successMsg =
-                            `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *ᴊᴋ ʙᴏᴛ* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
+                            `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *${botName}* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
                             `*\u{2705} CONNECTION SUCCESSFUL!* \n\n` +
                             `Your WhatsApp number has been successfully linked.\n` +
                             `You can now use all commands in your WhatsApp.\n\n` +
@@ -2152,11 +2171,11 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `👋 Hola, soy ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ.\n✅ WhatsApp conectado y listo para usar.\n📚 Escribe */menu* para abrir el centro de funciones.\n👑 ${settings.officialChannelName}: ${settings.whatsappChannel}\n\n🛠️ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
+                        const welcomeText = `👋 Hola, soy ${botName}.\n✅ WhatsApp conectado y listo para usar.\n📚 Escribe */menu* para abrir el centro de funciones.\n👑 ${settings.officialChannelName}: ${settings.telegramChannel}\n\n🛠️ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
                         await this.sock.sendMessage(botNumber, { text: welcomeText });
 
                         try {
-                            const channelLink = settings.whatsappChannel;
+                            const channelLink = settings.telegramChannel;
                             if (channelLink) {
                                 const channelKey = channelLink.split('/channel/')[1];
                                 if (channelKey) {
@@ -2225,8 +2244,8 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
         name: 'cta_url',
         buttonParamsJson: JSON.stringify({
             display_text: settings.officialChannelName,
-            url: settings.whatsappChannel,
-            merchant_url: settings.whatsappChannel
+            url: settings.telegramChannel,
+            merchant_url: settings.telegramChannel
         })
     };
     const content = {
@@ -2328,8 +2347,8 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
         name: 'cta_url',
         buttonParamsJson: JSON.stringify({
             display_text: settings.officialChannelName,
-            url: settings.whatsappChannel,
-            merchant_url: settings.whatsappChannel
+            url: settings.telegramChannel,
+            merchant_url: settings.telegramChannel
         })
     };
     const content = {
@@ -2368,7 +2387,7 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
         console.error('Submenu interactive message failed:', error.message);
         await sock.sendMessage(jid, {
             __jkRaw: true,
-            text: `${text}\n\n👑 ${settings.officialChannelName}: ${settings.whatsappChannel}`
+            text: `${text}\n\n👑 ${settings.officialChannelName}: ${settings.telegramChannel}`
         }, { quoted });
     }
 }
@@ -2394,7 +2413,7 @@ function generateMenuText(userName, session) {
         '🕒 Consulta una ciudad con */time Madrid*.',
         '⚡ Escribe */allmenu* para ver todos los comandos.',
         '📖 Cada módulo explica para qué sirve.',
-        `👑 ${settings.officialChannelName}: ${settings.whatsappChannel}`,
+        `👑 ${settings.officialChannelName}: ${settings.telegramChannel}`,
         '',
         `🛠️ ${ownerName}`
     ].join('\n');
@@ -2532,13 +2551,15 @@ io.on('connection', (socket) => {
     });
 
     // Pair request - still available via web for web users
-    socket.on('pair-request', async ({ userId, number } = {}) => {
+    socket.on('pair-request', async ({ userId, number, displayName } = {}) => {
         const cleanNumber = normalizePhone(number);
         if (!userId || !cleanNumber) {
             socket.emit('pair-error', 'Escribe un número válido con código de país, solo dígitos.');
             return;
         }
         try {
+        botData.userNames[userId] = normalizeProfileName(displayName, settings.botName);
+        saveBotData();
         if (sessions[userId]) {
             if (!botData.statusSettings[userId]) {
                 botData.statusSettings[userId] = {
