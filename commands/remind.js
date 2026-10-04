@@ -1,25 +1,25 @@
 const reminders = new Map();
 
 module.exports = async function(sock, chatId, msg, q) {
-    if (!q) return await sock.sendMessage(chatId, { text: '\u26A0\uFE0F .remind <minutes> <message>' }, { quoted: msg });
-    
-    const parts = q.split(' ');
-    const minutes = parseInt(parts[0]);
+    if (!q) return await sock.sendMessage(chatId, { text: '⏰ Uso: /remind <minutos> <mensaje>\nEjemplo: /remind 30 revisar la tarea' }, { quoted: msg });
+
+    const parts = q.trim().split(/\s+/);
+    const minutes = Number(parts[0]);
     const reminderText = parts.slice(1).join(' ');
-    
-    if (isNaN(minutes) || !reminderText) {
-        return await sock.sendMessage(chatId, { text: '\u26A0\uFE0F .remind <minutes> <message>' }, { quoted: msg });
+
+    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 10080 || !reminderText) {
+        return await sock.sendMessage(chatId, { text: '⚠️ Usa entre 1 y 10080 minutos.\nEjemplo: /remind 30 revisar la tarea' }, { quoted: msg });
     }
     
     const ms = minutes * 60 * 1000;
     const id = Date.now();
     
-    await sock.sendMessage(chatId, { text: `\u23F0 Reminder set for ${minutes} minute(s)!\n\nMessage: ${reminderText}` }, { quoted: msg });
+    await sock.sendMessage(chatId, { text: `⏰ Recordatorio programado para ${minutes} minuto(s).\n\n📝 ${reminderText}` }, { quoted: msg });
     
     const timeout = setTimeout(async () => {
         try {
             await sock.sendMessage(chatId, { 
-                text: `\u23F0 *REMINDER!*\n\n${reminderText}\n\n_Set ${minutes}m ago_` 
+                text: `⏰ *¡RECORDATORIO!*\n\n${reminderText}\n\n_Programado hace ${minutes} min._`
             });
             reminders.delete(id);
         } catch (e) {}

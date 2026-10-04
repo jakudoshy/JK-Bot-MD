@@ -250,6 +250,10 @@ const commands = {
     tagme: require('./commands/tagme'),
     everyonemsg: require('./commands/everyonemsg'),
     listonline: require('./commands/listonline'),
+    help: require('./commands/help'),
+    id: require('./commands/id'),
+    time: require('./commands/time'),
+    note: require('./commands/note'),
     mycmd: require('./commands/mycmd'),
     gali: require('./commands/gali'),
     utils: require('./commands/utils')
@@ -1599,7 +1603,7 @@ class BotSession {
                                 await this.sock.sendMessage(from, { text: '💎 *FUNCIÓN PREMIUM*\n\n🔒 Este comando requiere acceso Premium.\n🎟️ Reclama tu token con */reclamar <token>* para activarlo.' }, { quoted: msg });
                                 return;
                             }
-                            if (isGroup && botData.adminOnlyGroups?.[from] && !isAdmin && !['menu', 'admin', 'adminmenu'].includes(commandName)) {
+                            if (isGroup && botData.adminOnlyGroups?.[from] && !isAdmin && !['start', 'menu', 'admin', 'adminmenu', 'help', 'ayuda', 'id', 'ids', 'time', 'hora', 'note', 'nota'].includes(commandName)) {
                                 await this.sock.sendMessage(from, { text: '🔐 Este grupo está en modo Solo Admin.' }, { quoted: msg });
                                 return;
                             }
@@ -1609,7 +1613,7 @@ class BotSession {
                                     // =================== 120+ COMMAND SWITCH ===================
                                     switch (commandName) {
                                         // ===== MENU =====
-                                        case 'menu': case 'menú': {
+                                        case 'start': case 'menu': case 'menú': {
                                             const customName = botData.userNames[this.userId] || msg.pushName || 'User';
                                             const menuText = decorateText(generateMenuText(customName, this));
                                             try {
@@ -1692,6 +1696,18 @@ class BotSession {
                                         case 'allmenu':
                                             await sendCategoryMenu(this.sock, from, msg, '✨ TODOS LOS COMANDOS', ['menu', ...Object.keys(commands).filter(name => name !== 'utils')]);
                                             break;
+                                        case 'help': case 'ayuda':
+                                            await commands.help(this.sock, from, msg, q);
+                                            break;
+                                        case 'id': case 'ids':
+                                            await commands.id(this.sock, from, msg);
+                                            break;
+                                        case 'time': case 'hora':
+                                            await commands.time(this.sock, from, msg, q);
+                                            break;
+                                        case 'note': case 'nota':
+                                            await commands.note(this.sock, from, msg, q, botData, saveBotData);
+                                            break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ownerMenuItems); break;
                                         case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 Control de grupos', ['kick', 'ban', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
                                         case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ Seguridad', ['open', 'close', 'grouplink', 'revoke', 'add', 'kick', 'ban', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
@@ -1700,7 +1716,7 @@ class BotSession {
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'aiclear', 'imagen', 'videoia', 'gali']); break;
                                         case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
                                         case 'subbotmenu': case 'subbots': await sendSubmenuWithChannel(this.sock, from, '🤖 *VINCULACIÓN DE SUBBOTS*\n\n🔐 */code número*\nGenera un código para vincular otro número como subbot.\n\n📲 */qr*\nGenera un QR temporal para vincular otro número como subbot.\n\n🔒 Usa estos comandos en un chat privado.', msg); break;
-                                        case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ MENÚ DE HERRAMIENTAS', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
+                                        case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ MENÚ DE HERRAMIENTAS', ['help', 'id', 'time', 'note', 'ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
                                         case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🪙 GAME MENU · ECONOMÍA', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
                                         case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, '/'); break;
@@ -2218,6 +2234,7 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
     };
     const styledTitle = titleAliases[title] || title.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ]+/u, '').trim();
 const descriptions = {
+        help: 'ayuda rápida y ejemplos', id: 'IDs del chat y usuarios', time: 'hora mundial', note: 'notas personales',
         ping: 'comprobación de conexión', dp: 'foto de perfil', vv: 'visualización temporal', translate: 'traducción de textos',
         base64: 'codificación de datos', qr: 'códigos QR', shorturl: 'enlaces cortos', calc: 'cálculos rápidos',
         weather: 'consulta del clima', github: 'proyectos y repositorios', ipinfo: 'información de red', tempmail: 'correo temporal',
@@ -2230,7 +2247,7 @@ const descriptions = {
         grouplink: 'enlace del grupo', ban: 'expulsa a un usuario del grupo', kick: 'expulsa a un usuario del grupo', tagall: 'menciones organizadas', hidetag: 'aviso silencioso', profile: 'tarjeta de perfil', status: 'estado del sistema'
     };
     const commandIcons = {
-        sticker: '🏷️', tempmail: '📩', fakeinfo: '🪪', ai: '🤖', chatbot: '💬', translate: '🌐',
+        help: '❔', id: '🪪', time: '🕒', note: '📝', sticker: '🏷️', tempmail: '📩', fakeinfo: '🪪', ai: '🤖', chatbot: '💬', translate: '🌐',
         song: '🎵', video: '🎬', youtube: '▶️', tiktok: '🎵', spotify: '🎧', download: '📥',
         weather: '🌤️', github: '🐙', qr: '🔳', shorturl: '🔗', calc: '🧮', meme: '😂',
         joke: '😄', quote: '💭', profile: '👤', pfp: '🖼️', groupinfo: '👥', grouplink: '🔗',
@@ -2314,6 +2331,9 @@ function generateMenuText(userName, session) {
         '🤖 IA, traducciones y herramientas útiles',
         '🎮 Diversión, perfiles y economía',
         '',
+        '❔ Usa */help* para ver ejemplos rápidos.',
+        '📝 Guarda cosas con */note add texto*.',
+        '🕒 Consulta una ciudad con */time Madrid*.',
         '⚡ Escribe */allmenu* para ver todos los comandos.',
         '📖 Cada módulo explica para qué sirve.',
         `👑 ${settings.officialChannelName}: ${settings.whatsappChannel}`,
