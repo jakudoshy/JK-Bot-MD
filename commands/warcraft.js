@@ -1,70 +1,58 @@
 const game = require('../lib/warcraft');
+const crypto = require('crypto');
 function phoneCandidates(msg, chatId) {
   const keys = [msg?.key?.participant, msg?.key?.participantAlt, msg?.key?.senderPn, msg?.key?.participantPn, msg?.key?.remoteJid, msg?.key?.remoteJidAlt, chatId];
   return [...new Set(keys.map(game.normalizePhone).filter(value => /^\d{7,16}$/.test(value)))];
 }
 function jidOf(msg, chatId) { return `${phoneCandidates(msg, chatId)[0] || game.normalizePhone(chatId)}@s.whatsapp.net`; }
 function reply(sock, chatId, msg, text) { return sock.sendMessage(chatId, { text }, { quoted: msg }); }
-function menu() { return `⚔️ *WARCRAFT RPG*
-
-/statusW · progreso, nivel y GS
-/misionesW · ver tus misiones
-/mazmorrasW · listar mazmorras
-/mazmorraW · entrar a una mazmorra
-/tiendaW · ver objetos disponibles
-/comprarW · comprar un objeto
-/inventarioW · revisar tu equipo
-/talentosW · mejorar tus talentos
-/guildW · crear o ver tu guild
-/comerciar · solicitar un intercambio
-/AceptC · aceptar comercio
-/CancelC · cancelar comercio
-
-Elige este módulo para ver la guía.`; }
+function menu() { return `⚔️ *WARCRAFT RPG*\n\n/statusW · progreso, nivel y GS\n/misionesW · ver tus misiones\n/mazmorrasW · listar mazmorras\n/mazmorraW · entrar a una mazmorra\n/tiendaW · ver objetos disponibles\n/comprarW · comprar un objeto\n/inventarioW · revisar tu equipo\n/talentosW · mejorar tus talentos\n/guildW · crear o ver tu guild\n/comerciar · solicitar un intercambio\n/dar · ofrecer oro u objetos\n/AceptC · aceptar comercio\n/CancelC · cancelar comercio\n\nElige este módulo para ver la guía.`; }
+function activeTrade(root, id) { return Object.values(root.trades || {}).find(t => t.status === 'active' && t.participants?.includes(id)); }
+function settleTrade(root, trade) {
+  const [a, b] = trade.participants; const pa = root.players[a]; const pb = root.players[b];
+  if (!pa || !pb) return { error: 'Ambos jugadores necesitan un personaje.' };
+  for (const id of [a, b]) { const offer = trade.offers[id] || { items: [], gold: 0 }; const player = root.players[id]; if ((Number(offer.gold) || 0) > player.gold || !offer.items.every(item => player.inventory.includes(item))) return { error: 'La oferta de uno de los jugadores ya no está disponible.' }; }
+  const offerA = trade.offers[a] || { items: [], gold: 0 }; const offerB = trade.offers[b] || { items: [], gold: 0 };
+  game.removeItems(pa, offerA.items); game.removeItems(pb, offerB.items); pa.inventory.push(...offerB.items); pb.inventory.push(...offerA.items); pa.gold = pa.gold - Number(offerA.gold || 0) + Number(offerB.gold || 0); pb.gold = pb.gold - Number(offerB.gold || 0) + Number(offerA.gold || 0); game.recalc(pa); game.recalc(pb); trade.status = 'completed'; trade.completedAt = new Date().toISOString(); return { ok: true };
+}
 async function run(sock, chatId, msg, command, q, botData, saveBotData) {
   const phones = phoneCandidates(msg, chatId); const id = phones[0]; const jid = jidOf(msg, chatId); const root = game.ensureRoot(botData); let p = game.ensurePlayer(botData, jid, msg?.pushName || 'Aventurero');
-  command = String(command || '').toLowerCase();
-  root.sessions ||= {};
-  if (command === 'warcraft' || command === 'warcraftmenu') return reply(sock, chatId, msg, p && root.sessions[id] ? `${menu()}\n\n${game.formatStatus(p)}` : '🔐 Cuenta no vinculada. Regístrate en la web con tu número de WhatsApp y luego usa /loginw número_de_teléfono contraseña.');
+  command = String(command || '').toLowerCase(); root.sessions ||= {}; root.tradeRequests ||= {};
+  if (command === 'warcraft' || command === 'warcraftmenu') return reply(sock, chatId, msg, root.sessions[id] ? `${menu()}${p ? `\n\n${game.formatStatus(p)}` : '\n\n🧭 Aún no tienes personaje. Usa /pjnombre Nombre y después /clase warrior.'}` : '🔐 Cuenta no vinculada. Regístrate en la web o usa /loginw usuario contraseña.');
   if (command === 'loginw') {
-    const [username, password] = q.trim().split(/\s+/); const rawUser = String(username || '').trim().toLowerCase();
-    const account = Object.values(root.accounts).find(item => String(item.phone) === rawUser || String(item.username).toLowerCase() === rawUser);
-    let valid = false;
-    try { const crypto = require('crypto'); const [salt, digest] = String(account?.passwordHash || '').split(':'); const actual = crypto.scryptSync(String(password || ''), salt, 64); const expected = Buffer.from(digest || '', 'hex'); valid = expected.length === actual.length && crypto.timingSafeEqual(actual, expected); } catch {}
-    if (!account || !valid) return reply(sock, chatId, msg, '❌ Usuario o contraseña incorrectos. Regístrate desde la web Warcraft.');
+    const parts = q.trim().split(/\s+/); const rawUser = String(parts.shift() || '').trim().toLowerCase(); const password = parts.join(' ');
+    const account = Object.values(root.accounts).find(item => String(item.phone) === game.normalizePhone(rawUser) || String(item.username).toLowerCase() === rawUser);
+    let valid = false; try { const [salt, digest] = String(account?.passwordHash || '').split(':'); const actual = crypto.scryptSync(password, salt, 64); const expected = Buffer.from(digest || '', 'hex'); valid = expected.length === actual.length && crypto.timingSafeEqual(actual, expected); } catch {}
+    if (!account || !valid) return reply(sock, chatId, msg, '❌ Error: no es la contraseña correcta o el usuario no existe.');
     if (!phones.includes(game.normalizePhone(account.phone))) return reply(sock, chatId, msg, '❌ La cuenta solo puede vincularse desde el mismo número de WhatsApp registrado.');
-    root.sessions[id] = account.username; saveBotData();
-    return reply(sock, chatId, msg, '✅ Cuenta Warcraft vinculada en este chat. Ya puedes usar /warcraft.');
+    root.sessions[id] = account.username; saveBotData(); return reply(sock, chatId, msg, '✅ Sesión iniciada. Ya puedes usar el /Warcraft.');
   }
-  if (!root.sessions[id]) return reply(sock, chatId, msg, '🔐 Cuenta no vinculada. Regístrate en la web y usa /loginw número_de_teléfono contraseña.');
-  root.tradeRequests ||= {};
+  if (!root.sessions[id]) return reply(sock, chatId, msg, '🔐 Cuenta no vinculada. Regístrate en la web y luego usa /loginw usuario contraseña.');
   if (command === 'comerciar' || command === 'trade') {
-    const target = String(q || '').match(/\d{8,15}/)?.[0];
-    if (!target || target === id) return reply(sock, chatId, msg, 'Uso: /comerciar 535XXXXXXXX');
-    root.tradeRequests[target] = { from: id, expiresAt: Date.now() + 10 * 60 * 1000 };
-    await sock.sendMessage(`${target}@s.whatsapp.net`, { text: `🤝 @${id} quiere comerciar contigo.\n\n✅ Acepta con /AceptC\n❌ Cancela con /CancelC`, mentions: [`${id}@s.whatsapp.net`] }, { quoted: msg });
-    return reply(sock, chatId, msg, `📨 Solicitud de comercio enviada a ${target}.`);
+    const target = String(q || '').match(/\d{7,16}/)?.[0]; if (!target || target === id) return reply(sock, chatId, msg, 'Uso: /comerciar número_del_otro_jugador');
+    const tradeId = crypto.randomBytes(4).toString('hex').toUpperCase(); root.trades[tradeId] = { id: tradeId, status: 'pending', participants: [id, target], offers: {}, accepted: {}, createdAt: new Date().toISOString(), expiresAt: Date.now() + 10 * 60 * 1000 }; root.tradeRequests[target] = tradeId; saveBotData(); await sock.sendMessage(`${target}@s.whatsapp.net`, { text: `🤝 @${id} quiere comerciar contigo.\n\nEscribe /AceptC para aceptar o /CancelC para cancelar.`, mentions: [`${id}@s.whatsapp.net`] }); return reply(sock, chatId, msg, `📨 Solicitud enviada. Comercio 1/2: esperando que el otro jugador acepte.`);
   }
   if (command === 'aceptc' || command === 'cancelc') {
-    const request = root.tradeRequests[id];
-    if (!request || request.expiresAt < Date.now()) return reply(sock, chatId, msg, 'No tienes una solicitud de comercio pendiente.');
-    delete root.tradeRequests[id]; saveBotData();
-    const text = command === 'aceptc' ? `✅ Comercio aceptado. Ambos deben abrir la web Warcraft y usar el mismo ID de comercio.` : '❌ No has aceptado el comercio.';
-    await sock.sendMessage(`${request.from}@s.whatsapp.net`, { text });
-    return reply(sock, chatId, msg, text);
+    const tradeId = root.tradeRequests[id] || Object.keys(root.trades).find(key => root.trades[key].participants?.includes(id) && ['pending', 'active'].includes(root.trades[key].status)); const trade = tradeId && root.trades[tradeId]; if (!trade || trade.expiresAt < Date.now()) return reply(sock, chatId, msg, 'No tienes un comercio pendiente.');
+    if (command === 'cancelc') { trade.status = 'cancelled'; delete root.tradeRequests[trade.participants[1]]; delete root.tradeRequests[trade.participants[0]]; saveBotData(); for (const other of trade.participants.filter(x => x !== id)) await sock.sendMessage(`${other}@s.whatsapp.net`, { text: '❌ Comercio Cancelado.' }); return reply(sock, chatId, msg, '❌ Comercio Cancelado.'); }
+    if (trade.status === 'pending') { trade.status = 'active'; trade.accepted = {}; delete root.tradeRequests[id]; saveBotData(); const other = trade.participants.find(x => x !== id); await sock.sendMessage(`${other}@s.whatsapp.net`, { text: '✅ Comercio aceptado. 2/2 cargando el comercio.\nUsa /dar pocion x2 u /dar oro x20 y luego /AceptC.' }); return reply(sock, chatId, msg, '✅ Comercio aceptado. 2/2 cargando el comercio. Usa /dar objeto x cantidad y luego /AceptC.'); }
+    trade.accepted[id] = true; if (trade.accepted[trade.participants.find(x => x !== id)]) { const result = settleTrade(root, trade); if (result.error) return reply(sock, chatId, msg, `❌ ${result.error}`); saveBotData(); for (const other of trade.participants.filter(x => x !== id)) await sock.sendMessage(`${other}@s.whatsapp.net`, { text: '✅ Comercio Completo con éxito.' }); return reply(sock, chatId, msg, '✅ Comercio Completo con éxito.'); } saveBotData(); return reply(sock, chatId, msg, '⏳ Esperando a que el otro usuario Acepte el comercio.');
+  }
+  if (command === 'dar') {
+    const trade = activeTrade(root, id); if (!trade) return reply(sock, chatId, msg, '❌ No tienes un comercio activo.'); const match = String(q || '').trim().match(/^(.+?)\s+x\s*(\d+)$/i); if (!match) return reply(sock, chatId, msg, 'Tutorial: /dar Poción de salud x2 o /dar oro x20'); const quantity = Number(match[2]); const requested = match[1].trim(); if (!Number.isInteger(quantity) || quantity < 1) return reply(sock, chatId, msg, '❌ La cantidad no es válida.'); const offer = trade.offers[id] || { items: [], gold: 0 }; if (/^oro$/i.test(requested)) { if (quantity > p.gold) return reply(sock, chatId, msg, '❌ No tienes suficiente oro.'); offer.gold = quantity; } else { const itemId = game.findItemId(requested); if (!itemId) return reply(sock, chatId, msg, '❌ Ese objeto no existe en tu inventario.'); const items = Array(quantity).fill(itemId); const available = [...p.inventory]; if (!items.every(item => { const index = available.indexOf(item); if (index < 0) return false; available.splice(index, 1); return true; })) return reply(sock, chatId, msg, '❌ No tienes esa cantidad del objeto.'); offer.items = items; } trade.offers[id] = offer; trade.accepted = {}; saveBotData(); const other = trade.participants.find(x => x !== id); const shown = offer.gold ? `oro x${offer.gold}` : `${offer.items.map(item => game.ITEMS[item]?.name || item).join(', ')}`; await sock.sendMessage(`${other}@s.whatsapp.net`, { text: `📦 El usuario quiere darte ${shown}. Revisa el comercio y usa /AceptC para aceptar.` }); return reply(sock, chatId, msg, `📦 Oferta guardada: ${shown}. Esperando que ambos acepten.`);
   }
   if (command === 'pjnombre') { if (p) return reply(sock, chatId, msg, '❌ Ya tienes un personaje.'); const name = q.trim(); if (name.length < 3) return reply(sock, chatId, msg, 'Uso: /pjnombre Jakudoshy'); root.pending ||= {}; root.pending[id] = { name }; saveBotData(); return reply(sock, chatId, msg, '✅ Nombre guardado. Ahora elige: /clase warrior, /clase mago o /clase picaro'); }
-  if (command === 'clase') { if (p) return reply(sock, chatId, msg, '❌ Ya tienes un personaje.'); const pending = root.pending?.[id]; if (!pending) return reply(sock, chatId, msg, 'Primero usa /pjnombre Nombre.'); const classKey = q.trim().toLowerCase(); const result = game.createPlayer(botData, jid, pending.name, classKey); if (result.error) return reply(sock, chatId, msg, `❌ ${result.error}`); delete root.pending[id]; saveBotData(); return reply(sock, chatId, msg, `🌅 *Amaneces en la aldea de Brumaria.*\n\nLa aldea te acoge y te entrega una armadura y un arma.\n\n${game.formatStatus(result.player)}\n\n📜 Tutorial: completa /misionesW para ganar XP y oro.`); }
+  if (command === 'clase') { if (p) return reply(sock, chatId, msg, '❌ Ya tienes un personaje.'); const pending = root.pending?.[id]; if (!pending) return reply(sock, chatId, msg, 'Primero usa /pjnombre Nombre.'); const result = game.createPlayer(botData, jid, pending.name, q.trim().toLowerCase()); if (result.error) return reply(sock, chatId, msg, `❌ ${result.error}`); delete root.pending[id]; saveBotData(); return reply(sock, chatId, msg, `🌅 *Amaneces en la aldea de Brumaria.*\n\n${game.formatStatus(result.player)}`); }
   if (!p) return reply(sock, chatId, msg, '❌ No tienes personaje creado.');
-  if (command === 'estadow' || command === 'statusw' || command === 'estadoW'.toLowerCase()) return reply(sock, chatId, msg, game.formatStatus(p));
-  if (command === 'inventarioW'.toLowerCase()) return reply(sock, chatId, msg, `🎒 *INVENTARIO*\n\n${game.listItems(p).map(x => `${x.index}. ${x.name}${x.attack ? ` · ⚔️${x.attack}` : ''}${x.defense ? ` · 🛡️${x.defense}` : ''}`).join('\n') || 'Vacío'}\n\nEquipo: ${p.equipment.weapon || '-'} / ${p.equipment.armor || '-'}`);
-  if (command === 'misionesW'.toLowerCase()) { const lines = game.QUESTS.map(qs => { const s = p.quests[qs.id] || { progress: 0, completed: false }; return `${s.completed ? '✅' : '📜'} ${qs.name} · ${Math.min(s.progress, qs.goal)}/${qs.goal} · ${qs.xp} XP · ${qs.gold} oro\n   ${qs.description}`; }); return reply(sock, chatId, msg, `📜 *TABLÓN DE MISIONES*\n\n${lines.join('\n')}${p.level === 1 ? '\n\n💡 Completa Lobos de la frontera para progresar.' : ''}`); }
-  if (command === 'mazmorrasW'.toLowerCase()) return reply(sock, chatId, msg, `🏰 *MAZMORRAS*\n\n${game.DUNGEONS.map(d => `• ${d.name} · nivel ${d.level} · /mazmorraW ${d.id}`).join('\n')}`);
-  if (command === 'mazmorraW'.toLowerCase()) { const result = game.dungeon(p, q.trim().toLowerCase()); if (result.error) return reply(sock, chatId, msg, `❌ ${result.error}`); saveBotData(); return reply(sock, chatId, msg, `🏰 *${result.dungeon.name} COMPLETADA*\n\n💰 Botín: ${result.reward} oro\n🎁 Objeto: ${game.ITEMS[result.dungeon.item].name}\n✨ ${result.dungeon.xp} XP\n${result.levels.join('\n')}\n\n${game.formatStatus(p)}`); }
-  if (command === 'tiendaW'.toLowerCase()) return reply(sock, chatId, msg, `🛒 *TIENDA*\n\n${Object.entries(game.ITEMS).map(([id, x]) => `• ${id} — ${x.name} · ${x.price} oro · nivel ${x.level}${x.attack ? ` · ⚔️${x.attack}` : ''}${x.defense ? ` · 🛡️${x.defense}` : ''}`).join('\n')}\n\nUsa /comprarW id`);
-  if (command === 'comprarW'.toLowerCase()) { const result = game.buy(p, q.trim()); if (result.error) return reply(sock, chatId, msg, `❌ ${result.error}`); saveBotData(); return reply(sock, chatId, msg, `✅ Compraste ${result.item.name}.\n\n${game.formatStatus(p)}`); }
-  if (command === 'talentosW'.toLowerCase()) { const talent = q.trim().toLowerCase(); if (!['ataque', 'defensa'].includes(talent)) return reply(sock, chatId, msg, `🎯 Puntos disponibles: ${p.talentPoints || 0}\nUso: /talentosW ataque o /talentosW defensa`); if (!p.talentPoints) return reply(sock, chatId, msg, '❌ No tienes puntos de talento. Sube de nivel.'); p.talentPoints--; p.talents[talent] = Number(p.talents[talent] || 0) + 2; game.recalc(p); saveBotData(); return reply(sock, chatId, msg, `✅ Talento mejorado: ${talent} +2.\n\n${game.formatStatus(p)}`); }
-  if (command === 'guildW'.toLowerCase()) { const [action, ...rest] = q.trim().split(/\s+/); const result = game.guild(botData, action || 'info', p, rest.join(' ')); if (result.error) return reply(sock, chatId, msg, `❌ ${result.error}`); saveBotData(); return reply(sock, chatId, msg, result.guild ? `🏰 Guild: ${result.guild.name}\n👥 Miembros: ${result.guild.members.length}\n🆔 ID: ${result.guild.id}` : 'No perteneces a ninguna guild.'); }
+  if (command === 'estadow' || command === 'statusw') return reply(sock, chatId, msg, game.formatStatus(p));
+  if (command === 'inventariow') return reply(sock, chatId, msg, `🎒 *INVENTARIO*\n\n${game.listItems(p).map(x => `${x.index}. ${x.name}`).join('\n') || 'Vacío'}\n\n💰 Oro x${p.gold}`);
+  if (command === 'misionesw') return reply(sock, chatId, msg, `📜 *TABLÓN DE MISIONES*\n\n${game.QUESTS.map(qs => `• ${qs.name} · ${qs.xp} XP · ${qs.gold} oro`).join('\n')}`);
+  if (command === 'mazmorrasw') return reply(sock, chatId, msg, `🏰 *MAZMORRAS*\n\n${game.DUNGEONS.map(d => `• ${d.name} · nivel ${d.level}`).join('\n')}`);
+  if (command === 'mazmorraw') { const result = game.dungeon(p, q.trim().toLowerCase()); if (result.error) return reply(sock, chatId, msg, `❌ ${result.error}`); saveBotData(); return reply(sock, chatId, msg, `🏰 *${result.dungeon.name} COMPLETADA*\n\n💰 Botín: ${result.reward} oro\n🎁 Objeto: ${game.ITEMS[result.dungeon.item].name}\n${game.formatStatus(p)}`); }
+  if (command === 'tiendaw') return reply(sock, chatId, msg, `🛒 *TIENDA*\n\n${Object.entries(game.ITEMS).map(([id, x]) => `• ${id} — ${x.name} · ${x.price} oro`).join('\n')}\n\nUsa /comprarW id`);
+  if (command === 'comprarw') { const result = game.buy(p, q.trim()); if (result.error) return reply(sock, chatId, msg, `❌ ${result.error}`); saveBotData(); return reply(sock, chatId, msg, `✅ Compraste ${result.item.name}.\n\n${game.formatStatus(p)}`); }
+  if (command === 'talentosw') { const talent = q.trim().toLowerCase(); if (!['ataque', 'defensa'].includes(talent) || !p.talentPoints) return reply(sock, chatId, msg, `🎯 Puntos disponibles: ${p.talentPoints || 0}\nUso: /talentosW ataque o /talentosW defensa`); p.talentPoints--; p.talents[talent] = Number(p.talents[talent] || 0) + 2; game.recalc(p); saveBotData(); return reply(sock, chatId, msg, `✅ Talento mejorado.\n\n${game.formatStatus(p)}`); }
+  if (command === 'guildw') { const [action, ...rest] = q.trim().split(/\s+/); const result = game.guild(botData, action || 'info', p, rest.join(' ')); if (result.error) return reply(sock, chatId, msg, `❌ ${result.error}`); saveBotData(); return reply(sock, chatId, msg, result.guild ? `🏰 Guild: ${result.guild.name}\n🆔 ID: ${result.guild.id}` : 'No perteneces a ninguna guild.'); }
   return reply(sock, chatId, msg, '❌ Comando Warcraft no reconocido.');
 }
 module.exports = run;
