@@ -2035,9 +2035,7 @@ class BotSession {
                                         case 'restore': await commands.restore(this.sock, from, msg, isOwner); break;
                                         case 'mycmd': case 'mycommands': await commands.mycmd(this.sock, from, msg); break;
                                         default: {
-                                            await this.sock.sendMessage(from, {
-                                                text: `❓ *COMANDO NO ENCONTRADO*\n\nNo reconozco */${commandName}*.\n📚 Usa */start* para abrir el menú.`
-                                            }, { quoted: msg });
+                                            await sendUnknownCommandMessage(this.sock, from, msg, commandName);
                                             break;
                                         }
                                     }
@@ -2205,6 +2203,57 @@ class BotSession {
 }
 
 
+function commandDistance(a, b) {
+    const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+        const row = [i];
+        for (let j = 1; j <= b.length; j++) {
+            row[j] = Math.min(
+                row[j - 1] + 1,
+                prev[j] + 1,
+                prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+            );
+        }
+        for (let j = 0; j <= b.length; j++) prev[j] = row[j];
+    }
+    return prev[b.length];
+}
+function suggestJKCommand(input) {
+    const known = new Set([
+        ...Object.keys(commands).filter(name => name !== 'utils'),
+        'start', 'menu', 'menú', 'help', 'ayuda', 'allmenu'
+    ]);
+    const value = String(input || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (!value) return null;
+    const ranked = [...known].map(command => ({ command, distance: commandDistance(value, command) }))
+        .sort((a, b) => a.distance - b.distance || a.command.length - b.command.length);
+    const best = ranked[0];
+    const limit = value.length <= 4 ? 1 : Math.max(2, Math.floor(value.length * 0.4));
+    return best && best.distance <= limit ? best.command : null;
+}
+async function sendUnknownCommandMessage(sock, jid, msg, commandName) {
+    const suggestion = suggestJKCommand(commandName);
+    const text = suggestion
+        ? `❓ *¿El comando que me acabas de mandar no lo tengo registrado?*\n\nNo habrás querido decir */${suggestion}*?\n\n👇 Responde o toca el botón para usar el comando correcto.`
+        : `❓ *¿El comando que me acabas de mandar no lo tengo registrado?*\n\nNo reconozco */${commandName}*.\n\n📚 Escribe */start* para ver los comandos disponibles.`;
+    if (!suggestion) return sock.sendMessage(jid, { text }, { quoted: msg });
+    const content = { interactiveMessage: {
+        body: { text },
+        footer: { text: 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ' },
+        nativeFlowMessage: { buttons: [{
+            name: 'quick_reply',
+            buttonParamsJson: JSON.stringify({ display_text: `Usar /${suggestion}`, id: `cmd_${suggestion}` })
+        }], messageVersion: 1 }
+    }};
+    const userJid = sock.user?.id;
+    const message = generateWAMessageFromContent(jid, content, {
+        logger: sock.logger, userJid, messageId: generateMessageIDV2(userJid), timestamp: new Date()
+    });
+    await sock.relayMessage(jid, message.message, {
+        messageId: message.key.id,
+        additionalNodes: [{ tag: 'interactive', attrs: { type: 'native_flow', v: '1' }, content: [] }]
+    });
+}
 // =================== MENU GENERATOR ===================
 async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const categoryButton = {
