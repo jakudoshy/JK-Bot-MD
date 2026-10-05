@@ -2221,7 +2221,7 @@ function commandDistance(a, b) {
 function suggestJKCommand(input) {
     const known = new Set([
         ...Object.keys(commands).filter(name => name !== 'utils'),
-        'start', 'menu', 'menú', 'help', 'ayuda', 'allmenu'
+        'start', 'menu', 'menú', 'help', 'ayuda', 'allmenu', 'time', 'hora'
     ]);
     const value = String(input || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     if (!value) return null;
@@ -2234,8 +2234,8 @@ function suggestJKCommand(input) {
 async function sendUnknownCommandMessage(sock, jid, msg, commandName) {
     const suggestion = suggestJKCommand(commandName);
     const text = suggestion
-        ? `❓ *¿El comando que me acabas de mandar no lo tengo registrado?*\n\nNo habrás querido decir */${suggestion}*?\n\n👇 Responde o toca el botón para usar el comando correcto.`
-        : `❓ *¿El comando que me acabas de mandar no lo tengo registrado?*\n\nNo reconozco */${commandName}*.\n\n📚 Escribe */start* para ver los comandos disponibles.`;
+        ? `❓ *No encontré el mensaje que me mandaste.*\n\n¿No habrás querido decir */${suggestion}*?\n\n👇 Responde o toca el botón para usar el comando correcto.`
+        : `❓ *No encontré el mensaje que me mandaste.*\n\nNo tengo registrado */${commandName}*.\n\n📚 Escribe */start* para ver los comandos disponibles.`;
     if (!suggestion) return sock.sendMessage(jid, { text }, { quoted: msg });
     const content = { interactiveMessage: {
         body: { text },
