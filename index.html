@@ -598,7 +598,7 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
   </div>
 </nav>
 <button id="menuToggle" class="menu-toggle" type="button" aria-label="Abrir menú" aria-expanded="false"><span></span><span></span><span></span></button>
-<div id="menuDrawer" class="menu-drawer" aria-hidden="true"><div class="menu-drawer-head"><strong>ᴊᴋ ᴍᴇɴᴜ</strong><button id="menuClose" type="button" aria-label="Cerrar menú">×</button></div><a href="#connect">✆VINCULAR WHATSAPP</a><a href="#links">➲ CANAL DE TELEGRAM</a><a href="#admin">亗ZONA DE EL CREADOR</a></div>
+<div id="menuDrawer" class="menu-drawer" aria-hidden="true"><div class="menu-drawer-head"><strong>ᴊᴋ ᴍᴇɴᴜ</strong><button id="menuClose" type="button" aria-label="Cerrar menú">×</button></div><a href="#connect">✆VINCULAR WHATSAPP</a><a href="#warcraft">⚔️ WARCRAFT RPG</a><a href="#links">➲ CANAL DE TELEGRAM</a><a href="#admin">亗ZONA DE EL CREADOR</a></div>
 
 <div class="hero-banner" role="img" aria-label="Banner oficial de JK BOT">
   <img src="Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg" alt="ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ" loading="eager" decoding="async">
@@ -713,6 +713,16 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
       <a class="official-card" href="__JK_TELEGRAM_CHANNEL__" target="_blank" rel="noopener"><i class="fab fa-telegram-plane"></i><span><strong>ᴊᴋ_ᴄʜᴀɴɴᴇʟꫂꤪꤨᴼᶠᶜ</strong><span>Telegram oficial · Noticias, soporte y avisos</span></span><i class="fas fa-arrow-up-right-from-square join-arrow"></i></a>
     </div>
   </section>
+
+  <section id="warcraft" class="panel" data-label="./warcraft">
+    <h2><i class="fas fa-dragon"></i> Warcraft RPG</h2>
+    <p class="sample-note">Cuenta, personaje y comercio viven en este menú separado del panel administrativo. El código de verificación solo se envía a tu chat privado de WhatsApp.</p>
+    <div class="premium-grid">
+      <form id="wcLoginForm" class="premium-card"><h3>Iniciar sesión</h3><label>Usuario</label><input id="wcLoginUser" required autocomplete="username"><label>Contraseña</label><input id="wcLoginPass" type="password" required autocomplete="current-password"><button class="btn" type="submit">Entrar a Warcraft</button></form>
+      <form id="wcRegisterForm" class="premium-card"><h3>Crear cuenta</h3><label>Número de teléfono</label><input id="wcRegPhone" placeholder="535XXXXXXXX" required><label>Usuario</label><input id="wcRegUser" required><label>Contraseña</label><input id="wcRegPass" type="password" minlength="4" required><button class="btn" type="submit">Mandar código a WhatsApp</button><div id="wcRegStatus" class="premium-status"></div><div id="wcVerifyBox" style="display:none"><label>Código recibido en tu chat privado</label><input id="wcRegCode" inputmode="numeric"><button id="wcVerifyBtn" class="btn" type="button">Verificar cuenta</button></div></form>
+      <div class="premium-card"><h3>Comercio en tiempo real</h3><p>Genera un ID para dos jugadores o únete al código que te compartan.</p><button id="wcTradeGenerate" class="btn" type="button">Generar ID de comercio</button><label style="margin-top:10px">ID solicitado</label><input id="wcTradeId" placeholder="AB12CD34"><button id="wcTradeJoin" class="btn" type="button">Unirme al comercio</button><div id="wcTradeStatus" class="premium-status"></div></div>
+    </div>
+  </section>
 <section id="admin" class="panel" data-label="./admin">
     <h2><i class="fas fa-shield-halved"></i> Panel administrativo</h2>
     <div class="admin-head">
@@ -737,15 +747,10 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
         <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-link"></i> Sesiones activas</span><strong id="adminActiveSessions" class="admin-kpi-value">0</strong></div>
         <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-users"></i> Usuarios conectados</span><strong id="adminConnectedUsers" class="admin-kpi-value">0</strong></div>
         <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-hourglass-half"></i> Pendientes</span><strong id="adminPendingUsers" class="admin-kpi-value">0</strong></div>
-        <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-comments"></i> Mensajes vistos</span><strong id="adminMessageCountKpi" class="admin-kpi-value">0</strong></div>
+        <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-shield-halved"></i> Panel protegido</span><strong class="admin-kpi-value">OK</strong></div>
       </div>
       <div class="admin-promo-card"><div><h4><i class="fas fa-bullhorn"></i> Promoción del canal</h4><p>Envía el aviso a todos los grupos donde los bots puedan escribir. Solo se ejecuta desde esta sesión ADMIN.</p></div><button id="adminPromoButton" class="btn" type="button"><i class="fas fa-paper-plane"></i> Enviar promoción</button></div>
       <div class="admin-console-grid">
-        <div class="admin-card">
-          <div class="admin-card-head"><div><h3>Actividad del bot</h3><p>Mensajes recibidos en tiempo real</p></div><span class="admin-section-tag">EN VIVO</span></div>
-          <div class="console-toolbar"><span class="console-live">● CONEXIÓN ACTIVA</span><span id="adminMessageCount">0 mensajes</span></div>
-          <div id="adminConsoleOutput" class="console-output"><div class="console-empty">Esperando mensajes del bot...</div></div>
-        </div>
         <div class="admin-card">
           <div class="admin-card-head"><div><h3>Acceso Premium</h3><p>Usuarios y tokens de acceso</p></div><span class="admin-section-tag">CONTROL</span></div>
           <div class="premium-admin">
@@ -876,39 +881,6 @@ const adminMessages = new Map();
 function updateAdminRoute(){const isAdmin=window.location.hash.toLowerCase()==='#admin' || window.location.pathname.toLowerCase()==='/admin';document.body.classList.toggle('admin-panel-open',isAdmin);if(isAdmin)setTimeout(()=>document.getElementById('admin')?.scrollIntoView({behavior:'smooth',block:'start'}),60);}
 updateAdminRoute();
 window.addEventListener('hashchange',updateAdminRoute);
-function renderAdminChatMessage(entry){
-  if(!entry?.id || adminMessages.has(entry.id)) return;
-  adminMessages.set(entry.id,entry);
-  const empty = adminConsoleOutput.querySelector('.console-empty');
-  if(empty) empty.remove();
-  const line = document.createElement('div');
-  line.className = `console-line ${entry.isGroup ? 'group' : 'private'}`;
-  const date = entry.timestamp ? new Date(entry.timestamp) : new Date();
-  const time = document.createElement('span');
-  time.className='console-time';
-  time.textContent=`[${date.toLocaleTimeString('es-ES')}]`;
-  const chat = document.createElement('span');
-  chat.className='console-chat';
-  chat.textContent=`${entry.isGroup ? 'GRUPO' : 'CHAT'} ${entry.chatName || entry.chatId}: `;
-  const sender = document.createElement('span');
-  sender.className='console-sender';
-  sender.textContent=`${entry.sender || 'Usuario'}${entry.fromMe ? ' (BOT)' : ''}: `;
-  const message = document.createElement('span');
-  message.textContent=entry.text || `[${entry.type || 'mensaje'}]`;
-  line.append(time,chat,sender,message);
-  adminConsoleOutput.appendChild(line);
-  adminConsoleOutput.scrollTop=adminConsoleOutput.scrollHeight;
-  adminMessageCount.textContent=`${adminMessages.size} mensajes`;
-  if(adminMessageCountKpi) adminMessageCountKpi.textContent=adminMessages.size;
-}
-function renderAdminChatHistory(entries=[]){
-  adminMessages.clear();
-  adminConsoleOutput.innerHTML='';
-  entries.forEach(renderAdminChatMessage);
-  if(!entries.length) adminConsoleOutput.innerHTML='<div class="console-empty">Esperando mensajes del bot...</div>';
-  adminMessageCount.textContent=`${adminMessages.size} mensajes`;
-  if(adminMessageCountKpi) adminMessageCountKpi.textContent=adminMessages.size;
-}
 function escapeAdminHtml(value){
   return String(value ?? '').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 }
@@ -968,8 +940,6 @@ adminLogout?.addEventListener('click',()=>{
   socket.disconnect();
   window.location.href='/';
 });
-socket.on('admin-chat-history',renderAdminChatHistory);
-socket.on('admin-chat-message',renderAdminChatMessage);
 socket.on('admin-bots-data',renderAdminBots);
 socket.on('admin-users-data',renderAdminUsers);
 socket.on('admin-promo-status',(data={})=>{
@@ -1105,6 +1075,13 @@ socket.on('stats', (data)=>{
 });
 
 document.getElementById('year').innerText = new Date().getFullYear();
+
+const wcTokenKey='jk_warcraft_token'; const wcToken=()=>localStorage.getItem(wcTokenKey); const wcHeaders=()=>({'Content-Type':'application/json', ...(wcToken()?{Authorization:`Bearer ${wcToken()}`}:{})}); const wcStatus=(text,ok=false)=>{const el=document.getElementById('wcTradeStatus'); if(el){el.textContent=text;el.style.color=ok?'var(--green)':'var(--amber)';}};
+document.getElementById('wcLoginForm')?.addEventListener('submit',async e=>{e.preventDefault(); const r=await fetch('/api/warcraft/login',{method:'POST',headers:wcHeaders(),body:JSON.stringify({username:wcLoginUser.value,password:wcLoginPass.value})}); const d=await r.json(); if(d.ok){localStorage.setItem(wcTokenKey,d.token); wcStatus(`Sesión activa como ${d.username}`,true);} else wcStatus(d.message||'No se pudo iniciar sesión.');});
+document.getElementById('wcRegisterForm')?.addEventListener('submit',async e=>{e.preventDefault(); const r=await fetch('/api/warcraft/register/request-code',{method:'POST',headers:wcHeaders(),body:JSON.stringify({phone:wcRegPhone.value,username:wcRegUser.value,password:wcRegPass.value})}); const d=await r.json(); wcRegStatus.textContent=d.message||''; if(d.ok) wcVerifyBox.style.display='block';});
+document.getElementById('wcVerifyBtn')?.addEventListener('click',async()=>{const r=await fetch('/api/warcraft/register/verify',{method:'POST',headers:wcHeaders(),body:JSON.stringify({phone:wcRegPhone.value,code:wcRegCode.value})}); const d=await r.json(); wcRegStatus.textContent=d.message||'';});
+document.getElementById('wcTradeGenerate')?.addEventListener('click',async()=>{const r=await fetch('/api/warcraft/trade/generate',{method:'POST',headers:wcHeaders()}); const d=await r.json(); if(d.ok){wcTradeId.value=d.tradeId;wcStatus(`ID generado: ${d.tradeId}. Compártelo con un jugador.`,true);} else wcStatus(d.message||'Inicia sesión.');});
+document.getElementById('wcTradeJoin')?.addEventListener('click',async()=>{const r=await fetch('/api/warcraft/trade/join',{method:'POST',headers:wcHeaders(),body:JSON.stringify({tradeId:wcTradeId.value})}); const d=await r.json(); wcStatus(d.ok?'Comercio abierto para dos jugadores.':(d.message||'No se pudo unir.'),d.ok);});
 </script>
 </body>
 </html>

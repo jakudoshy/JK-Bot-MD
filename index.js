@@ -140,6 +140,7 @@ const commands = {
     coinflip: require('./commands/coinflip'),
     economy: require('./commands/economy'),
     profile: require('./commands/profile'),
+    warcraft: require('./commands/warcraft'),
     roll: require('./commands/roll'),
     riddle: require('./commands/riddle'),
     wouldyourather: require('./commands/wouldyourather'),
@@ -733,6 +734,38 @@ app.get('/health', (req, res) => {
     res.status(200).send('OK');
 });
 
+
+const warcraftPendingCodes = new Map();
+function normalizeWarcraftPhone(value) { return String(value || '').replace(/\D/g, ''); }
+function hashWarcraftPassword(value, salt = crypto.randomBytes(16).toString('hex')) { return `${salt}:${crypto.scryptSync(String(value), salt, 64).toString('hex')}`; }
+function checkWarcraftPassword(value, stored) { try { const [salt, digest] = String(stored || '').split(':'); const actual = crypto.scryptSync(String(value), salt, 64).toString('hex'); return crypto.timingSafeEqual(Buffer.from(actual, 'hex'), Buffer.from(digest || '', 'hex')); } catch { return false; } }
+function warcraftRoot() { botData.warcraft ||= { players: {}, accounts: {}, trades: {}, guilds: {}, webSessions: {} }; botData.warcraft.accounts ||= {}; botData.warcraft.trades ||= {}; botData.warcraft.webSessions ||= {}; return botData.warcraft; }
+function warcraftSessionForPhone(phone) { const target = normalizeWarcraftPhone(phone); return Object.values(sessions || {}).find(session => normalizeWarcraftPhone(session.phoneNumber || session.requestedPhoneNumber || session.userId) === target && session.sock && session.isConnected); }
+function warcraftAccountFromToken(token) { const root = warcraftRoot(); const session = root.webSessions[String(token || '')]; if (!session || session.expiresAt < Date.now()) return null; return root.accounts[session.username] || null; }
+app.post('/api/warcraft/register/request-code', async (req, res) => {
+    const phone = normalizeWarcraftPhone(req.body?.phone); const username = String(req.body?.username || '').trim().toLowerCase(); const password = String(req.body?.password || '');
+    if (!/^\d{8,15}$/.test(phone) || !/^[a-z0-9_]{3,20}$/.test(username) || password.length < 4) return res.status(400).json({ ok: false, message: 'Teléfono, usuario o contraseña inválidos.' });
+    const root = warcraftRoot(); if (root.accounts[username] || Object.values(root.accounts).some(a => a.phone === phone)) return res.status(409).json({ ok: false, message: 'El usuario o teléfono ya está registrado.' });
+    const session = warcraftSessionForPhone(phone); if (!session) return res.status(400).json({ ok: false, message: 'Primero conecta en WhatsApp el número que recibirá el código.' });
+    const code = String(crypto.randomInt(100000, 1000000)); warcraftPendingCodes.set(phone, { code, username, passwordHash: hashWarcraftPassword(password), expiresAt: Date.now() + 10 * 60 * 1000 });
+    try { await session.sock.sendMessage(`${phone}@s.whatsapp.net`, { text: `🔐 Código Warcraft: ${code}\nNo lo compartas con nadie. Caduca en 10 minutos.` }); } catch (e) { warcraftPendingCodes.delete(phone); return res.status(502).json({ ok: false, message: 'No se pudo enviar el código a WhatsApp.' }); }
+    res.json({ ok: true, message: 'Código enviado a tu chat privado de WhatsApp. La web no lo muestra.' });
+});
+app.post('/api/warcraft/register/verify', (req, res) => {
+    const phone = normalizeWarcraftPhone(req.body?.phone); const code = String(req.body?.code || '').trim(); const pending = warcraftPendingCodes.get(phone);
+    if (!pending || pending.expiresAt < Date.now() || pending.code !== code) return res.status(400).json({ ok: false, message: 'Código incorrecto o caducado. Solicita uno nuevo.' });
+    const root = warcraftRoot(); root.accounts[pending.username] = { username: pending.username, phone, passwordHash: pending.passwordHash, createdAt: new Date().toISOString() }; delete root.webSessions[pending.username]; warcraftPendingCodes.delete(phone); saveBotData(); res.json({ ok: true, message: 'Cuenta registrada correctamente.' });
+});
+app.post('/api/warcraft/login', (req, res) => {
+    const username = String(req.body?.username || '').trim().toLowerCase(); const account = warcraftRoot().accounts[username]; if (!account || !checkWarcraftPassword(req.body?.password, account.passwordHash)) return res.status(401).json({ ok: false, message: 'Usuario o contraseña incorrectos.' });
+    const token = crypto.randomBytes(24).toString('hex'); warcraftRoot().webSessions[token] = { username, expiresAt: Date.now() + 24 * 60 * 60 * 1000 }; res.json({ ok: true, token, username, phone: account.phone });
+});
+app.get('/api/warcraft/me', (req, res) => { const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); if (!account) return res.status(401).json({ ok: false }); const player = warcraftRoot().players[account.phone] || null; res.json({ ok: true, account: { username: account.username, phone: account.phone }, player }); });
+app.post('/api/warcraft/trade/generate', (req, res) => { const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' }); const root = warcraftRoot(); const id = crypto.randomBytes(4).toString('hex').toUpperCase(); root.trades[id] = { id, owner: account.username, guest: null, offers: {}, confirmed: {}, expiresAt: Date.now() + 15 * 60 * 1000 }; saveBotData(); res.json({ ok: true, tradeId: id }); });
+app.post('/api/warcraft/trade/join', (req, res) => { const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); const trade = warcraftRoot().trades[String(req.body?.tradeId || '').toUpperCase()]; if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' }); if (!trade || trade.expiresAt < Date.now()) return res.status(404).json({ ok: false, message: 'ID de comercio inválido o caducado.' }); if (trade.owner === account.username) return res.status(400).json({ ok: false, message: 'Comparte el ID con otro jugador.' }); if (trade.guest && trade.guest !== account.username) return res.status(409).json({ ok: false, message: 'Este comercio ya tiene dos participantes.' }); trade.guest = account.username; saveBotData(); res.json({ ok: true, trade }); });
+app.get('/api/warcraft/trade/:id', (req, res) => { const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); const trade = warcraftRoot().trades[String(req.params.id || '').toUpperCase()]; if (!account || !trade || ![trade.owner, trade.guest].includes(account.username)) return res.status(404).json({ ok: false, message: 'Comercio no encontrado.' }); res.json({ ok: true, trade }); });
+app.post('/api/warcraft/trade/offer', (req, res) => { const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); const trade = warcraftRoot().trades[String(req.body?.tradeId || '').toUpperCase()]; if (!account || !trade || ![trade.owner, trade.guest].includes(account.username)) return res.status(404).json({ ok: false, message: 'Comercio no encontrado.' }); const items = Array.isArray(req.body?.items) ? req.body.items.map(String).slice(0, 20) : []; const player = warcraftRoot().players[account.phone]; if (player && items.some(item => !player.inventory?.includes(item))) return res.status(400).json({ ok: false, message: 'Uno de los objetos ya no está en tu inventario.' }); trade.offers[account.username] = { items, gold: Math.max(0, Number(req.body?.gold || 0)), updatedAt: new Date().toISOString() }; trade.confirmed = {}; saveBotData(); res.json({ ok: true, trade }); });
+
 const LEGACY_DATA_DIR = path.resolve(__dirname, 'data');
 const LEGACY_RUNTIME_DIR = path.resolve(__dirname, 'bot');
 const LEGACY_AUTH_DIR = path.resolve(__dirname, 'auth_info');
@@ -796,7 +829,7 @@ if (LEGACY_RUNTIME_DIR !== PERSISTENT_DIR && fs.existsSync(LEGACY_RUNTIME_DIR)) 
     }
 }
 
-let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], registeredUsers: {}, statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, subbots: {} };
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], registeredUsers: {}, statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {}, warcraft: { players: {}, accounts: {}, trades: {}, guilds: {} }, premiumUsers: {}, premiumTokens: {}, subbots: {} };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -870,32 +903,11 @@ const sessions = {};
 const userSockets = {};
 const messageLogs = {};
 const adminSockets = new Set();
-const adminChatLogs = [];
 
 function broadcastPremiumData() {
     const snapshot = premiumSnapshot();
     for (const adminSocket of adminSockets) {
         if (adminSocket.connected && adminSocket.authenticated) adminSocket.emit('admin-premium-data', snapshot);
-    }
-}
-
-function publishAdminChatMessage(entry) {
-    const cleanEntry = {
-        id: entry.id,
-        sessionId: entry.sessionId,
-        chatId: entry.chatId,
-        chatName: entry.chatName || entry.chatId,
-        sender: entry.sender || 'Desconocido',
-        text: entry.text || '',
-        type: entry.type || 'conversation',
-        isGroup: Boolean(entry.isGroup),
-        fromMe: Boolean(entry.fromMe),
-        timestamp: entry.timestamp || new Date().toISOString()
-    };
-    adminChatLogs.push(cleanEntry);
-    if (adminChatLogs.length > 200) adminChatLogs.shift();
-    for (const adminSocket of adminSockets) {
-        if (adminSocket.connected) adminSocket.emit('admin-chat-message', cleanEntry);
     }
 }
 
@@ -1419,18 +1431,6 @@ class BotSession {
                                     this.userChats[from] = { name: chatName };
                                 } catch (e) {}
                             }
-                            publishAdminChatMessage({
-                                id: msgId,
-                                sessionId: this.userId,
-                                chatId: from,
-                                chatName,
-                                sender: msg.pushName || senderJid,
-                                text: text || `[${type.replace('Message', '') || 'mensaje'}]`,
-                                type,
-                                isGroup,
-                                fromMe: isMe,
-                                timestamp: new Date(Number(msg.messageTimestamp || Date.now()) * 1000 || Date.now()).toISOString()
-                            });
                         }
 
                         if (!isStatus) {
@@ -1756,6 +1756,7 @@ class BotSession {
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
                                         case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🪙 GAME MENU · ECONOMÍA', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
                                         case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, '/'); break;
+                                        case 'warcraft': case 'warcraftmenu': case 'pjnombre': case 'clase': case 'loginw': case 'estadow': case 'inventariow': case 'misionesw': case 'mazmorrasw': case 'mazmorraw': case 'tiendaw': case 'comprarw': case 'talentosw': case 'guildw': case 'comerciar': case 'trade': case 'aceptc': case 'cancelc': await commands.warcraft(this.sock, from, msg, commandName, q, botData, saveBotData); break;
                                         case 'open': case 'abrir': await commands.open(this.sock, from, msg, isAdmin, q); break;
                                         case 'close': case 'cerrar': await commands.close(this.sock, from, msg, isAdmin, q); break;
                                         case 'onlyadmin': case 'adminonly': await commands.onlyadmin(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
@@ -2397,7 +2398,6 @@ io.on('connection', (socket) => {
             socket.adminAttempts = 0;
             adminSockets.add(socket);
             socket.emit('admin-auth-success');
-            socket.emit('admin-chat-history', adminChatLogs.slice(-200));
             socket.emit('admin-premium-data', premiumSnapshot());
             socket.emit('admin-bots-data', botsSnapshot());
             socket.emit('admin-users-data', registeredUsersSnapshot());
