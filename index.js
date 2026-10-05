@@ -16,8 +16,6 @@ const githubBackup = require('./lib/githubBackup');
 const postgresPremiumStore = require('./lib/postgresPremiumStore');
 const aiMedia = require('./lib/aiMedia');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
-const { runHutaoCommand, getHutaoCommandCount, getHutaoCommandNames } = require('./lib/hutaoBridge');
-const { runPainCommand, getPainCommandCount, getPainCommandCatalog } = require('./lib/painBridge');
 
 // El acceso Owner es una lista blanca fija: ningún valor del panel o de Premium puede ampliarla.
 const OWNER_WHATSAPP_NUMBER = '5350898613';
@@ -35,7 +33,7 @@ const unlockedOwnerSessions = new Map();
 
 const PREMIUM_COMMANDS = new Set([
     'book', 'owner', 'ownermenu', 'toolsmenu', 'tools', 'bugmenu', 'bugs', 'bug', 'crash', 'freeze',
-    'ping', 'dp', 'translate', 'base64', 'shorturl', 'calc',
+    'ping', 'dp', 'vv', 'translate', 'base64', 'shorturl', 'calc',
     'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup',
     'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google',
     'wiki', 'yts', 'playstore', 'npm'
@@ -645,13 +643,6 @@ if (tgBot) {
         await tgBot.sendMessage(chatId, `\u{1F451} *Premium Users:*\n\n${list}`, { parse_mode: 'Markdown' });
     });
 
-    tgBot.onText(/^\/(?:nombre|name)\s+(.+)$/i, async (msg, match) => {
-        const chatId = msg.chat.id.toString();
-        const profileName = normalizeProfileName(match?.[1], 'JK Bot');
-        pendingPairNames.set(chatId, profileName);
-        await tgBot.sendMessage(msg.chat.id, `✅ Nombre guardado: *${profileName}*\nAhora envía tu número con código de país para vincularlo.`, { parse_mode: 'Markdown' });
-    });
-
     // Pairing handler - when user sends a number
     tgBot.on('message', async (msg) => {
         const chatId = msg.chat.id;
@@ -683,12 +674,6 @@ if (tgBot) {
                 `_Please wait a few seconds..._`;
 
             await tgBot.sendMessage(chatId, initMsg, { parse_mode: 'Markdown' });
-            const profileName = pendingPairNames.get(userId);
-            if (profileName) {
-                botData.userNames[userId] = profileName;
-                saveBotData();
-                pendingPairNames.delete(userId);
-            }
             sessions[userId].tgChatId = chatId;
             await sessions[userId].initialize(text);
         }
@@ -733,9 +718,7 @@ function sendIndexWithPreview(req, res) {
     res.set({ 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate', 'Pragma': 'no-cache', 'Expires': '0' });
     const protocol = req.get('x-forwarded-proto') || req.protocol || 'https';
     const imageUrl = `${protocol.split(',')[0].trim()}://${req.get('host')}/${BANNER_FILE}`;
-    res.type('html').send(INDEX_TEMPLATE
-        .replaceAll('__JK_OG_IMAGE__', imageUrl)
-        .replaceAll('__JK_TELEGRAM_CHANNEL__', settings.telegramChannel));
+    res.type('html').send(INDEX_TEMPLATE.replaceAll('__JK_OG_IMAGE__', imageUrl));
 }
 
 app.get('/', (req, res) => {
@@ -748,15 +731,6 @@ app.get('/admin', (req, res) => {
 
 app.get('/health', (req, res) => {
     res.status(200).send('OK');
-});
-app.get('/api/commands', (req, res) => {
-    const jkCommands = Object.keys(commands).filter((name) => name !== 'utils').length;
-    res.json({
-        commands: jkCommands,
-        total: jkCommands,
-        bot: settings.botName || 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ',
-        owner: settings.ownerName || 'ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ'
-    });
 });
 
 const LEGACY_DATA_DIR = path.resolve(__dirname, 'data');
@@ -893,7 +867,6 @@ function saveBotData({ backupNow = false } = {}) {
 if (!fs.existsSync(PREMIUM_DATA_FILE)) savePremiumData();
 
 const sessions = {};
-const pendingPairNames = new Map();
 const userSockets = {};
 const messageLogs = {};
 const adminSockets = new Set();
@@ -928,10 +901,6 @@ function publishAdminChatMessage(entry) {
 
 function registeredUsersSnapshot() {
     return Object.values(botData.registeredUsers || {}).sort((a, b) => String(b.lastSeen || '').localeCompare(String(a.lastSeen || '')));
-}
-function normalizeProfileName(value, fallback = 'JK Bot') {
-    const clean = String(value || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 40);
-    return clean || fallback;
 }
 function recordRegisteredUser({ jid, name, sessionId, chatId, isGroup }) {
     if (!jid || jid === 'status@broadcast' || jid.endsWith('@g.us') || !jid.endsWith('@s.whatsapp.net')) return;
@@ -972,7 +941,6 @@ function publicBotsSnapshot() {
             const digits = String(session.phoneNumber || '').replace(/\D/g, '');
             return {
                 id: `public-${index}-${sessionId.slice(-6)}`,
-                name: botData.userNames?.[sessionId] || settings.botName,
                 type: botData.subbots?.[sessionId] ? 'Subbot' : 'Bot principal',
                 phone: digits ? `+•••• ${digits.slice(-4)}` : 'Número vinculado',
                 status: 'En línea'
@@ -1165,7 +1133,7 @@ class BotSession {
             const completion = await openai.chat.completions.create({
                 model: aiModel,
                 messages: [
-                    { role: 'system', content: `${systemPrompt} Responde siempre en español, de forma clara, amable y útil. Si la pregunta está incompleta, haz una pregunta concreta para aclararla. Si puedes ayudar con pasos, entrégalos ordenados. No inventes datos: indica cuando no estés seguro. Eres el asistente de ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ.` },
+                    { role: 'system', content: `${systemPrompt} Responde siempre en español, de forma clara, amable y útil. Si la pregunta está incompleta, haz una pregunta concreta para aclararla. Si puedes ayudar con pasos, entrégalos ordenados. No inventes datos: indica cuando no estés seguro. Eres el asistente de ᴊᴋ ʙᴏᴛꫂꤪꨤᴼᶠᶜ.` },
                     ...history,
                     { role: 'user', content: prompt }
                 ],
@@ -1669,9 +1637,9 @@ class BotSession {
                                             try {
                                                 await sendOfficialChannelMenu(this.sock, from, menuText, msg);
                                             } catch (e) {
-                            this.sendLog(`Interactive /start menu fallback: ${e.message}`, 'warning');
+                                                this.sendLog(`Interactive menu fallback: ${e.message}`, 'warning');
                                                 await this.sock.sendMessage(from, {
-                                                    text: `${menuText}\n\n👑 ${settings.officialChannelName}:\n${settings.telegramChannel}`
+                                                    text: `${menuText}\n\n👑 ${settings.officialChannelName}:\n${settings.whatsappChannel}`
                                                 }, { quoted: msg });
                                             }
                                             break;
@@ -1744,7 +1712,7 @@ class BotSession {
                                             await this.sock.sendMessage(from, { text: '📚 *BOOK PREMIUM*\n\n🔐 Tu cuenta tiene acceso a funciones exclusivas.\n\n👤 /owner\n🛠️ /toolsmenu\n👑 /ownermenu\n🐛 /bugmenu\n\nUsa */menu* para volver al menú principal.' }, { quoted: msg });
                                             break;
                                         case 'allmenu':
-                                            await sendSubmenuWithChannel(this.sock, from, buildDetailedCommandMenu(Number(args[0]) || 1), msg);
+                                            await sendCategoryMenu(this.sock, from, msg, '✨ TODOS LOS COMANDOS', ['menu', ...Object.keys(commands).filter(name => name !== 'utils')]);
                                             break;
                                         case 'help': case 'ayuda':
                                             await commands.help(this.sock, from, msg, q);
@@ -2034,10 +2002,11 @@ class BotSession {
                                         case 'backup': await commands.backup(this.sock, from, msg, isOwner); break;
                                         case 'restore': await commands.restore(this.sock, from, msg, isOwner); break;
                                         case 'mycmd': case 'mycommands': await commands.mycmd(this.sock, from, msg); break;
-                                        default: {
-                                            await sendUnknownCommandMessage(this.sock, from, msg, commandName);
+                                        default:
+                                            await this.sock.sendMessage(from, {
+                                                text: `❓ *COMANDO NO ENCONTRADO*\n\nNo reconozco */${commandName}*.\n📚 Usa */menu* para abrir el menú o */allmenu* para ver todos los comandos.`
+                                            }, { quoted: msg });
                                             break;
-                                        }
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
@@ -2136,7 +2105,7 @@ class BotSession {
 
                     if (this.tgChatId && tgBot) {
                         const successMsg =
-                            `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *${botName}* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
+                            `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *ᴊᴋ ʙᴏᴛ* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
                             `*\u{2705} CONNECTION SUCCESSFUL!* \n\n` +
                             `Your WhatsApp number has been successfully linked.\n` +
                             `You can now use all commands in your WhatsApp.\n\n` +
@@ -2151,7 +2120,7 @@ class BotSession {
                             await this.sock.query({
                                 tag: 'iq',
                                 attrs: { to: '@s.whatsapp.net', type: 'set', xmlns: 'status' },
-                                content: [{ tag: 'status', attrs: {}, content: Buffer.from(`ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.1.0 - ${Object.keys(commands).filter((name) => name !== 'utils').length} Commands | Powered by ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`, 'utf-8') }]
+                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.1.0 - 120+ Commands | Powered by ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ", 'utf-8') }]
                             });
                             this.sendLog("Bio updated successfully! \u{2705}", "success");
                         } catch (e) {
@@ -2161,19 +2130,11 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `╭━━━〔 *${botName}* 〕━━━╮\n┃ ✅ Conexión completada\n┃ ⚡ ${commandCount} comandos JK\n┃ 🚀 Escribe */start*\n┃ 👑 Owner: ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n╰━━━━━━━━━━━━━━━━╯\n\nᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
-                        try {
-                            await this.sock.sendMessage(botNumber, {
-                                image: { url: path.join(__dirname, BANNER_FILE) },
-                                caption: welcomeText
-                            });
-                        } catch (welcomeImageError) {
-                            this.sendLog(`Welcome image failed, sending text fallback: ${welcomeImageError.message}`, 'warning');
-                            await this.sock.sendMessage(botNumber, { text: welcomeText });
-                        }
+                        const welcomeText = `👋 Hola, soy ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ.\n✅ WhatsApp conectado y listo para usar.\n📚 Escribe */menu* para abrir el centro de funciones.\n👑 ${settings.officialChannelName}: ${settings.whatsappChannel}\n\n🛠️ ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
+                        await this.sock.sendMessage(botNumber, { text: welcomeText });
 
                         try {
-                            const channelLink = settings.telegramChannel;
+                            const channelLink = settings.whatsappChannel;
                             if (channelLink) {
                                 const channelKey = channelLink.split('/channel/')[1];
                                 if (channelKey) {
@@ -2203,57 +2164,6 @@ class BotSession {
 }
 
 
-function commandDistance(a, b) {
-    const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
-    for (let i = 1; i <= a.length; i++) {
-        const row = [i];
-        for (let j = 1; j <= b.length; j++) {
-            row[j] = Math.min(
-                row[j - 1] + 1,
-                prev[j] + 1,
-                prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
-            );
-        }
-        for (let j = 0; j <= b.length; j++) prev[j] = row[j];
-    }
-    return prev[b.length];
-}
-function suggestJKCommand(input) {
-    const known = new Set([
-        ...Object.keys(commands).filter(name => name !== 'utils'),
-        'start', 'menu', 'menú', 'help', 'ayuda', 'allmenu', 'time', 'hora'
-    ]);
-    const value = String(input || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    if (!value) return null;
-    const ranked = [...known].map(command => ({ command, distance: commandDistance(value, command) }))
-        .sort((a, b) => a.distance - b.distance || a.command.length - b.command.length);
-    const best = ranked[0];
-    const limit = value.length <= 4 ? 1 : Math.max(2, Math.floor(value.length * 0.4));
-    return best && best.distance <= limit ? best.command : null;
-}
-async function sendUnknownCommandMessage(sock, jid, msg, commandName) {
-    const suggestion = suggestJKCommand(commandName);
-    const text = suggestion
-        ? `❓ *No encontré el mensaje que me mandaste.*\n\n¿No habrás querido decir */${suggestion}*?\n\n👇 Responde o toca el botón para usar el comando correcto.`
-        : `❓ *No encontré el mensaje que me mandaste.*\n\nNo tengo registrado */${commandName}*.\n\n📚 Escribe */start* para ver los comandos disponibles.`;
-    if (!suggestion) return sock.sendMessage(jid, { text }, { quoted: msg });
-    const content = { interactiveMessage: {
-        body: { text },
-        footer: { text: 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ' },
-        nativeFlowMessage: { buttons: [{
-            name: 'quick_reply',
-            buttonParamsJson: JSON.stringify({ display_text: `Usar /${suggestion}`, id: `cmd_${suggestion}` })
-        }], messageVersion: 1 }
-    }};
-    const userJid = sock.user?.id;
-    const message = generateWAMessageFromContent(jid, content, {
-        logger: sock.logger, userJid, messageId: generateMessageIDV2(userJid), timestamp: new Date()
-    });
-    await sock.relayMessage(jid, message.message, {
-        messageId: message.key.id,
-        additionalNodes: [{ tag: 'interactive', attrs: { type: 'native_flow', v: '1' }, content: [] }]
-    });
-}
 // =================== MENU GENERATOR ===================
 async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const categoryButton = {
@@ -2263,6 +2173,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
             sections: [{
                 title: 'Categorías disponibles',
                 rows: [
+                    ['allmenu', '📚 Centro completo'],
                     ['ownermenu', '👑 Zona del owner'],
                     ['groupmenu', '👥 Control de grupos'],
                     ['adminmenu', '🛡️ Seguridad'],
@@ -2292,8 +2203,8 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
         name: 'cta_url',
         buttonParamsJson: JSON.stringify({
             display_text: settings.officialChannelName,
-            url: settings.telegramChannel,
-            merchant_url: settings.telegramChannel
+            url: settings.whatsappChannel,
+            merchant_url: settings.whatsappChannel
         })
     };
     const content = {
@@ -2338,31 +2249,10 @@ const TOOL_DISPLAY_NAMES = {
 };
 
 async function sendCategoryMenu(sock, from, msg, title, names) {
-    const painCategoryByTitle = {
-        '👑 OWNER MENU': 'ᴏᴡɴᴇʀ',
-        '👥 Control de grupos': 'ɢʀᴜᴘᴏs ʏ sᴇɢᴜʀɪᴅᴀᴅ',
-        '🛡️ Seguridad': 'ɢʀᴜᴘᴏs ʏ sᴇɢᴜʀɪᴅᴀᴅ',
-        '⬇️ DOWNLOAD MENU': 'ᴅᴇsᴄᴀʀɢᴀs',
-        '📥 DOWNLOAD MENU': 'ᴅᴇsᴄᴀʀɢᴀs',
-        '🤖 AI MENU': 'ɪɴᴛᴇʟɪɢᴇɴᴄɪᴀ ᴀʀᴛɪғɪᴄɪᴀʟ',
-        '🪙 ECONOMY MENU · ECONOMÍA': 'ᴊᴜᴇɢᴏs ʏ ᴇᴄᴏɴᴏᴍíᴀ',
-        '🪙 GAME MENU · ECONOMÍA': 'ᴊᴜᴇɢᴏs ʏ ᴇᴄᴏɴᴏᴍíᴀ',
-        '👤 PROFILE MENU': 'ᴘᴇʀғɪʟᴇs ʏ ᴅɪᴠᴇʀsɪóɴ',
-        '🏷️ STICKER MENU': 'ᴍᴇᴅɪᴀ ʏ sᴛɪᴄᴋᴇʀs',
-        '🖼️ IMAGE MENU': 'ᴍᴇᴅɪᴀ ʏ sᴛɪᴄᴋᴇʀs',
-        '🎯 MISC MENU': 'sᴇʀᴠᴇʀ ʏ ᴜᴛɪʟɪᴅᴀᴅᴇs',
-        '🛠️ MENÚ DE HERRAMIENTAS': 'sᴇʀᴠᴇʀ ʏ ᴜᴛɪʟɪᴅᴀᴅᴇs'
-    };
-    const painCategory = painCategoryByTitle[title];
-    const painNames = painCategory
-        ? getPainCommandCatalog().filter(group => menuCategoryForPainFile(group.file)[0] === painCategory).flatMap(group => group.commands)
-        : [];
-    const menuNames = [...new Set([...names, ...painNames])];
     const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
     const animeAliases = commands.anime?.aliases || [];
     const profileAliases = commands.profile?.aliases || [];
-    const painSet = new Set(painNames);
-    const available = menuNames.filter(name => name === 'menu' || name === 'start' || name === 'difunción' || painSet.has(name) || Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name));
+    const available = names.filter(name => name === 'menu' || name === 'difunción' || Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name));
     if (!available.length) {
         await sendSubmenuWithChannel(sock, from, `${title}\n\nNo hay módulos activos en esta sección.`, msg);
         return;
@@ -2416,8 +2306,8 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
         name: 'cta_url',
         buttonParamsJson: JSON.stringify({
             display_text: settings.officialChannelName,
-            url: settings.telegramChannel,
-            merchant_url: settings.telegramChannel
+            url: settings.whatsappChannel,
+            merchant_url: settings.whatsappChannel
         })
     };
     const content = {
@@ -2456,85 +2346,36 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
         console.error('Submenu interactive message failed:', error.message);
         await sock.sendMessage(jid, {
             __jkRaw: true,
-            text: `${text}\n\n👑 ${settings.officialChannelName}: ${settings.telegramChannel}`
+            text: `${text}\n\n👑 ${settings.officialChannelName}: ${settings.whatsappChannel}`
         }, { quoted });
     }
 }
 
-function menuCategoryForPainFile(file) {
-    const name = String(file).toLowerCase();
-    if (name.includes('owner-') || name.includes('serbot')) return ['ᴏᴡɴᴇʀ', '👑'];
-    if (name.includes('anti-') || name.includes('group-') || name.includes('welcome') || name.includes('solo-admin')) return ['ɢʀᴜᴘᴏs ʏ sᴇɢᴜʀɪᴅᴀᴅ', '🛡️'];
-    if (name.includes('download-') || name.includes('search-') || name.includes('tiktok') || name.includes('youtube')) return ['ᴅᴇsᴄᴀʀɢᴀs', '📥'];
-    if (name.includes('ia-')) return ['ɪɴᴛᴇʟɪɢᴇɴᴄɪᴀ ᴀʀᴛɪғɪᴄɪᴀʟ', '🤖'];
-    if (name.includes('audio-') || name.includes('sticker') || name.includes('img-') || name.includes('pdf')) return ['ᴍᴇᴅɪᴀ ʏ sᴛɪᴄᴋᴇʀs', '🎨'];
-    if (name.includes('rpg-') || name.includes('game-') || name.includes('econom')) return ['ᴊᴜᴇɢᴏs ʏ ᴇᴄᴏɴᴏᴍíᴀ', '🎮'];
-    if (name.includes('perfil') || name.includes('top-') || name.includes('reaccion')) return ['ᴘᴇʀғɪʟᴇs ʏ ᴅɪᴠᴇʀsɪóɴ', '👤'];
-    if (name.includes('info-') || name.includes('get-') || name.includes('set-') || name.includes('timer')) return ['sᴇʀᴠᴇʀ ʏ ᴜᴛɪʟɪᴅᴀᴅᴇs', '🖥️'];
-    return ['ᴏᴛʀᴏs ᴄᴏᴍᴀɴᴅᴏs', '🧩'];
-}
-function describeMenuCommand(command, source = '') {
-    const key = String(command).toLowerCase();
-    const known = {
-        start: 'abre el menú principal', menu: 'abre el menú principal', ping: 'mide la respuesta del bot', ip: 'consulta información de una IP',
-        time: 'muestra la hora de una ciudad', weather: 'consulta el clima', sticker: 'crea un sticker', s: 'crea un sticker', play: 'descarga audio',
-        video: 'descarga vídeo', youtube: 'busca vídeos', tiktok: 'descarga contenido de TikTok', profile: 'muestra tu perfil', setname: 'cambia tu nombre',
-        help: 'muestra ayuda y ejemplos', translate: 'traduce un texto', qr: 'genera un código QR', menu: 'abre el menú principal',
-        owner: 'muestra las funciones del owner', restart: 'reinicia la sesión autorizada', antilink: 'configura protección contra enlaces',
-        welcome: 'configura la bienvenida del grupo', daily: 'reclama la recompensa diaria', work: 'trabaja para ganar monedas',
-        riddle: 'propone una adivinanza', meme: 'genera un meme', google: 'busca en Google', github: 'busca repositorios en GitHub'
-    };
-    if (known[key]) return known[key];
-    const file = String(source).toLowerCase();
-    if (file.includes('anti-')) return 'configura una protección del grupo';
-    if (file.includes('group-')) return 'administra una función del grupo';
-    if (file.includes('download-') || file.includes('search-')) return 'busca o descarga contenido';
-    if (file.includes('ia-')) return 'usa una función de inteligencia artificial';
-    if (file.includes('sticker')) return 'trabaja con stickers';
-    if (file.includes('audio-')) return 'convierte o procesa audio';
-    if (file.includes('rpg-') || file.includes('game-')) return 'juega o usa el sistema de juego';
-    if (file.includes('owner-')) return 'función exclusiva del owner';
-    return 'ejecuta el módulo correspondiente';
-}
-function buildDetailedCommandMenu(requestedPage = 1) {
-    const groups = new Map();
-    const add = (category, command, source = '') => {
-        if (!command || /^utils$/i.test(command)) return;
-        const [title, icon] = category;
-        if (!groups.has(title)) groups.set(title, { icon, commands: new Map() });
-        if (!groups.get(title).commands.has(command)) groups.get(title).commands.set(command, describeMenuCommand(command, source));
-    };
-    const core = Object.keys(commands).filter(name => name !== 'utils');
-    const ownerNames = new Set(['owner', 'ownermenu', 'restart', 'shutdown', 'backup', 'restore', 'setname']);
-    for (const command of core) add(ownerNames.has(command) ? ['ᴏᴡɴᴇʀ', '👑'] : menuCategoryForPainFile(command), command);
-    const total = [...groups.values()].reduce((sum, group) => sum + group.commands.size, 0);
-    const order = ['ᴏᴡɴᴇʀ', 'sᴇʀᴠᴇʀ ʏ ᴜᴛɪʟɪᴅᴀᴅᴇs', 'ɢʀᴜᴘᴏs ʏ sᴇɢᴜʀɪᴅᴀᴅ', 'ᴅᴇsᴄᴀʀɢᴀs', 'ɪɴᴛᴇʟɪɢᴇɴᴄɪᴀ ᴀʀᴛɪғɪᴄɪᴀʟ', 'ᴍᴇᴅɪᴀ ʏ sᴛɪᴄᴋᴇʀs', 'ᴊᴜᴇɢᴏs ʏ ᴇᴄᴏɴᴏᴍíᴀ', 'ᴘᴇʀғɪʟᴇs ʏ ᴅɪᴠᴇʀsɪóɴ', 'ᴏᴛʀᴏs ᴄᴏᴍᴀɴᴅᴏs'];
-    const sections = order.filter(title => groups.has(title)).map(title => {
-        const group = groups.get(title);
-        const lines = [`╭─────── ${group.icon} ${title} ───────╮`];
-        for (const [command, description] of group.commands) lines.push(`├➢ /${command} — ${description}`);
-        lines.push('╰────────────────────────╯');
-        return lines.join('\n');
-    });
-    const maxPageChars = 42000;
-    const pages = [];
-    let current = '';
-    for (const section of sections) {
-        const candidate = current ? `${current}\n\n${section}` : section;
-        if (current && candidate.length > maxPageChars) {
-            pages.push(current);
-            current = section;
-        } else {
-            current = candidate;
-        }
-    }
-    if (current) pages.push(current);
-    const page = Math.min(Math.max(Number(requestedPage) || 1, 1), Math.max(pages.length, 1));
-    const navigation = pages.length > 1 ? `\n📄 Página ${page}/${pages.length} · siguiente: */allmenu ${page >= pages.length ? 1 : page + 1}*` : '';
-    return `╭━━━〔 *ᴄᴏᴍᴀɴᴅᴏs* 〕━━━╮\n┃ ⚡ *TOTAL DE COMANDOS: ${total}*\n┃ 🚀 Menú principal: */start*\n┃ 👑 Owner: ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n╰━━━━━━━━━━━━━━━━━━━━╯\n\n${pages[page - 1] || ''}${navigation}\n\n📡 Canal: ${settings.telegramChannel}`;
-}
 function generateMenuText(userName, session) {
-    return `👋 Hola, ${userName || 'amigo'}\n\n${buildDetailedCommandMenu()}`;
+    const mode = session.isPublic ? 'PÚBLICO' : 'PRIVADO';
+    const botName = settings.botName || 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ';
+    const ownerName = settings.ownerName || 'ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ';
+    return [
+        `👋 Hola, ${userName || 'amigo'}`,
+        `🤖 ${botName}`,
+        '✅ Estado: disponible',
+        `🔐 Modo: ${mode}`,
+        '',
+        '📚 Funciones principales:',
+        '🛡️ Protección y administración de grupos',
+        '🎵 Música, vídeos, stickers y descargas',
+        '🤖 IA, traducciones y herramientas útiles',
+        '🎮 Diversión, perfiles y economía',
+        '',
+        '❔ Usa */help* para ver ejemplos rápidos.',
+        '📝 Guarda cosas con */note add texto*.',
+        '🕒 Consulta una ciudad con */time Madrid*.',
+        '⚡ Escribe */allmenu* para ver todos los comandos.',
+        '📖 Cada módulo explica para qué sirve.',
+        `👑 ${settings.officialChannelName}: ${settings.whatsappChannel}`,
+        '',
+        `🛠️ ${ownerName}`
+    ].join('\n');
 }
 
 // =================== SOCKET.IO ===================
@@ -2669,15 +2510,13 @@ io.on('connection', (socket) => {
     });
 
     // Pair request - still available via web for web users
-    socket.on('pair-request', async ({ userId, number, displayName } = {}) => {
+    socket.on('pair-request', async ({ userId, number } = {}) => {
         const cleanNumber = normalizePhone(number);
         if (!userId || !cleanNumber) {
             socket.emit('pair-error', 'Escribe un número válido con código de país, solo dígitos.');
             return;
         }
         try {
-        botData.userNames[userId] = normalizeProfileName(displayName, settings.botName);
-        saveBotData();
         if (sessions[userId]) {
             if (!botData.statusSettings[userId]) {
                 botData.statusSettings[userId] = {
@@ -2807,7 +2646,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, async () => {
     console.log(`\u{1F311} JK-BOT-MD v${settings.version} Server running on port ${PORT}`);
-    console.log(`\u{1F4E1} Total commands loaded: ${Object.keys(commands).filter((name) => name !== 'utils').length} comandos`);
+    console.log(`\u{1F4E1} Total commands loaded: 120+`);
     console.log(`\u{1F310} Web Dashboard: http://localhost:${PORT}`);
     if (!process.env.PERSISTENT_DATA_DIR && !process.env.RAILWAY_VOLUME_MOUNT_PATH && !githubBackup.enabled()) {
         console.warn('[Persistence] ADVERTENCIA: no hay volumen persistente ni respaldo cifrado de GitHub. Un redeploy puede borrar tokens y usuarios Premium.');
