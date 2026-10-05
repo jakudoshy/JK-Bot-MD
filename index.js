@@ -35,7 +35,7 @@ const unlockedOwnerSessions = new Map();
 
 const PREMIUM_COMMANDS = new Set([
     'book', 'owner', 'ownermenu', 'toolsmenu', 'tools', 'bugmenu', 'bugs', 'bug', 'crash', 'freeze',
-    'ping', 'dp', 'vv', 'translate', 'base64', 'shorturl', 'calc',
+    'ping', 'dp', 'translate', 'base64', 'shorturl', 'calc',
     'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup',
     'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google',
     'wiki', 'yts', 'playstore', 'npm'
