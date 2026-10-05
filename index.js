@@ -751,12 +751,9 @@ app.get('/health', (req, res) => {
 });
 app.get('/api/commands', (req, res) => {
     const jkCommands = Object.keys(commands).filter((name) => name !== 'utils').length;
-    const hutaoCommands = getHutaoCommandCount();
-    const painCommands = getPainCommandCount();
-    const totalCommands = jkCommands + hutaoCommands + painCommands;
     res.json({
-        commands: totalCommands,
-        total: totalCommands,
+        commands: jkCommands,
+        total: jkCommands,
         bot: settings.botName || 'ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ',
         owner: settings.ownerName || 'ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ'
     });
@@ -2038,31 +2035,8 @@ class BotSession {
                                         case 'restore': await commands.restore(this.sock, from, msg, isOwner); break;
                                         case 'mycmd': case 'mycommands': await commands.mycmd(this.sock, from, msg); break;
                                         default: {
-                                            const handledByHuTao = await runHutaoCommand({
-                                                command: commandName,
-                                                sock: this.sock,
-                                                rawMessage: msg,
-                                                fullText: text,
-                                                args,
-                                                text: q,
-                                                isOwner,
-                                                isAdmin
-                                            });
-                                            if (handledByHuTao) break;
-                                            const handledByPain = await runPainCommand({
-                                                command: commandName,
-                                                sock: this.sock,
-                                                rawMessage: msg,
-                                                fullText: text,
-                                                args,
-                                                text: q,
-                                                isOwner,
-                                                isAdmin,
-                                                isBotAdmin
-                                            });
-                                            if (handledByPain) break;
                                             await this.sock.sendMessage(from, {
-                                                text: `❓ *COMANDO NO ENCONTRADO*\n\nNo reconozco */${commandName}*.\n📚 Usa */start* para abrir el menú o */allmenu* para ver todos los comandos.`
+                                                text: `❓ *COMANDO NO ENCONTRADO*\n\nNo reconozco */${commandName}*.\n📚 Usa */start* para abrir el menú.`
                                             }, { quoted: msg });
                                             break;
                                         }
@@ -2179,7 +2153,7 @@ class BotSession {
                             await this.sock.query({
                                 tag: 'iq',
                                 attrs: { to: '@s.whatsapp.net', type: 'set', xmlns: 'status' },
-                                content: [{ tag: 'status', attrs: {}, content: Buffer.from(`ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.1.0 - ${Object.keys(commands).filter((name) => name !== 'utils').length + getHutaoCommandCount() + getPainCommandCount()} Commands | Powered by ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`, 'utf-8') }]
+                                content: [{ tag: 'status', attrs: {}, content: Buffer.from(`ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ v4.1.0 - ${Object.keys(commands).filter((name) => name !== 'utils').length} Commands | Powered by ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`, 'utf-8') }]
                             });
                             this.sendLog("Bio updated successfully! \u{2705}", "success");
                         } catch (e) {
@@ -2188,8 +2162,8 @@ class BotSession {
                     }, 5000);
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
-                        const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length + getHutaoCommandCount() + getPainCommandCount();
-                        const welcomeText = `╭━━━〔 *${botName}* 〕━━━╮\n┃\n┃ 👋 *¡Conexión completada!*\n┃ ✅ Tu bot ya está listo\n┃ ⚡ *${commandCount} comandos disponibles*\n┃ 🚀 Escribe */start* para abrir el menú principal\n┃ 📚 Usa */allmenu* para explorar todos los comandos\n┃\n╰━━➤ *Owner:* ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n\n📡 *Canal oficial:* ${settings.officialChannelName}\n${settings.telegramChannel}\n\n✨ _JK Bot · Mod Biyakudochi_`;
+                        const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
+                        const welcomeText = `╭━━━〔 *${botName}* 〕━━━╮\n┃ ✅ Conexión completada\n┃ ⚡ ${commandCount} comandos JK\n┃ 🚀 Escribe */start* para abrir el menú\n┃ 👑 Owner: ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n╰━━━━━━━━━━━━━━━━━━━━╯\n\nᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
                         try {
                             await this.sock.sendMessage(botNumber, {
                                 image: { url: path.join(__dirname, BANNER_FILE) },
@@ -2240,7 +2214,6 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
             sections: [{
                 title: 'Categorías disponibles',
                 rows: [
-                    ['allmenu', '📚 Centro completo'],
                     ['ownermenu', '👑 Zona del owner'],
                     ['groupmenu', '👥 Control de grupos'],
                     ['adminmenu', '🛡️ Seguridad'],
@@ -2485,11 +2458,6 @@ function buildDetailedCommandMenu(requestedPage = 1) {
     const core = Object.keys(commands).filter(name => name !== 'utils');
     const ownerNames = new Set(['owner', 'ownermenu', 'restart', 'shutdown', 'backup', 'restore', 'setname']);
     for (const command of core) add(ownerNames.has(command) ? ['ᴏᴡɴᴇʀ', '👑'] : menuCategoryForPainFile(command), command);
-    for (const command of getHutaoCommandNames()) add(menuCategoryForPainFile(command), command, command);
-    for (const group of getPainCommandCatalog()) {
-        const category = menuCategoryForPainFile(group.file);
-        for (const command of group.commands) add(category, command, group.file);
-    }
     const total = [...groups.values()].reduce((sum, group) => sum + group.commands.size, 0);
     const order = ['ᴏᴡɴᴇʀ', 'sᴇʀᴠᴇʀ ʏ ᴜᴛɪʟɪᴅᴀᴅᴇs', 'ɢʀᴜᴘᴏs ʏ sᴇɢᴜʀɪᴅᴀᴅ', 'ᴅᴇsᴄᴀʀɢᴀs', 'ɪɴᴛᴇʟɪɢᴇɴᴄɪᴀ ᴀʀᴛɪғɪᴄɪᴀʟ', 'ᴍᴇᴅɪᴀ ʏ sᴛɪᴄᴋᴇʀs', 'ᴊᴜᴇɢᴏs ʏ ᴇᴄᴏɴᴏᴍíᴀ', 'ᴘᴇʀғɪʟᴇs ʏ ᴅɪᴠᴇʀsɪóɴ', 'ᴏᴛʀᴏs ᴄᴏᴍᴀɴᴅᴏs'];
     const sections = order.filter(title => groups.has(title)).map(title => {
@@ -2790,7 +2758,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, async () => {
     console.log(`\u{1F311} JK-BOT-MD v${settings.version} Server running on port ${PORT}`);
-    console.log(`\u{1F4E1} Total commands loaded: ${Object.keys(commands).filter((name) => name !== 'utils').length + getHutaoCommandCount() + getPainCommandCount()} comandos`);
+    console.log(`\u{1F4E1} Total commands loaded: ${Object.keys(commands).filter((name) => name !== 'utils').length} comandos`);
     console.log(`\u{1F310} Web Dashboard: http://localhost:${PORT}`);
     if (!process.env.PERSISTENT_DATA_DIR && !process.env.RAILWAY_VOLUME_MOUNT_PATH && !githubBackup.enabled()) {
         console.warn('[Persistence] ADVERTENCIA: no hay volumen persistente ni respaldo cifrado de GitHub. Un redeploy puede borrar tokens y usuarios Premium.');
