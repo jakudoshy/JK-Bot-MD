@@ -2161,7 +2161,7 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `╭━━━〔 *${botName}* 〕━━━╮\n┃ ✅ Conexión completada\n┃ ⚡ ${commandCount} comandos JK\n┃ 🚀 Escribe */start*\n┃ 👑 Owner: ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n╰━━━━━━━━━━━━━━━━━━━━╯\n\nᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
+                        const welcomeText = `╭━━━〔 *${botName}* 〕━━━╮\n┃ ✅ Conexión completada\n┃ ⚡ ${commandCount} comandos JK\n┃ 🚀 Escribe */start*\n┃ 👑 Owner: ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ\n╰━━━━━━━━━━━━━━━━╯\n\nᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ • ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏѕʜʏꫂꤪꤨᴼᶠᶜ`;
                         try {
                             await this.sock.sendMessage(botNumber, {
                                 image: { url: path.join(__dirname, BANNER_FILE) },
