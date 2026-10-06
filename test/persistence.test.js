@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
-const { createTelegramBackupStore, MARKER } = require('../lib/telegramBackupStore');
+const { createTelegramBackupStore, normalizeTelegramChatId, MARKER } = require('../lib/telegramBackupStore');
 
 let appState = null;
 let poolOptions = null;
@@ -119,4 +119,12 @@ test('Telegram rechaza canales configurados con borrado automático', async () =
     };
     const store = createTelegramBackupStore({ token: 'test-token', chatId: '-100456', api, logger: { log() {}, warn() {}, error() {} }, debounceMs: 0, minIntervalMs: 0 });
     await assert.rejects(store.restore(), /borrado automático/);
+});
+
+test('Telegram convierte enlaces de mensaje en chat_id y explica que el enlace de invitación no sirve', () => {
+    assert.equal(normalizeTelegramChatId('https://t.me/c/1234567890/55'), '-1001234567890');
+    assert.equal(normalizeTelegramChatId('t.me/c/1234567890/55?single'), '-1001234567890');
+    assert.equal(normalizeTelegramChatId('https://t.me/my_public_channel/55'), '@my_public_channel');
+    assert.equal(normalizeTelegramChatId('-1001234567890'), '-1001234567890');
+    assert.throws(() => normalizeTelegramChatId('https://t.me/+inviteHash'), /enlace de invitación/);
 });
