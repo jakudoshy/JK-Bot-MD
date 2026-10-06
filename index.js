@@ -771,7 +771,8 @@ app.post('/api/warcraft/register/verify', (req, res) => {
 app.post('/api/warcraft/login', (req, res) => {
     const username = String(req.body?.username || '').trim().toLowerCase(); const root = warcraftRoot();
     const account = root.accounts[username] || Object.values(root.accounts).find(item => String(item.phone) === normalizeWarcraftPhone(username));
-    if (!account || !checkWarcraftPassword(req.body?.password, account.passwordHash)) return res.status(401).json({ ok: false, message: 'Error: no es la contraseña correcta o el usuario no existe.' });
+    if (!account) return res.status(401).json({ ok: false, message: 'Usuario no registrado o usuario incorrecto.' });
+    if (!checkWarcraftPassword(req.body?.password, account.passwordHash)) return res.status(401).json({ ok: false, message: 'Contraseña incorrecta.' });
     const token = crypto.randomBytes(24).toString('hex'); root.webSessions[token] = { username: account.username, expiresAt: Date.now() + 24 * 60 * 60 * 1000 }; root.sessions[account.phone] = account.username; saveBotData();
     res.json({ ok: true, token, username: account.username, phone: account.phone, message: 'Sesión iniciada. Ya puedes usar el /Warcraft.' });
 });
@@ -1680,10 +1681,11 @@ class BotSession {
                         if (/^\//.test(text.trim())) {
                             // Re-check authorization for commands
                             if (!this.isPublic && !isAuthorized) return;
-                            const cmd = text.toLowerCase();
-                            const args = text.split(' ').slice(1);
+                            const normalizedCommandText = text.replace(/\r/g, '').trim();
+                            const cmd = normalizedCommandText.toLowerCase();
+                            const args = normalizedCommandText.split(/\s+/).slice(1);
                             const q = args.join(' ');
-                            const commandName = cmd.slice(1).split(' ')[0];
+                            const commandName = cmd.slice(1).split(/\s+/)[0];
                             const requiresPremium = PREMIUM_COMMANDS.has(commandName) || OWNER_PASSWORD_COMMANDS.has(commandName);
                             if (OWNER_PASSWORD_COMMANDS.has(commandName)) {
                                 if (!isOwner) {
