@@ -840,6 +840,7 @@ const DEFAULT_PERSISTENT_DIR = fs.existsSync('/data') ? '/data/bot' : path.join(
 const REQUESTED_PERSISTENT_DIR = path.resolve(process.env.PERSISTENT_DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || DEFAULT_PERSISTENT_DIR);
 const persistentDirRelativeToRepo = path.relative(__dirname, REQUESTED_PERSISTENT_DIR);
 const persistentDirInsideRepo = persistentDirRelativeToRepo === '' || (!persistentDirRelativeToRepo.startsWith(`..${path.sep}`) && persistentDirRelativeToRepo !== '..' && !path.isAbsolute(persistentDirRelativeToRepo));
+const LEGACY_IN_REPO_DIR = persistentDirInsideRepo ? REQUESTED_PERSISTENT_DIR : null;
 const PERSISTENT_DIR = persistentDirInsideRepo ? path.resolve(DEFAULT_PERSISTENT_DIR) : REQUESTED_PERSISTENT_DIR;
 if (persistentDirInsideRepo) {
     console.warn(`[Persistence] La ruta ${REQUESTED_PERSISTENT_DIR} está dentro del repositorio; se usará ${PERSISTENT_DIR} para mantener los datos fuera del código.`);
@@ -855,7 +856,8 @@ const PREMIUM_DATA_BACKUP = `${PREMIUM_DATA_FILE}.bak`;
 const LEGACY_PREMIUM_FILES = [
     path.join(__dirname, 'premium_data.json'),
     path.join(LEGACY_RUNTIME_DIR, 'premium_data.json'),
-    path.join(LEGACY_DATA_DIR, 'premium_data.json')
+    path.join(LEGACY_DATA_DIR, 'premium_data.json'),
+    ...(LEGACY_IN_REPO_DIR ? [path.join(LEGACY_IN_REPO_DIR, 'premium_data.json')] : [])
 ].filter(file => path.resolve(file) !== path.resolve(PREMIUM_DATA_FILE));
 fs.ensureDirSync(PERSISTENT_DIR);
 fs.ensureDirSync(AUTH_DIR);
@@ -878,8 +880,26 @@ function mergeLegacyBotData(sourceFile) {
         console.warn(`[Persistence] No se pudo migrar ${sourceFile}: ${e.message}`);
     }
 }
-for (const legacyFile of [path.join(LEGACY_RUNTIME_DIR, 'bot_data.json'), path.join(LEGACY_DATA_DIR, 'bot_data.json')]) {
+for (const legacyFile of [
+    path.join(LEGACY_RUNTIME_DIR, 'bot_data.json'),
+    path.join(LEGACY_DATA_DIR, 'bot_data.json'),
+    ...(LEGACY_IN_REPO_DIR ? [path.join(LEGACY_IN_REPO_DIR, 'bot_data.json')] : [])
+]) {
     if (legacyFile !== DATA_FILE) mergeLegacyBotData(legacyFile);
+}
+function copyMissingTree(sourceDir, targetDir) {
+    if (!fs.existsSync(sourceDir) || !fs.statSync(sourceDir).isDirectory()) return;
+    fs.ensureDirSync(targetDir);
+    for (const name of fs.readdirSync(sourceDir)) {
+        const source = path.join(sourceDir, name);
+        const target = path.join(targetDir, name);
+        if (!fs.existsSync(target)) fs.copySync(source, target);
+        else if (fs.statSync(source).isDirectory() && fs.statSync(target).isDirectory()) copyMissingTree(source, target);
+    }
+}
+if (LEGACY_IN_REPO_DIR) {
+    copyMissingTree(path.join(LEGACY_IN_REPO_DIR, 'auth_info'), AUTH_DIR);
+    copyMissingTree(path.join(LEGACY_IN_REPO_DIR, 'uploads'), UPLOADS_DIR);
 }
 if (fs.existsSync(LEGACY_AUTH_DIR)) {
     for (const userId of fs.readdirSync(LEGACY_AUTH_DIR)) {
@@ -2787,8 +2807,11 @@ async function startServer() {
     if (githubBackup.targetsCodeRepository()) {
         console.warn('[Backup] GITHUB_BACKUP_REPO apunta al repositorio de código; se omite para no guardar datos allí.');
     }
-    if (!process.env.PERSISTENT_DATA_DIR && !process.env.RAILWAY_VOLUME_MOUNT_PATH && !githubBackup.enabled() && !postgresPremiumStore.enabled()) {
-        console.warn('[Persistence] ADVERTENCIA: no hay volumen, PostgreSQL ni respaldo cifrado. Un redeploy puede borrar datos de la web y tokens.');
+    const runningOnRailway = Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_SERVICE_ID || process.env.RAILWAY_PROJECT_ID);
+    const hasPersistentVolume = Boolean(process.env.RAILWAY_VOLUME_MOUNT_PATH);
+    const hasConfiguredLocalStore = Boolean(process.env.PERSISTENT_DATA_DIR) && !runningOnRailway;
+    if (!hasPersistentVolume && !hasConfiguredLocalStore && !githubBackup.enabled() && !postgresPremiumStore.enabled()) {
+        console.warn('[Persistence] ADVERTENCIA: no hay PostgreSQL ni volumen persistente detectable. Un redeploy puede borrar datos de la web y tokens; PERSISTENT_DATA_DIR por sí sola no crea un volumen.');
     }
     if (githubBackup.enabled()) {
         try {
