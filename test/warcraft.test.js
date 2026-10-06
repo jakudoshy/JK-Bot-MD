@@ -20,6 +20,33 @@ test('acepta clases con sus nombres en español', () => {
   assert.equal(result.player.classKey, 'warrior');
 });
 
+test('encuentra el personaje usando la sesión de WhatsApp aunque difiera el teléfono de la cuenta', () => {
+  const data = {};
+  const player = game.createPlayer(data, '5350000099@s.whatsapp.net', 'Nara', 'mago').player;
+  const root = game.ensureRoot(data);
+  root.sessions['5350000099'] = 'nara';
+  const account = { username: 'nara', phone: '5350000010' };
+  assert.equal(game.playerForAccount(root, account), player);
+});
+
+test('crea el personaje con el teléfono vinculado aunque WhatsApp priorice un ID alternativo', async () => {
+  const data = {};
+  const root = game.ensureRoot(data);
+  const account = { username: 'nara', phone: '5350000044' };
+  root.accounts.nara = account;
+  root.sessions[account.phone] = account.username;
+  const alias = '5350000099';
+  const msg = { key: { participant: `${alias}@s.whatsapp.net`, participantAlt: `${account.phone}@s.whatsapp.net`, remoteJid: `${alias}@s.whatsapp.net` }, pushName: 'Nara' };
+  const sock = { sendMessage: async () => {} };
+  const handler = require('../commands/warcraft');
+  const save = () => {};
+  await handler(sock, `${alias}@s.whatsapp.net`, msg, 'pjnombre', 'Nara', data, save);
+  await handler(sock, `${alias}@s.whatsapp.net`, msg, 'clase', 'guerrero', data, save);
+  assert.equal(root.players[account.phone]?.name, 'Nara');
+  assert.equal(root.players[alias], undefined);
+  assert.equal(game.playerForAccount(root, account), root.players[account.phone]);
+});
+
 test('talentos se aplican y recalculan antes de gastar el punto', () => {
   const { player } = playerAtLevel();
   player.talentPoints = 1;
