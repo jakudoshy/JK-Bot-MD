@@ -20,6 +20,12 @@ test('acepta clases con sus nombres en español', () => {
   assert.equal(result.player.classKey, 'warrior');
 });
 
+test('mantiene los IDs de clases antiguas al cargar un personaje guardado', () => {
+  const data = { warcraft: { players: { '5350000040': { id: '5350000040', name: 'Rogue', classKey: 'rogue', level: 12, hp: 100, maxHp: 150, inventory: [], equipment: {} }, '5350000041': { id: '5350000041', name: 'Mage', classKey: 'mage', level: 12, hp: 100, maxHp: 150, inventory: [], equipment: {} } } } };
+  assert.equal(game.ensurePlayer(data, '5350000040@s.whatsapp.net').classKey, 'picaro');
+  assert.equal(game.ensurePlayer(data, '5350000041@s.whatsapp.net').classKey, 'mago');
+});
+
 test('encuentra el personaje usando la sesión de WhatsApp aunque difiera el teléfono de la cuenta', () => {
   const data = {};
   const player = game.createPlayer(data, '5350000099@s.whatsapp.net', 'Nara', 'mago').player;
@@ -60,15 +66,65 @@ test('talentos se aplican y recalculan antes de gastar el punto', () => {
 
 test('las misiones se desbloquean por nivel y las recompensas escalan', () => {
   const { player } = playerAtLevel(1);
-  assert.deepEqual(game.getQuestBoard(player).map(quest => quest.id), ['wolves']);
+  assert.deepEqual(game.getQuestBoard(player).map(quest => quest.id), ['nivel_1_rastros', 'nivel_1_patrulla', 'nivel_1_campeon']);
   player.level = 25;
   game.recalc(player);
-  const at25 = game.getQuestBoard(player).find(quest => quest.id === 'gran_mago');
-  player.level = 50;
-  game.recalc(player);
-  const at50 = game.getQuestBoard(player).find(quest => quest.id === 'gran_mago');
-  assert.ok(at25 && at50.xp > at25.xp && at50.gold > at25.gold);
-  assert.ok(game.getQuestBoard(player).some(quest => quest.id === 'ogres'));
+  const at25 = game.getQuestBoard(player);
+  assert.equal(at25.length, 3);
+  assert.ok(at25.every(quest => /Gran mago/.test(quest.description)));
+  assert.ok(at25.some(quest => quest.enemyId === 'mission_25'));
+  const at50 = game.questRewards(at25[0], 50);
+  assert.ok(at50.xp > at25[0].xp && at50.gold > at25[0].gold);
+});
+
+test('completar las tres misiones de nivel uno entrega recompensas y abre el nivel dos', () => {
+  const { data, player } = playerAtLevel(1);
+  const root = game.ensureRoot(data);
+  player.attack = 100000;
+  for (let missionIndex = 0; missionIndex < 3; missionIndex++) {
+    const quest = game.getQuestBoard(player)[0];
+    assert.ok(quest, `debe existir la misión ${missionIndex + 1}`);
+    const accepted = game.acceptQuest(player, quest.id);
+    assert.equal(accepted.error, undefined);
+    let lastResult;
+    for (let kill = 0; kill < accepted.quest.goal; kill++) {
+      assert.equal(game.startCombat(root, player, accepted.quest.enemyId).error, undefined);
+      player.attack = 100000;
+      lastResult = game.combatAttack(root, player, 'auto');
+      assert.equal(lastResult.victory, true);
+    }
+    assert.equal(lastResult.quest.completed, true);
+    assert.equal(player.activeQuest, null);
+  }
+  assert.equal(player.level, 2);
+  assert.equal(game.getQuestBoard(player).length, 3);
+  assert.ok(game.getQuestBoard(player).every(quest => quest.minLevel === 2));
+});
+
+test('no se puede saltar la campaña del nivel y la XP acumulada se libera al completarla', () => {
+  const { data, player } = playerAtLevel(1);
+  const root = game.ensureRoot(data);
+  const events = game.grantXp(player, 5000);
+  assert.deepEqual(events, []);
+  assert.equal(player.level, 1);
+  assert.equal(player.xp, game.xpForLevel(1) - 1);
+  assert.ok(player.pendingLevelXp > 0);
+  assert.match(game.formatStatus(player), /Misiones del nivel: 0\/3/);
+
+  player.attack = 100000;
+  for (let missionIndex = 0; missionIndex < 3; missionIndex++) {
+    const quest = game.getQuestBoard(player)[0];
+    const accepted = game.acceptQuest(player, quest.id);
+    for (let kill = 0; kill < accepted.quest.goal; kill++) {
+      game.startCombat(root, player, accepted.quest.enemyId);
+      player.attack = 100000;
+      game.combatAttack(root, player, 'auto');
+    }
+  }
+  assert.equal(player.level, 2);
+  assert.equal(player.xp, game.xpForLevel(2) - 1);
+  assert.ok(player.pendingLevelXp > 0);
+  assert.equal(game.campaignProgress(player).completed, 0);
 });
 
 test('aceptar la misión del Gran mago fija el objetivo en enemigos y paga al completarla', () => {
@@ -122,7 +178,7 @@ test('aceptar, listar y cancelar misiones funciona en los comandos de WhatsApp',
   const handler = require('../commands/warcraft');
   const msg = { key: { remoteJid: `${player.id}@s.whatsapp.net` }, pushName: player.name };
   await handler(sock, `${player.id}@s.whatsapp.net`, msg, 'misiones', '', data, () => {});
-  assert.match(sent.at(-1), /aceptarmision gran_mago/);
+  assert.match(sent.at(-1), /aceptarmision nivel_25_/);
   await handler(sock, `${player.id}@s.whatsapp.net`, msg, 'aceptarmision', 'gran_mago', data, () => {});
   assert.match(sent.at(-1), /Misión aceptada: El Gran mago/);
   await handler(sock, `${player.id}@s.whatsapp.net`, msg, 'enemigos', '', data, () => {});
@@ -151,8 +207,62 @@ test('la tienda respeta el tramo siguiente y asigna rarezas traducibles', () => 
   const catalog = game.shopItems(player);
   assert.ok(catalog.length > 0);
   assert.ok(catalog.every(item => item.level <= 20));
-  assert.ok(catalog.some(item => item.rarity === 'epic'));
+  assert.equal(game.rarityForLevel(10), 'common');
+  assert.equal(game.rarityForLevel(11), 'rare');
+  assert.equal(game.rarityForLevel(20), 'rare');
+  assert.equal(game.rarityForLevel(21), 'epic');
+  assert.ok(catalog.some(item => item.rarity === 'rare'));
+  assert.equal(catalog.some(item => item.rarity === 'epic'), false);
+  assert.match(game.formatItem('rare_20_robe'), /Raro[\s\S]*nivel 20[\s\S]*armadura[\s\S]*intelecto[\s\S]*aguante/i);
   assert.equal(game.buy(player, catalog[0].id).error, undefined);
+});
+
+test('la tienda impide comprar equipo de rareza incorrecta para su nivel', () => {
+  const { player } = playerAtLevel(50);
+  assert.equal(game.ITEMS.epic_10_blade, undefined);
+  assert.ok(game.ITEMS.rare_20_blade);
+  assert.equal(game.buy(player, 'rare_20_blade').error, undefined);
+});
+
+test('mazmorra de grupo respeta turnos y prioriza al tanque', () => {
+  const { data, player: tank } = playerAtLevel(5);
+  const healer = game.createPlayer(data, '5350000001@s.whatsapp.net', 'Sanadora', 'sacerdote').player;
+  tank.level = healer.level = 5;
+  game.recalc(tank); game.recalc(healer);
+  tank.hp = tank.maxHp; healer.hp = healer.maxHp;
+  const root = game.ensureRoot(data);
+  const party = game.createParty(root, tank).party;
+  assert.equal(game.joinParty(root, healer, party.id).error, undefined);
+  const started = game.startDungeonRun(root, tank, 'crypt');
+  assert.equal(started.error, undefined);
+  assert.equal(started.run.enemies.length, 5);
+  assert.equal(started.run.enemies[0].name, 'Esqueleto guardián');
+  assert.match(game.dungeonAction(root, healer, 'auto').error, /Espera tu turno/);
+  assert.equal(game.dungeonAction(root, tank, 'auto').turn.nextPlayer.id, healer.id);
+  const healerTurn = game.dungeonAction(root, healer, 'auto');
+  assert.equal(healerTurn.turn.target.id, tank.id);
+  assert.equal(game.dungeonAggro(root, tank).error, undefined);
+  assert.equal(game.dungeonAction(root, healer, 'auto').turn.target.id, tank.id);
+});
+
+test('el sanador cura a la banda y su habilidad se recarga por rondas', () => {
+  const { data, player: tank } = playerAtLevel(5);
+  const healer = game.createPlayer(data, '5350000002@s.whatsapp.net', 'Sanadora', 'sacerdote').player;
+  tank.level = healer.level = 5;
+  game.recalc(tank); game.recalc(healer);
+  const root = game.ensureRoot(data);
+  const party = game.createParty(root, tank).party;
+  game.joinParty(root, healer, party.id);
+  assert.equal(game.startDungeonRun(root, tank, 'crypt').error, undefined);
+  game.dungeonAction(root, tank, 'auto');
+  tank.hp = 10; healer.hp = 10;
+  const result = game.dungeonHeal(root, healer, 'banda');
+  assert.equal(result.error, undefined);
+  assert.ok(result.healed > 0);
+  assert.ok(tank.hp > 10 && healer.hp > 10);
+  game.dungeonAction(root, tank, 'auto');
+  const cooling = game.dungeonHeal(root, healer, 'banda');
+  assert.match(cooling.error, /ronda/);
 });
 
 test('los alias en español apuntan a sus comandos compatibles', () => {
@@ -166,6 +276,9 @@ test('los alias en español apuntan a sus comandos compatibles', () => {
   assert.equal(canonicalCommand('cancelarreembolso'), 'cancelarreembolso');
   assert.equal(canonicalCommand('aceptarmision'), 'aceptarmision');
   assert.equal(canonicalCommand('cancelarmision'), 'cancelarmision');
+  assert.equal(canonicalCommand('agro'), 'agrow');
+  assert.equal(canonicalCommand('curar'), 'curarw');
+  assert.equal(canonicalCommand('especializacion'), 'especializacionw');
   assert.equal(spanishCommand('welcome'), 'bienvenida');
 });
 
@@ -187,13 +300,13 @@ test('el antispam elimina el tercer mensaje repetido y respeta a admins', async 
 test('la tienda rechaza equipo de nivel superior y descuenta oro solo al comprar', () => {
   const data = {};
   const player = game.createPlayer(data, '15550001235@s.whatsapp.net', 'Prueba', 'guerrero').player;
-  const price = game.ITEMS.epic_10_blade.price;
+  const price = game.ITEMS.rare_20_blade.price;
   player.gold = 10000;
-  const denied = game.buy(player, 'epic_10_blade');
-  assert.match(denied.error, /nivel 10/i);
-  player.level = 10;
-  const purchased = game.buy(player, 'epic_10_blade');
-  assert.equal(purchased.item.rarity, 'epic');
+  const denied = game.buy(player, 'rare_20_blade');
+  assert.match(denied.error, /nivel 20/i);
+  player.level = 20;
+  const purchased = game.buy(player, 'rare_20_blade');
+  assert.equal(purchased.item.rarity, 'rare');
   assert.equal(player.gold, 10000 - price);
 });
 
