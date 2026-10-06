@@ -61,6 +61,9 @@ test('los alias en español apuntan a sus comandos compatibles', () => {
   assert.equal(canonicalCommand('buscar'), 'cazarw');
   assert.equal(canonicalCommand('atacar'), 'attackw');
   assert.equal(canonicalCommand('cancion'), 'song');
+  assert.equal(canonicalCommand('darporreembolso'), 'darporreembolso');
+  assert.equal(canonicalCommand('aceptarreembolso'), 'aceptarreembolso');
+  assert.equal(canonicalCommand('cancelarreembolso'), 'cancelarreembolso');
   assert.equal(spanishCommand('welcome'), 'bienvenida');
 });
 
@@ -102,4 +105,93 @@ test('setbienvenida guarda el texto y activa el evento de bienvenida', async () 
   assert.equal(botData.groupWelcome[group], true);
   assert.equal(botData.groupWelcomeText[group], 'Hola @user a @grupo');
   assert.match(messages[0], /bienvenida activada/i);
+});
+
+
+test('los regalos transfieren oro y objetos de forma inmediata y validan el inventario', () => {
+  const data = {};
+  const alice = game.createPlayer(data, '5350000001@s.whatsapp.net', 'Alice', 'guerrero').player;
+  const bob = game.createPlayer(data, '5350000002@s.whatsapp.net', 'Bob', 'mago').player;
+  const transfers = require('../lib/warcraftTransfers');
+  const goldBefore = [alice.gold, bob.gold];
+  assert.equal(transfers.give(data.warcraft, alice, bob, { type: 'gold', amount: 25 }).error, undefined);
+  assert.equal(alice.gold, goldBefore[0] - 25);
+  assert.equal(bob.gold, goldBefore[1] + 25);
+  const item = transfers.give(data.warcraft, alice, bob, { type: 'item', itemId: 'health_potion', quantity: 1 });
+  assert.equal(item.error, undefined);
+  assert.equal(alice.inventory.includes('health_potion'), false);
+  assert.equal(bob.inventory.includes('health_potion'), true);
+  assert.match(transfers.give(data.warcraft, alice, bob, { type: 'item', itemId: 'health_potion', quantity: 2 }).error, /no tienes/i);
+});
+
+test('el reembolso no mueve nada hasta aceptar y luego intercambia ambos lados una sola vez', () => {
+  const data = {};
+  const alice = game.createPlayer(data, '5350000011@s.whatsapp.net', 'Alice', 'guerrero').player;
+  const bob = game.createPlayer(data, '5350000012@s.whatsapp.net', 'Bob', 'mago').player;
+  const root = game.ensureRoot(data);
+  root.accounts.alice = { username: 'alice', phone: alice.id };
+  root.accounts.bob = { username: 'bob', phone: bob.id };
+  const transfers = require('../lib/warcraftTransfers');
+  const offer = { type: 'gold', amount: 30 };
+  const request = { type: 'item', itemId: 'health_potion', quantity: 1 };
+  const before = { aliceGold: alice.gold, bobGold: bob.gold, alicePotions: alice.inventory.filter(x => x === 'health_potion').length, bobPotions: bob.inventory.filter(x => x === 'health_potion').length };
+  const draft = transfers.createDraft(root, alice, bob, offer);
+  assert.equal(draft.error, undefined);
+  assert.equal(alice.gold, before.aliceGold);
+  assert.equal(bob.gold, before.bobGold);
+  assert.equal(transfers.submitRequest(root, alice.id, request).error, undefined);
+  assert.equal(alice.gold, before.aliceGold);
+  assert.equal(bob.gold, before.bobGold);
+  const accepted = transfers.accept(root, draft.transaction.id, bob.id);
+  assert.equal(accepted.error, undefined);
+  assert.equal(alice.gold, before.aliceGold - 30);
+  assert.equal(bob.gold, before.bobGold + 30);
+  assert.equal(alice.inventory.filter(x => x === 'health_potion').length, before.alicePotions + 1);
+  assert.equal(bob.inventory.filter(x => x === 'health_potion').length, before.bobPotions - 1);
+  assert.equal(transfers.accept(root, draft.transaction.id, bob.id).error !== undefined, true);
+});
+
+test('una propuesta no aceptada por el destinatario y una contraprestación inexistente conservan saldos', () => {
+  const data = {};
+  const alice = game.createPlayer(data, '5350000021@s.whatsapp.net', 'Alice', 'guerrero').player;
+  const bob = game.createPlayer(data, '5350000022@s.whatsapp.net', 'Bob', 'mago').player;
+  const root = game.ensureRoot(data);
+  const transfers = require('../lib/warcraftTransfers');
+  const draft = transfers.createDraft(root, alice, bob, { type: 'gold', amount: 20 }).transaction;
+  transfers.submitRequest(root, alice.id, { type: 'item', itemId: 'epic_10_blade', quantity: 1 });
+  const before = [alice.gold, bob.gold];
+  assert.match(transfers.accept(root, draft.id, alice.id).error, /destinatario/i);
+  assert.match(transfers.accept(root, draft.id, bob.id).error, /falta/i);
+  assert.deepEqual([alice.gold, bob.gold], before);
+  assert.equal(draft.status, 'pending');
+});
+
+
+test('los comandos de chat /dar y /darporreembolso completan el flujo usando el nombre del personaje', async () => {
+  const data = {};
+  const alice = game.createPlayer(data, '5350000031@s.whatsapp.net', 'Alice', 'guerrero').player;
+  const bob = game.createPlayer(data, '5350000032@s.whatsapp.net', 'Bob', 'mago').player;
+  const root = game.ensureRoot(data);
+  root.accounts.alice = { username: 'alice', phone: alice.id };
+  root.accounts.bob = { username: 'bob', phone: bob.id };
+  root.sessions[alice.id] = 'alice'; root.sessions[bob.id] = 'bob';
+  const sent = [];
+  const sock = { sendMessage: async (to, payload) => sent.push({ to, text: payload.text }) };
+  const handler = require('../commands/warcraft');
+  const msgFor = phone => ({ key: { remoteJid: `${phone}@s.whatsapp.net` }, pushName: phone === alice.id ? 'Alice' : 'Bob' });
+  const goldBefore = alice.gold;
+  await handler(sock, `${alice.id}@s.whatsapp.net`, msgFor(alice.id), 'dar', 'Bob oro 12', data, () => {});
+  assert.equal(alice.gold, goldBefore - 12);
+  assert.equal(bob.gold, 92);
+  assert.ok(sent.some(m => m.to === `${bob.id}@s.whatsapp.net` && /Regalo de Warcraft/.test(m.text)));
+  await handler(sock, `${alice.id}@s.whatsapp.net`, msgFor(alice.id), 'darporreembolso', 'Bob oro 20', data, () => {});
+  await handler(sock, `${alice.id}@s.whatsapp.net`, msgFor(alice.id), 'reembolso', 'health_potion', data, () => {});
+  const request = Object.values(root.reimbursements).find(t => t.status === 'pending');
+  assert.ok(request);
+  const beforeAcceptance = alice.gold;
+  await handler(sock, `${bob.id}@s.whatsapp.net`, msgFor(bob.id), 'aceptarreembolso', '', data, () => {});
+  assert.equal(request.status, 'completed');
+  assert.equal(alice.gold, beforeAcceptance - 20);
+  assert.ok(alice.inventory.includes('health_potion'));
+  assert.ok(sent.some(m => m.to === `${bob.id}@s.whatsapp.net` && /Solicitud de reembolso/.test(m.text)));
 });
