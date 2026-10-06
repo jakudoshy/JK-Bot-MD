@@ -29,6 +29,23 @@ test('las rutas web de combate, duelo y mundo están desactivadas', () => {
   assert.equal((server.match(/app\.post\('\/api\/warcraft\/(?:duel|mmo|action)'.*?status\(410\)/gs) || []).length, 3);
 });
 
+test('WhatsApp ofrece un menú interactivo para aceptar las misiones del nivel', () => {
+  const server = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
+  assert.match(server, /function sendWarcraftMissionSelector/);
+  assert.match(server, /commandName === 'misionesw' && !q\.trim\(\)/);
+  assert.match(server, /id: `cmd_aceptarmision \$\{quest\.id\}`/);
+  assert.match(server, /sendWarcraftMissionSelector\(this\.sock, from, msg, player\)/);
+});
+
+test('el selector Warcraft de WhatsApp incluye roles de grupo y encabezado sin adornos', () => {
+  const server = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
+  assert.match(server, /\['agro', 'Tomar el agro'/);
+  assert.match(server, /\['curar banda', 'Curar la banda'/);
+  assert.match(server, /\['gruporpg crear', 'Crear grupo'/);
+  assert.match(server, /\['especializacion feral', 'Especialización de druida'/);
+  assert.match(server, /const body = `Warcraft RPG\\nElige una sección/);
+});
+
 test('la navegación alterna entre acceso público y cuenta sin solapar menús', async () => {
   const socketHandlers = new Map();
   let fetchCount = 0;

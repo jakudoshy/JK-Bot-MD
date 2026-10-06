@@ -1706,10 +1706,33 @@ class BotSession {
                                 return;
                             }
 
+                            if (commandName === 'misionesw' && !q.trim()) {
+                                const root = warcraftGame.ensureRoot(botData);
+                                const phones = [msg?.key?.participant, msg?.key?.participantAlt, msg?.key?.senderPn, msg?.key?.participantPn, msg?.key?.remoteJidAlt, msg?.key?.remoteJid].map(warcraftGame.normalizePhone).filter(phone => /^\d{7,16}$/.test(phone));
+                                const playerPhone = phones.find(phone => root.sessions[phone]) || phones[0];
+                                const player = playerPhone ? warcraftGame.ensurePlayer(botData, `${playerPhone}@s.whatsapp.net`, msg?.pushName || 'Aventurero') : null;
+                                if (root.sessions[playerPhone] && player && !player.activeQuest) {
+                                    await sendWarcraftMissionSelector(this.sock, from, msg, player);
+                                    return;
+                                }
+                                let changed = false;
+                                const saveWarcraftData = (...saveArgs) => { changed = true; return saveBotData(...saveArgs); };
+                                await commands.warcraft(this.sock, from, msg, commandName, q, botData, saveWarcraftData);
+                                if (changed) notifyWarcraftUpdate();
+                                return;
+                            }
+
                             (async () => {
                                 try {
                                     // =================== 120+ COMMAND SWITCH ===================
                                     switch (commandName) {
+                                        case 'agrow': case 'curarw': case 'especializacionw': {
+                                            let changed = false;
+                                            const saveWarcraftData = (...saveArgs) => { changed = true; return saveBotData(...saveArgs); };
+                                            await commands.warcraft(this.sock, from, msg, commandName, q, botData, saveWarcraftData);
+                                            if (changed) notifyWarcraftUpdate();
+                                            break;
+                                        }
                                         // ===== MENU =====
                                         case 'start': case 'inicio': case 'menu': case 'menú': {
                                             const customName = botData.userNames[this.userId] || msg.pushName || 'User';
@@ -2330,25 +2353,49 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
 }
 
 
+async function sendWarcraftMissionSelector(sock, jid, quoted, player) {
+    const quests = warcraftGame.getQuestBoard(player);
+    if (!quests.length) return sock.sendMessage(jid, { text: `No quedan misiones disponibles para el nivel ${player.level}.` }, { quoted });
+    const rows = quests.map(quest => ({
+        title: quest.name.length > 28 ? `${quest.name.slice(0, 25)}...` : quest.name,
+        description: `${quest.description} · ${quest.xp} XP · ${quest.gold} oro`.slice(0, 72),
+        id: `cmd_aceptarmision ${quest.id}`
+    }));
+    const selector = { name: 'single_select', buttonParamsJson: JSON.stringify({ title: 'Elegir misión', sections: [{ title: `Misiones de nivel ${player.level}`, rows }] }) };
+    const userJid = sock.user?.id;
+    const fullMessage = generateWAMessageFromContent(jid, { interactiveMessage: { body: { text: `Elige una misión para aceptarla. Solo puedes tener una misión activa. Al completar el objetivo recibirás automáticamente XP, oro y, en algunas misiones, equipo.` }, footer: { text: settings.officialChannelName }, nativeFlowMessage: { buttons: [selector], messageVersion: 1 } } }, { logger: sock.logger, userJid, messageId: generateMessageIDV2(userJid), timestamp: new Date() });
+    const additionalNodes = [{ tag: 'biz', attrs: {}, content: [{ tag: 'interactive', attrs: { type: 'native_flow', v: '1' }, content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }] }] }];
+    if (!isJidGroup(jid)) additionalNodes.push({ tag: 'bot', attrs: { biz_bot: '1' } });
+    await sock.relayMessage(jid, fullMessage.message, { messageId: fullMessage.key.id, additionalNodes });
+}
+
 async function sendWarcraftCommandMenu(sock, jid, quoted) {
     const groups = [
         ['Cuenta y personaje', [
             ['login', 'Iniciar sesión', 'Vincula tu cuenta Warcraft'], ['nombredelpersonaje', 'Crear personaje', 'Elige el nombre de tu héroe'],
-            ['clase', 'Elegir clase', 'Guerrero, mago o pícaro'], ['estadopersonaje', 'Estado del personaje', 'Vida, ataque, defensa y nivel'],
+            ['clase', 'Elegir clase', 'Elige entre las clases disponibles'], ['estadopersonaje', 'Estado del personaje', 'Vida, ataque, defensa y nivel'],
             ['inventario', 'Inventario', 'Equipo y objetos que posees'], ['equipar', 'Equipar objeto', 'Mejora tu equipo'],
             ['talentos', 'Mejorar talentos', 'Gasta puntos en ataque, defensa o vitalidad'], ['tutorial', 'Tutorial completo', 'Guía paso a paso']
         ]],
         ['Combate', [
             ['enemigos', 'Ver enemigos', 'Niveles, vida y fuerza'], ['buscar', 'Buscar enemigo', 'Empieza una pelea por turnos'],
             ['atacar', 'Atacar', 'Reduce la vida real del enemigo'], ['habilidad', 'Usar habilidad', 'Ataque especial de tu clase'],
+            ['agro', 'Tomar el agro', 'El tanque protege al grupo'], ['curar banda', 'Curar la banda', 'Habilidad de sanación grupal'],
             ['usar', 'Usar poción', 'Recupera vida, incluso tras caer'], ['huir', 'Huir', 'Termina el combate actual']
         ]],
-        ['Tienda y progreso', [
+        ['Tienda', [
             ['tienda', 'Abrir tienda', 'Objetos del tramo de nivel y rarezas'], ['comprar', 'Comprar objeto', 'Compra por el ID mostrado en la tienda'],
             ['confirmarcompra', 'Confirmar compra', 'Completa la compra pendiente'], ['cancelarcompra', 'Cancelar compra', 'Cancela sin gastar oro'],
-            ['recompensadiaria', 'Recompensa diaria', 'Recoge oro y experiencia'], ['misiones', 'Misiones', 'Consulta objetivos y recompensas según tu nivel'],
-            ['aceptarmision', 'Aceptar misión', 'Escribe el ID que aparece en /misiones'], ['cancelarmision', 'Cancelar misión', 'Libera el objetivo activo'],
-            ['mazmorras', 'Ver mazmorras', 'Mira el nivel y los jefes'], ['mazmorra', 'Entrar a mazmorra', 'Completa una mazmorra'], ['logros', 'Logros', 'Consulta los hitos alcanzados']
+            ['recompensadiaria', 'Recompensa diaria', 'Recoge oro y experiencia']
+        ]],
+        ['Misiones y mazmorras', [
+            ['misiones', 'Misiones', 'Elige un objetivo de tu nivel'], ['cancelarmision', 'Cancelar misión', 'Libera el objetivo activo'],
+            ['mazmorras', 'Ver mazmorras', 'Mira el orden de sus enemigos'], ['mazmorra crypt', 'Entrar a mazmorra', 'El líder inicia una incursión'],
+            ['mazmorra estado', 'Ver el turno', 'Consulta enemigos y jugadores'], ['logros', 'Logros', 'Consulta los hitos alcanzados']
+        ]],
+        ['Grupo y roles', [
+            ['gruporpg crear', 'Crear grupo', 'Comparte el ID con tus compañeros'], ['gruporpg unir ID', 'Unir al grupo', 'Escribe el ID del líder'],
+            ['gruporpg ver', 'Ver grupo', 'Miembros, niveles y líder'], ['especializacion feral', 'Especialización de druida', 'Desbloqueada desde el nivel 20']
         ]],
         ['Mundo y oficios', [
             ['mapa', 'Mapa', 'Zonas, requisitos y recursos'], ['viajar', 'Viajar', 'Cambia de zona'], ['profesiones', 'Profesiones', 'Consulta oficios y nivel'],
@@ -2373,7 +2420,7 @@ async function sendWarcraftCommandMenu(sock, jid, quoted) {
     ];
     const selector = { name: 'single_select', buttonParamsJson: JSON.stringify({ title: 'Elegir comando Warcraft', sections: groups.map(([title, rows]) => ({ title, rows: rows.map(([id, label, description]) => ({ title: label, description, id: `cmd_${id}` })) })) }) };
     const channelButton = { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: settings.officialChannelName, url: settings.whatsappChannel, merchant_url: settings.whatsappChannel }) };
-    const body = `⚔️ *WARCRAFT RPG*\nElige una sección y pulsa el comando.\n\n📖 Tutorial disponible en el selector.\nLos comandos del juego se escriben sin W final.`;
+    const body = `Warcraft RPG\nElige una sección y pulsa el comando.\n\nEl tutorial está disponible en el selector.\nLos comandos se escriben sin W final.`;
     const userJid = sock.user?.id;
     const fullMessage = generateWAMessageFromContent(jid, { interactiveMessage: { body: { text: body }, footer: { text: settings.officialChannelName }, nativeFlowMessage: { buttons: [selector, channelButton], messageVersion: 1 } } }, { logger: sock.logger, userJid, messageId: generateMessageIDV2(userJid), timestamp: new Date() });
     const additionalNodes = [{ tag: 'biz', attrs: {}, content: [{ tag: 'interactive', attrs: { type: 'native_flow', v: '1' }, content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }] }] }];
