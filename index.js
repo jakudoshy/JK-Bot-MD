@@ -2815,6 +2815,7 @@ io.on('connection', (socket) => {
         broadcastDashboardStats();
     });
 });
+// Marcador de redeploy de prueba; comentario sin efecto en la ejecución.
 // Start server
 const PORT = process.env.PORT || 3000;
 async function startServer() {
