@@ -1,7 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const Module = require('node:module');
-const { createTelegramBackupStore, normalizeTelegramChatId, MARKER } = require('../lib/telegramBackupStore');
+const { createTelegramBackupStore, normalizeTelegramChatId, encryptSnapshot, MARKER, LEGACY_MARKERS } = require('../lib/telegramBackupStore');
 
 let appState = null;
 let poolOptions = null;
@@ -60,8 +63,17 @@ test('el backup cifrado no puede apuntar al repositorio de código JK-Bot-MD', (
     assert.equal(backup.enabled(), false);
 });
 
-test('Telegram guarda cifrado el estado completo, fija la copia y la restaura sin leer historial', async () => {
+test('Telegram guarda estado y sesiones Baileys cifrados y restaura sesiones sin pisar las locales', async (t) => {
     const token = 'test-telegram-token';
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jkbot-telegram-test-'));
+    t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+    const sourceAuthDir = path.join(tempDir, 'source-auth');
+    const restoredAuthDir = path.join(tempDir, 'restored-auth');
+    const authFile = path.join(sourceAuthDir, 'userA', 'creds.json');
+    const authKeyFile = path.join(sourceAuthDir, 'userA', 'session-key.json');
+    fs.mkdirSync(path.dirname(authFile), { recursive: true });
+    fs.writeFileSync(authFile, JSON.stringify({ credential: 'session-secret-initial' }));
+    fs.writeFileSync(authKeyFile, JSON.stringify({ key: 'signal-key-secret' }));
     const files = new Map();
     const messages = new Map();
     const pinnedIds = new Set();
@@ -90,14 +102,22 @@ test('Telegram guarda cifrado el estado completo, fija la copia y la restaura si
         async downloadFile(fileId) { return files.get(String(fileId)); }
     };
     const logs = { log() {}, warn() {}, error(message) { throw new Error(message); } };
-    const store = createTelegramBackupStore({ token, chatId: '-100123', api, logger: logs, debounceMs: 0, minIntervalMs: 0 });
-    const state = { users: { userA: { progress: 42 } }, tokens: { secret: 'value' } };
+    const store = createTelegramBackupStore({ token, chatId: '-100123', api, authDir: sourceAuthDir, logger: logs, debounceMs: 0, minIntervalMs: 0 });
+    const state = {
+        registeredUsers: { userA: { enabled: true } },
+        premiumUsers: {},
+        premiumTokens: { testHash: { value: 'JKBOT-TESTTOKEN', maxClaims: 5, claimedBy: [], claimedAt: [], expiresAt: '2099-01-01T00:00:00.000Z' } },
+        warcraft: { players: { userA: { level: 8, gold: 120 } } },
+        adminSettings: { customMenu: ['inicio', 'premium'] }
+    };
 
     store.scheduleSave(state, { immediate: true });
     await store.flush();
     const uploaded = files.get(String(pinnedMessage.message_id));
     assert.ok(pinnedMessage.caption.startsWith(MARKER));
     assert.equal(uploaded.includes(Buffer.from('secret')), false, 'el archivo almacenado no debe exponer el JSON en texto plano');
+    assert.equal(uploaded.includes(Buffer.from('session-secret-initial')), false, 'las credenciales Baileys tampoco deben quedar en texto plano');
+    fs.writeFileSync(authFile, JSON.stringify({ credential: 'session-secret-latest' }));
     let latestState = state;
     for (let version = 2; version <= 3; version++) {
         latestState = { ...state, version };
@@ -106,7 +126,62 @@ test('Telegram guarda cifrado el estado completo, fija la copia y la restaura si
     }
     assert.deepEqual([...pinnedIds].sort(), [1, 2], 'debe conservar fijada la copia anterior y actualizar la actual en el lugar');
     assert.equal(files.size, 2, 'no debe crear un mensaje por cada guardado');
-    assert.deepEqual(await store.restore(), { hasData: true, state: latestState, messageId: pinnedMessage.message_id });
+    const localRestore = await store.restore();
+    assert.equal(localRestore.hasData, true);
+    assert.deepEqual(localRestore.state, latestState);
+    assert.equal(localRestore.authFilesAvailable, 2);
+    assert.equal(localRestore.authFilesRestored, 0);
+    assert.equal(localRestore.authFilesAlreadyPresent, 2, 'la sesión local existente se conserva y no se sobrescribe');
+
+    const restoringStore = createTelegramBackupStore({ token, chatId: '-100123', api, authDir: restoredAuthDir, logger: logs, debounceMs: 0, minIntervalMs: 0 });
+    const recovered = await restoringStore.restore();
+    assert.equal(recovered.authFilesRestored, 2);
+    assert.equal(fs.readFileSync(path.join(restoredAuthDir, 'userA', 'creds.json'), 'utf8'), JSON.stringify({ credential: 'session-secret-latest' }));
+    assert.equal(fs.readFileSync(path.join(restoredAuthDir, 'userA', 'session-key.json'), 'utf8'), JSON.stringify({ key: 'signal-key-secret' }));
+
+    const partialAuthDir = path.join(tempDir, 'partial-auth');
+    fs.mkdirSync(path.join(partialAuthDir, 'userA'), { recursive: true });
+    fs.writeFileSync(path.join(partialAuthDir, 'userA', 'creds.json'), JSON.stringify({ credential: 'local-newer-session' }));
+    const partialStore = createTelegramBackupStore({ token, chatId: '-100123', api, authDir: partialAuthDir, logger: logs, debounceMs: 0, minIntervalMs: 0 });
+    const partialRestore = await partialStore.restore();
+    assert.equal(partialRestore.authFilesRestored, 1, 'restaura los archivos ausentes aunque otra sesión local ya exista');
+    assert.equal(partialRestore.authFilesAlreadyPresent, 1);
+    assert.equal(fs.readFileSync(path.join(partialAuthDir, 'userA', 'creds.json'), 'utf8'), JSON.stringify({ credential: 'local-newer-session' }), 'no sobrescribe credenciales locales');
+    assert.equal(fs.readFileSync(path.join(partialAuthDir, 'userA', 'session-key.json'), 'utf8'), JSON.stringify({ key: 'signal-key-secret' }));
+
+    const claimant = '5350000099@s.whatsapp.net';
+    recovered.state.premiumTokens.testHash.claimedBy.push(claimant);
+    recovered.state.premiumTokens.testHash.claimedAt.push('2026-10-06T16:00:00.000Z');
+    recovered.state.premiumUsers[claimant] = { source: 'token', expiresAt: recovered.state.premiumTokens.testHash.expiresAt };
+    restoringStore.scheduleSave(recovered.state, { immediate: true });
+    await restoringStore.flush();
+    const postClaimStore = createTelegramBackupStore({ token, chatId: '-100123', api, authDir: path.join(tempDir, 'post-claim-auth'), logger: logs, debounceMs: 0, minIntervalMs: 0 });
+    const afterRedeploy = await postClaimStore.restore();
+    assert.deepEqual(afterRedeploy.state.premiumTokens.testHash.claimedBy, [claimant]);
+    assert.equal(afterRedeploy.state.premiumUsers[claimant].source, 'token');
+    assert.equal(afterRedeploy.authFilesRestored, 2);
+
+    fs.writeFileSync(authFile, '{incomplete-json');
+    assert.doesNotThrow(() => store.scheduleSave({ ...latestState, shouldNotReplaceBackup: true }, { immediate: true }));
+    await store.flush();
+    const afterIncompleteWrite = await postClaimStore.restore();
+    assert.deepEqual(afterIncompleteWrite.state.premiumTokens.testHash.claimedBy, [claimant], 'un archivo temporalmente incompleto no debe sustituir la última copia válida');
+});
+
+test('Telegram mantiene compatibilidad de lectura con copias v1 ya fijadas', async () => {
+    const token = 'test-legacy-token';
+    const state = { adminSettings: { maintenance: false } };
+    const encrypted = encryptSnapshot(state, token);
+    const pinnedMessage = { message_id: 88, caption: `${LEGACY_MARKERS[0]}2026-01-01T00:00:00.000Z|role=current|prev=0`, document: { file_id: 'legacy-file' } };
+    const api = {
+        async getChat() { return { type: 'channel', message_auto_delete_time: 0, pinned_message: pinnedMessage }; },
+        async downloadFile() { return encrypted; }
+    };
+    const store = createTelegramBackupStore({ token, chatId: '-100123', api, logger: { log() {}, error() {} } });
+    const restored = await store.restore();
+    assert.equal(restored.hasData, true);
+    assert.deepEqual(restored.state, state);
+    assert.equal(restored.authFilesAvailable, 0);
 });
 
 test('Telegram rechaza canales configurados con borrado automático', async () => {
