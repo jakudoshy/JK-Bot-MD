@@ -69,18 +69,14 @@ async function getOkatsuDownloadByUrl(youtubeUrl) {
 
 async function songCommand(sock, chatId, message) {
     try {
-        // Loading reactions
-        const loadEmojis = ['📥', '⏳', '🎵'];
-        for (const emoji of loadEmojis) {
-            await sock.sendMessage(chatId, { react: { text: emoji, key: message.key } });
-        }
+        await sock.sendMessage(chatId, { react: { text: '⏳', key: message.key } });
 
         const messageContent = message.message?.ephemeralMessage?.message || message.message?.viewOnceMessage?.message || message.message?.viewOnceMessageV2?.message || message.message;
         const text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
-        const query = text.replace(/^\/song\s+/i, '').trim();
+        const query = text.replace(/^\/(?:song|cancion)(?:\s+|$)/i, '').trim();
 
         if (!query || query.toLowerCase() === '/song') {
-            await sock.sendMessage(chatId, { text: 'Usage: /song <song name or YouTube link>' }, { quoted: message });
+            await sock.sendMessage(chatId, { text: 'Uso: /cancion <nombre o enlace de YouTube>' }, { quoted: message });
             return;
         }
 
@@ -90,7 +86,7 @@ async function songCommand(sock, chatId, message) {
         } else {
             const search = await yts(query);
             if (!search || !search.videos.length) {
-                await sock.sendMessage(chatId, { text: 'No results found.' }, { quoted: message });
+                await sock.sendMessage(chatId, { text: 'No encontré canciones con esa búsqueda.' }, { quoted: message });
                 return;
             }
             video = search.videos[0];
@@ -99,7 +95,7 @@ async function songCommand(sock, chatId, message) {
         // Inform user
         await sock.sendMessage(chatId, {
             image: { url: video.thumbnail },
-            caption: `🎵 Downloading: *${video.title}*\n⏱ Duration: ${video.timestamp || 'N/A'}`
+            caption: `🎵 Buscando y preparando: *${video.title}*\n⏱ Duración: ${video.timestamp || 'No disponible'}`
         }, { quoted: message });
 
         // Try multiple APIs with fallback chain
@@ -179,7 +175,7 @@ async function songCommand(sock, chatId, message) {
 
     } catch (err) {
         console.error('Song command error:', err);
-        await sock.sendMessage(chatId, { text: `❌ Error: ${err.message}` }, { quoted: message });
+        await sock.sendMessage(chatId, { text: `❌ No pude encontrar o enviar esa canción: ${err.message}` }, { quoted: message });
     }
 }
 
