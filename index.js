@@ -796,6 +796,7 @@ app.post('/api/warcraft/duel', (req, res) => {
     if (result.error) return res.status(400).json({ ok: false, message: result.error }); saveBotData(); res.json({ ok: true, result });
 });
 app.get('/api/warcraft/mmo/auctions', (req, res) => { const root = warcraftRoot(); res.json({ ok: true, auctions: warcraftGame.listAuction(root).map(a => ({ ...a, itemName: warcraftGame.ITEMS[a.item]?.name || a.item })) }); });
+app.get('/api/warcraft/mmo/catalog', (req, res) => res.json({ ok: true, recipes: warcraftGame.RECIPES, sources: warcraftGame.MATERIAL_SOURCES }));
 app.post('/api/warcraft/mmo', (req, res) => {
     const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); const root = warcraftRoot(); if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' }); const player = root.players[account.phone]; if (!player) return res.status(400).json({ ok: false, message: 'Crea tu personaje primero.' });
     const action = String(req.body?.action || '').toLowerCase(); let result;
