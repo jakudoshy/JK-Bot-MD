@@ -6,6 +6,17 @@ const { JSDOM, VirtualConsole } = require('jsdom');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
+test('la página incluye acceso WoW y tutoriales de cada sección', () => {
+  const dom = new JSDOM(html);
+  const document = dom.window.document;
+  assert.equal(document.querySelector('a[href="#wcRegisterForm"]')?.textContent.trim(), 'Crear cuenta WoW');
+  assert.equal(document.querySelector('a[href="#wcLoginForm"]')?.textContent.trim(), 'Iniciar sesión WoW');
+  assert.ok(document.getElementById('wcTutorials'));
+  assert.equal(document.querySelectorAll('#wcTutorials .wc-help').length, 10);
+  assert.ok(document.querySelector('#wcCharacterSetup .wc-help'));
+  dom.window.close();
+});
+
 test('la navegación alterna entre acceso público y cuenta sin solapar menús', async () => {
   const socketHandlers = new Map();
   let fetchCount = 0;

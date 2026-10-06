@@ -292,7 +292,8 @@ const tgBot = tgToken ? new TelegramBot(tgToken, {
 }) : null;
 const telegramBackupStore = createTelegramBackupStore({
     token: tgToken,
-    chatId: process.env.TELEGRAM_BACKUP_CHAT_ID
+    chatId: process.env.TELEGRAM_BACKUP_CHAT_ID,
+    authDir: () => AUTH_DIR
 });
 
 if (tgBot) {
@@ -1436,6 +1437,7 @@ class BotSession {
                 // Las credenciales se actualizan con frecuencia; nunca deben
                 // reemplazar el respaldo Premium por un payload incompleto.
                 githubBackup.scheduleBackup({ dataFile: DATA_FILE, premiumDataFile: PREMIUM_DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
+                telegramBackupStore.scheduleSave(botData);
             });
 
             this.sock.ev.on('call', async (calls) => {
@@ -2191,6 +2193,8 @@ class BotSession {
                             saveBotData();
                         }
                         delete sessions[this.userId];
+                        // Evita restaurar una sesión que el usuario ya cerró o revocó.
+                        telegramBackupStore.scheduleSave(botData, { immediate: true });
                         this.sendConnectionStatus();
                     } else if (statusCode === DisconnectReason.restartRequired || statusCode === DisconnectReason.connectionLost || statusCode === 428) {
                         this.sendLog(`Connection issue (${statusCode}). Restarting in 3s...`, 'warning');
@@ -2208,6 +2212,8 @@ class BotSession {
                     this.sendLog('Connected successfully! \u{2705}', 'success');
                     this.sendConnectionStatus();
                     this.startActiveCheck();
+                    // Captura inmediatamente los archivos Baileys tras completar la vinculación.
+                    telegramBackupStore.scheduleSave(botData, { immediate: true });
 
                     const botNumber = jidNormalizedUser(this.sock.user.id);
                     const botNumberClean = botNumber.split('@')[0];
@@ -2827,8 +2833,13 @@ async function startServer() {
     const runningOnRailway = Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_SERVICE_ID || process.env.RAILWAY_PROJECT_ID);
     const hasPersistentVolume = Boolean(process.env.RAILWAY_VOLUME_MOUNT_PATH);
     const hasConfiguredLocalStore = Boolean(process.env.PERSISTENT_DATA_DIR) && !runningOnRailway;
+    if (runningOnRailway && !hasPersistentVolume) {
+        console.warn(telegramBackupStore.enabled()
+            ? '[Persistence] Railway no detecta un volumen. La sesión Baileys tendrá respaldo cifrado en Telegram, pero se recomienda montar un volumen en /data para conservarla localmente.'
+            : '[Persistence] Railway no detecta un volumen. La sesión Baileys puede perderse en un redeploy; monta un volumen en /data para no volver a vincular.');
+    }
     if (!hasPersistentVolume && !hasConfiguredLocalStore && !githubBackup.enabled() && !postgresPremiumStore.enabled() && !telegramBackupStore.enabled()) {
-        console.warn('[Persistence] ADVERTENCIA: no hay PostgreSQL ni volumen persistente detectable. Un redeploy puede borrar datos de la web y tokens; PERSISTENT_DATA_DIR por sí sola no crea un volumen.');
+        console.warn('[Persistence] ADVERTENCIA: no hay PostgreSQL, volumen ni respaldo cifrado detectable para los datos de la web. PERSISTENT_DATA_DIR por sí sola no crea un volumen.');
     }
     if (githubBackup.enabled() && !telegramBackupStore.enabled()) {
         try {
@@ -2884,23 +2895,40 @@ async function startServer() {
         console.log('[PostgreSQL] No configurado; el estado completo requiere un volumen persistente o respaldo cifrado.');
     }
     if (telegramBackupStore.enabled()) {
+        let restoredTelegram = { hasData: false, authFilesAvailable: 0, authFilesRestored: 0, authFilesAlreadyPresent: 0 };
         if (postgresStateReady) {
+            // PostgreSQL es la fuente del estado de la web, pero Telegram puede restaurar auth_info.
+            restoredTelegram = await telegramBackupStore.restore();
+            if (restoredTelegram.authFilesRestored) {
+                console.log(`[Telegram backup] Se restauraron ${restoredTelegram.authFilesRestored} archivos de sesión de WhatsApp antes de iniciar Baileys.`);
+            } else if (restoredTelegram.authFilesAlreadyPresent) {
+                console.log(`[Telegram backup] La sesión local ya existe (${restoredTelegram.authFilesAlreadyPresent} archivos); no se sobrescribió.`);
+            }
             telegramBackupStore.scheduleSave(botData, { immediate: true });
             await telegramBackupStore.flush();
-            console.log('[Telegram backup] Copia cifrada sincronizada desde el estado principal.');
+            console.log('[Telegram backup] Estado principal sincronizado; se guardó una copia cifrada de la sesión cuando existe.');
         } else {
-            const restored = await telegramBackupStore.restore();
-            if (restored.hasData) {
-                botData = restored.state;
+            restoredTelegram = await telegramBackupStore.restore();
+            if (restoredTelegram.hasData) {
+                botData = restoredTelegram.state;
                 normalizeBotDataState();
                 saveBotData({ skipTelegramBackup: true });
-                console.log(`[Telegram backup] Estado completo restaurado desde la copia fijada (${restored.messageId}).`);
+                console.log(`[Telegram backup] Estado completo restaurado desde la copia fijada (${restoredTelegram.messageId}).`);
             } else {
                 console.log('[Telegram backup] No había copia fijada; se creará la primera con los datos locales actuales.');
-                telegramBackupStore.scheduleSave(botData, { immediate: true });
             }
+            if (restoredTelegram.authFilesRestored) {
+                console.log(`[Telegram backup] Se restauraron ${restoredTelegram.authFilesRestored} archivos de sesión de WhatsApp antes de iniciar Baileys.`);
+            } else if (restoredTelegram.authFilesAlreadyPresent) {
+                console.log(`[Telegram backup] La sesión local ya existe (${restoredTelegram.authFilesAlreadyPresent} archivos); no se sobrescribió.`);
+            } else if (restoredTelegram.hasData) {
+                console.log('[Telegram backup] La copia anterior no contenía archivos de sesión; se incluirán en la siguiente copia si ya existe una vinculación local.');
+            }
+            telegramBackupStore.scheduleSave(botData, { immediate: true });
             await telegramBackupStore.flush();
         }
+        const sessionBackupTimer = setInterval(() => telegramBackupStore.scheduleSave(botData), 5 * 60 * 1000);
+        sessionBackupTimer.unref?.();
     } else {
         console.log('[Telegram backup] No configurado; se omitirá el respaldo remoto de Telegram.');
     }
@@ -2929,6 +2957,7 @@ async function flushAndExit(signal) {
     const forceExit = setTimeout(() => process.exit(1), 10000);
     try {
         await postgresPremiumStore.flush();
+        if (telegramBackupStore.enabled()) telegramBackupStore.scheduleSave(botData, { immediate: true });
         await telegramBackupStore.flush();
         await postgresPremiumStore.close();
         clearTimeout(forceExit);
