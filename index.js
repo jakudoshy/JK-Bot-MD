@@ -741,7 +741,7 @@ function normalizeWarcraftPhone(value) { return String(value || '').split('@')[0
 function warcraftPhoneCandidates(msg, chatId) { return [...new Set([msg?.key?.participant, msg?.key?.participantAlt, msg?.key?.senderPn, msg?.key?.participantPn, msg?.key?.remoteJid, msg?.key?.remoteJidAlt, chatId].map(normalizeWarcraftPhone).filter(value => /^\d{7,16}$/.test(value)))]; }
 function hashWarcraftPassword(value, salt = crypto.randomBytes(16).toString('hex')) { return `${salt}:${crypto.scryptSync(String(value), salt, 64).toString('hex')}`; }
 function checkWarcraftPassword(value, stored) { try { const [salt, digest] = String(stored || '').split(':'); const actual = crypto.scryptSync(String(value), salt, 64).toString('hex'); return crypto.timingSafeEqual(Buffer.from(actual, 'hex'), Buffer.from(digest || '', 'hex')); } catch { return false; } }
-function warcraftRoot() { botData.warcraft ||= { players: {}, accounts: {}, trades: {}, guilds: {}, sessions: {}, combat: {}, duels: {}, duelRequests: {}, webSessions: {} }; const root = botData.warcraft; for (const key of ['players', 'accounts', 'trades', 'guilds', 'sessions', 'combat', 'duels', 'duelRequests', 'webSessions']) root[key] ||= {}; return root; }
+function warcraftRoot() { botData.warcraft ||= { players: {}, accounts: {}, trades: {}, guilds: {}, sessions: {}, combat: {}, duels: {}, duelRequests: {}, pendingPurchases: {}, parties: {}, auctions: {}, mail: {}, battlegrounds: {}, world: {}, webSessions: {} }; const root = botData.warcraft; for (const key of ['players', 'accounts', 'trades', 'guilds', 'sessions', 'combat', 'duels', 'duelRequests', 'pendingPurchases', 'parties', 'auctions', 'mail', 'battlegrounds', 'world', 'webSessions']) root[key] ||= {}; return root; }
 function warcraftSessionForPhone(phone) { const target = normalizeWarcraftPhone(phone); return Object.values(sessions || {}).find(session => [session.phoneNumber, session.requestedPhoneNumber, session.userId, session.sock?.user?.id].some(value => normalizeWarcraftPhone(value) === target) && session.sock && session.isConnected); }
 function warcraftAccountFromToken(token) { const root = warcraftRoot(); const session = root.webSessions[String(token || '')]; if (!session || session.expiresAt < Date.now()) return null; return root.accounts[session.username] || null; }
 app.post('/api/warcraft/register/request-code', async (req, res) => {
@@ -794,6 +794,26 @@ app.post('/api/warcraft/duel', (req, res) => {
     else if (action === 'forfeit') { const duel = Object.values(root.duels).find(d => d.status === 'active' && d.players.includes(player.id)); result = duel ? (duel.status = 'forfeit', duel.winner = duel.players.find(x => x !== player.id), { ok: true }) : { error: 'No estás en un duelo.' }; }
     else result = { error: 'Acción de duelo desconocida.' };
     if (result.error) return res.status(400).json({ ok: false, message: result.error }); saveBotData(); res.json({ ok: true, result });
+});
+app.get('/api/warcraft/mmo/auctions', (req, res) => { const root = warcraftRoot(); res.json({ ok: true, auctions: warcraftGame.listAuction(root).map(a => ({ ...a, itemName: warcraftGame.ITEMS[a.item]?.name || a.item })) }); });
+app.post('/api/warcraft/mmo', (req, res) => {
+    const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); const root = warcraftRoot(); if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' }); const player = root.players[account.phone]; if (!player) return res.status(400).json({ ok: false, message: 'Crea tu personaje primero.' });
+    const action = String(req.body?.action || '').toLowerCase(); let result;
+    if (action === 'travel') result = warcraftGame.travel(player, req.body?.zone);
+    else if (action === 'learn_profession') result = warcraftGame.learnProfession(player, req.body?.profession);
+    else if (action === 'gather') result = warcraftGame.gather(player, req.body?.node);
+    else if (action === 'craft') result = warcraftGame.craft(player, req.body?.recipe);
+    else if (action === 'daily') result = warcraftGame.daily(player);
+    else if (action === 'mount') result = warcraftGame.buyMount(player, req.body?.mount);
+    else if (action === 'party_create') result = warcraftGame.createParty(root, player);
+    else if (action === 'party_join') result = warcraftGame.joinParty(root, player, req.body?.partyId);
+    else if (action === 'party_leave') result = warcraftGame.leaveParty(root, player);
+    else if (action === 'auction_list') result = warcraftGame.auctionList(root, player, req.body?.item, req.body?.price);
+    else if (action === 'auction_buy') result = warcraftGame.auctionBuy(root, player, req.body?.auctionId);
+    else if (action === 'mail_claim') result = warcraftGame.claimMail(root, player);
+    else if (action === 'enchant') result = warcraftGame.enchant(player, req.body?.enchantId || req.body?.value, req.body?.slot || 'weapon');
+    else result = { error: 'Acción MMO desconocida.' };
+    if (result.error) return res.status(400).json({ ok: false, message: result.error }); warcraftGame.recalc(player); saveBotData(); res.json({ ok: true, result, player });
 });
 app.post('/api/warcraft/action', (req, res) => {
     const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); const root = warcraftRoot();
@@ -888,7 +908,7 @@ if (LEGACY_RUNTIME_DIR !== PERSISTENT_DIR && fs.existsSync(LEGACY_RUNTIME_DIR)) 
     }
 }
 
-let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], registeredUsers: {}, statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {}, warcraft: { players: {}, accounts: {}, trades: {}, guilds: {} }, premiumUsers: {}, premiumTokens: {}, subbots: {} };
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], registeredUsers: {}, statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {}, warcraft: { players: {}, accounts: {}, trades: {}, guilds: {}, sessions: {}, combat: {}, duels: {}, duelRequests: {}, pendingPurchases: {}, parties: {}, auctions: {}, mail: {}, battlegrounds: {}, world: {} }, premiumUsers: {}, premiumTokens: {}, subbots: {} };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -1815,7 +1835,7 @@ class BotSession {
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
                                         case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🎮 MÓDULOS DE JUEGO', ['warcraft', 'balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
                                         case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, '/'); break;
-                                        case 'warcraft': case 'warcraftmenu': case 'ayudaw': case 'comandosw': case 'tutorialw': case 'tutorialwarcraft': case 'pjnombre': case 'clase': case 'loginw': case 'estadow': case 'statusw': case 'personajew': case 'inventariow': case 'equiparw': case 'usarw': case 'pocionw': case 'enemigosw': case 'buscarw': case 'cazarw': case 'atacarw': case 'atacar': case 'attackw': case 'habilidadw': case 'skillw': case 'hechizow': case 'huirw': case 'misionesw': case 'mazmorrasw': case 'mazmorraw': case 'tiendaw': case 'comprarw': case 'confirmarcompra': case 'cancelarcompra': case 'talentosw': case 'guildw': case 'duelo': case 'desafiar': case 'aceptarduel': case 'aceptarduelo': case 'atacarduel': case 'dueloatacar': case 'habilidadduel': case 'rendirse': case 'comerciar': case 'trade': case 'dar': case 'aceptc': case 'cancelc': await commands.warcraft(this.sock, from, msg, commandName, q, botData, saveBotData); break;
+                                        case 'warcraft': case 'warcraftmenu': case 'ayudaw': case 'comandosw': case 'tutorialw': case 'tutorialwarcraft': case 'mapaw': case 'zonasw': case 'viajarw': case 'profesionesw': case 'aprenderw': case 'recolectarw': case 'recetasw': case 'fabricarw': case 'diariaw': case 'logrosw': case 'monturasw': case 'comprarmonturaw': case 'grupow': case 'subastaw': case 'venderw': case 'comprarsubastaw': case 'correow': case 'reclamarmailw': case 'enviarmailw': case 'encantamientosw': case 'encantarw': case 'pjnombre': case 'clase': case 'loginw': case 'estadow': case 'statusw': case 'personajew': case 'inventariow': case 'equiparw': case 'usarw': case 'pocionw': case 'enemigosw': case 'buscarw': case 'cazarw': case 'atacarw': case 'atacar': case 'attackw': case 'habilidadw': case 'skillw': case 'hechizow': case 'huirw': case 'misionesw': case 'mazmorrasw': case 'mazmorraw': case 'tiendaw': case 'comprarw': case 'confirmarcompra': case 'cancelarcompra': case 'talentosw': case 'guildw': case 'duelo': case 'desafiar': case 'aceptarduel': case 'aceptarduelo': case 'atacarduel': case 'dueloatacar': case 'habilidadduel': case 'rendirse': case 'comerciar': case 'trade': case 'dar': case 'aceptc': case 'cancelc': await commands.warcraft(this.sock, from, msg, commandName, q, botData, saveBotData); break;
                                         case 'open': case 'abrir': await commands.open(this.sock, from, msg, isAdmin, q); break;
                                         case 'close': case 'cerrar': await commands.close(this.sock, from, msg, isAdmin, q); break;
                                         case 'onlyadmin': case 'adminonly': await commands.onlyadmin(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
