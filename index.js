@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const QRCode = require('qrcode');
 const githubBackup = require('./lib/githubBackup');
 const postgresPremiumStore = require('./lib/postgresPremiumStore');
+const { createTelegramBackupStore } = require('./lib/telegramBackupStore');
 const aiMedia = require('./lib/aiMedia');
 const warcraftGame = require('./lib/warcraft');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
@@ -289,8 +290,20 @@ const tgBot = tgToken ? new TelegramBot(tgToken, {
         params: { timeout: 10 }
     }
 }) : null;
+const telegramBackupStore = createTelegramBackupStore({
+    token: tgToken,
+    chatId: process.env.TELEGRAM_BACKUP_CHAT_ID
+});
 
 if (tgBot) {
+    tgBot.on('channel_post', async (message) => {
+        if (!/^\/backupid(?:@[A-Za-z0-9_]+)?(?:\s|$)/i.test(message.text || '')) return;
+        try {
+            await tgBot.sendMessage(message.chat.id, `TELEGRAM_BACKUP_CHAT_ID=${message.chat.id}`, { disable_notification: true });
+        } catch (error) {
+            console.error('[Telegram backup] No se pudo responder con el ID del canal:', error.message);
+        }
+    });
     tgBot.on('polling_error', (error) => {
         console.log('Telegram polling error:', error.message);
         if (error.message && (error.message.includes('409') || error.message.includes('Conflict'))) {
@@ -837,7 +850,14 @@ const LEGACY_AUTH_DIR = path.resolve(__dirname, 'auth_info');
 // reclone and replacement of the working tree. On Railway, use the mounted /data volume even
 // when the variable was not copied into the service environment.
 const DEFAULT_PERSISTENT_DIR = fs.existsSync('/data') ? '/data/bot' : path.join(__dirname, '..', 'jkbot-data');
-const PERSISTENT_DIR = path.resolve(process.env.PERSISTENT_DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || DEFAULT_PERSISTENT_DIR);
+const REQUESTED_PERSISTENT_DIR = path.resolve(process.env.PERSISTENT_DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || DEFAULT_PERSISTENT_DIR);
+const persistentDirRelativeToRepo = path.relative(__dirname, REQUESTED_PERSISTENT_DIR);
+const persistentDirInsideRepo = persistentDirRelativeToRepo === '' || (!persistentDirRelativeToRepo.startsWith(`..${path.sep}`) && persistentDirRelativeToRepo !== '..' && !path.isAbsolute(persistentDirRelativeToRepo));
+const LEGACY_IN_REPO_DIR = persistentDirInsideRepo ? REQUESTED_PERSISTENT_DIR : null;
+const PERSISTENT_DIR = persistentDirInsideRepo ? path.resolve(DEFAULT_PERSISTENT_DIR) : REQUESTED_PERSISTENT_DIR;
+if (persistentDirInsideRepo) {
+    console.warn(`[Persistence] La ruta ${REQUESTED_PERSISTENT_DIR} está dentro del repositorio; se usará ${PERSISTENT_DIR} para mantener los datos fuera del código.`);
+}
 const AUTH_DIR = path.join(PERSISTENT_DIR, 'auth_info');
 const UPLOADS_DIR = path.join(PERSISTENT_DIR, 'uploads');
 const DATA_FILE = path.join(PERSISTENT_DIR, 'bot_data.json');
@@ -849,7 +869,8 @@ const PREMIUM_DATA_BACKUP = `${PREMIUM_DATA_FILE}.bak`;
 const LEGACY_PREMIUM_FILES = [
     path.join(__dirname, 'premium_data.json'),
     path.join(LEGACY_RUNTIME_DIR, 'premium_data.json'),
-    path.join(LEGACY_DATA_DIR, 'premium_data.json')
+    path.join(LEGACY_DATA_DIR, 'premium_data.json'),
+    ...(LEGACY_IN_REPO_DIR ? [path.join(LEGACY_IN_REPO_DIR, 'premium_data.json')] : [])
 ].filter(file => path.resolve(file) !== path.resolve(PREMIUM_DATA_FILE));
 fs.ensureDirSync(PERSISTENT_DIR);
 fs.ensureDirSync(AUTH_DIR);
@@ -872,8 +893,26 @@ function mergeLegacyBotData(sourceFile) {
         console.warn(`[Persistence] No se pudo migrar ${sourceFile}: ${e.message}`);
     }
 }
-for (const legacyFile of [path.join(LEGACY_RUNTIME_DIR, 'bot_data.json'), path.join(LEGACY_DATA_DIR, 'bot_data.json')]) {
+for (const legacyFile of [
+    path.join(LEGACY_RUNTIME_DIR, 'bot_data.json'),
+    path.join(LEGACY_DATA_DIR, 'bot_data.json'),
+    ...(LEGACY_IN_REPO_DIR ? [path.join(LEGACY_IN_REPO_DIR, 'bot_data.json')] : [])
+]) {
     if (legacyFile !== DATA_FILE) mergeLegacyBotData(legacyFile);
+}
+function copyMissingTree(sourceDir, targetDir) {
+    if (!fs.existsSync(sourceDir) || !fs.statSync(sourceDir).isDirectory()) return;
+    fs.ensureDirSync(targetDir);
+    for (const name of fs.readdirSync(sourceDir)) {
+        const source = path.join(sourceDir, name);
+        const target = path.join(targetDir, name);
+        if (!fs.existsSync(target)) fs.copySync(source, target);
+        else if (fs.statSync(source).isDirectory() && fs.statSync(target).isDirectory()) copyMissingTree(source, target);
+    }
+}
+if (LEGACY_IN_REPO_DIR) {
+    copyMissingTree(path.join(LEGACY_IN_REPO_DIR, 'auth_info'), AUTH_DIR);
+    copyMissingTree(path.join(LEGACY_IN_REPO_DIR, 'uploads'), UPLOADS_DIR);
 }
 if (fs.existsSync(LEGACY_AUTH_DIR)) {
     for (const userId of fs.readdirSync(LEGACY_AUTH_DIR)) {
@@ -902,6 +941,10 @@ function loadBotDataFromDisk() {
             break;
         } catch (e) {}
     }
+    normalizeBotDataState();
+}
+
+function normalizeBotDataState() {
     if (!botData || typeof botData !== 'object' || Array.isArray(botData)) botData = {};
     if (!Array.isArray(botData.comments)) botData.comments = [];
     if (!botData.economy || typeof botData.economy !== 'object') botData.economy = {};
@@ -947,17 +990,21 @@ function savePremiumData({ backupNow = false } = {}) {
     postgresPremiumStore.scheduleSave(botData.premiumUsers, botData.premiumTokens);
 }
 
-function saveBotData({ backupNow = false } = {}) {
+function saveBotData({ backupNow = false, skipTelegramBackup = false } = {}) {
     fs.ensureDirSync(PERSISTENT_DIR);
     fs.writeJsonSync(DATA_TEMP, botData, { spaces: 2 });
     if (fs.existsSync(DATA_FILE)) fs.copyFileSync(DATA_FILE, DATA_BACKUP);
     fs.renameSync(DATA_TEMP, DATA_FILE);
     savePremiumData({ backupNow });
+    postgresPremiumStore.scheduleAppStateSave(botData);
+    if (!skipTelegramBackup) telegramBackupStore.scheduleSave(botData, { immediate: backupNow });
     if (typeof broadcastPremiumData === 'function') broadcastPremiumData();
-    githubBackup.scheduleBackup(
-        { dataFile: DATA_FILE, premiumDataFile: PREMIUM_DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR },
-        { delayMs: backupNow ? 0 : undefined }
-    );
+    if (!telegramBackupStore.enabled()) {
+        githubBackup.scheduleBackup(
+            { dataFile: DATA_FILE, premiumDataFile: PREMIUM_DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR },
+            { delayMs: backupNow ? 0 : undefined }
+        );
+    }
 }
 
 // Materialize the independent Premium store immediately, even before the first token is generated.
@@ -2768,17 +2815,21 @@ io.on('connection', (socket) => {
         broadcastDashboardStats();
     });
 });
-
 // Start server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, async () => {
-    console.log(`\u{1F311} JK-BOT-MD v${settings.version} Server running on port ${PORT}`);
+async function startServer() {
+    console.log(`\u{1F311} JK-BOT-MD v${settings.version} iniciando`);
     console.log(`\u{1F4E1} Total commands loaded: 120+`);
-    console.log(`\u{1F310} Web Dashboard: http://localhost:${PORT}`);
-    if (!process.env.PERSISTENT_DATA_DIR && !process.env.RAILWAY_VOLUME_MOUNT_PATH && !githubBackup.enabled()) {
-        console.warn('[Persistence] ADVERTENCIA: no hay volumen persistente ni respaldo cifrado de GitHub. Un redeploy puede borrar tokens y usuarios Premium.');
+    if (githubBackup.targetsCodeRepository()) {
+        console.warn('[Backup] GITHUB_BACKUP_REPO apunta al repositorio de código; se omite para no guardar datos allí.');
     }
-    if (githubBackup.enabled()) {
+    const runningOnRailway = Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_SERVICE_ID || process.env.RAILWAY_PROJECT_ID);
+    const hasPersistentVolume = Boolean(process.env.RAILWAY_VOLUME_MOUNT_PATH);
+    const hasConfiguredLocalStore = Boolean(process.env.PERSISTENT_DATA_DIR) && !runningOnRailway;
+    if (!hasPersistentVolume && !hasConfiguredLocalStore && !githubBackup.enabled() && !postgresPremiumStore.enabled() && !telegramBackupStore.enabled()) {
+        console.warn('[Persistence] ADVERTENCIA: no hay PostgreSQL ni volumen persistente detectable. Un redeploy puede borrar datos de la web y tokens; PERSISTENT_DATA_DIR por sí sola no crea un volumen.');
+    }
+    if (githubBackup.enabled() && !telegramBackupStore.enabled()) {
         try {
             const localPremium = {
                 users: { ...(botData.premiumUsers || {}) },
@@ -2788,7 +2839,7 @@ server.listen(PORT, async () => {
             if (restored) {
                 loadBotDataFromDisk();
                 loadPremiumDataFromDisk();
-                // A delayed remote backup must never erase a token or user already stored locally.
+                // Preserve locally-created Premium records while restoring all backed-up bot data.
                 botData.premiumUsers = { ...(botData.premiumUsers || {}), ...localPremium.users };
                 botData.premiumTokens = { ...(botData.premiumTokens || {}), ...localPremium.tokens };
                 normalizePremiumTokenEntries(botData.premiumTokens);
@@ -2798,32 +2849,96 @@ server.listen(PORT, async () => {
             console.error('[Backup] No se pudo restaurar el estado cifrado:', error.response?.data?.message || error.message);
         }
     } else {
-        console.log('[Backup] GitHub cifrado no configurado; usando el almacenamiento local persistente.');
+        console.log('[Backup] GitHub cifrado no configurado.');
     }
+    let postgresStateReady = false;
     if (postgresPremiumStore.enabled()) {
         try {
             await postgresPremiumStore.init();
-            const remotePremium = await postgresPremiumStore.loadPremium();
-            if (remotePremium.hasData) {
-                // Supabase es la fuente de verdad después de la migración inicial.
-                botData.premiumUsers = remotePremium.users;
-                botData.premiumTokens = remotePremium.tokens;
-                normalizePremiumTokenEntries(botData.premiumTokens);
-                savePremiumData();
-                console.log(`[Supabase] Premium cargado: ${Object.keys(remotePremium.users).length} usuarios, ${Object.keys(remotePremium.tokens).length} tokens.`);
+            const remoteState = await postgresPremiumStore.loadAppState();
+            if (remoteState.hasData) {
+                // PostgreSQL is the durable source of truth for all web/bot application data.
+                botData = remoteState.state;
+                normalizeBotDataState();
+                // Do not merge stale local JSON over the remote source of truth.
+                saveBotData();
+                console.log(`[PostgreSQL] Estado completo restaurado; ${Object.keys(botData.premiumUsers || {}).length} usuarios y ${Object.keys(botData.premiumTokens || {}).length} tokens Premium.`);
             } else {
-                // Primera ejecución: subir el Premium que ya existía en los JSON.
+                // Migrate existing JSON/GitHub state, including legacy Premium-only database contents.
+                const remotePremium = await postgresPremiumStore.loadPremium();
+                if (remotePremium.hasData) {
+                    botData.premiumUsers = remotePremium.users;
+                    botData.premiumTokens = remotePremium.tokens;
+                    normalizePremiumTokenEntries(botData.premiumTokens);
+                }
+                await postgresPremiumStore.replaceAppState(botData);
                 await postgresPremiumStore.replacePremium(botData.premiumUsers, botData.premiumTokens);
-                console.log(`[Supabase] Migración inicial completada: ${Object.keys(botData.premiumUsers).length} usuarios, ${Object.keys(botData.premiumTokens).length} tokens.`);
+                console.log('[PostgreSQL] Migración inicial del estado completo completada.');
             }
+            postgresStateReady = true;
         } catch (error) {
-            console.error('[Supabase] No se pudo inicializar PostgreSQL; se mantiene el almacenamiento JSON:', error.message);
+            console.error('[PostgreSQL] No se pudo inicializar el estado remoto; se usará el almacenamiento local:', error.message);
         }
     } else {
-        console.log('[Supabase] No configurado; Premium usa el almacenamiento local persistente.');
+        console.log('[PostgreSQL] No configurado; el estado completo requiere un volumen persistente o respaldo cifrado.');
     }
-    await loadExistingSessions();
-    broadcastDashboardStats();
+    if (telegramBackupStore.enabled()) {
+        if (postgresStateReady) {
+            telegramBackupStore.scheduleSave(botData, { immediate: true });
+            await telegramBackupStore.flush();
+            console.log('[Telegram backup] Copia cifrada sincronizada desde el estado principal.');
+        } else {
+            const restored = await telegramBackupStore.restore();
+            if (restored.hasData) {
+                botData = restored.state;
+                normalizeBotDataState();
+                saveBotData({ skipTelegramBackup: true });
+                console.log(`[Telegram backup] Estado completo restaurado desde la copia fijada (${restored.messageId}).`);
+            } else {
+                console.log('[Telegram backup] No había copia fijada; se creará la primera con los datos locales actuales.');
+                telegramBackupStore.scheduleSave(botData, { immediate: true });
+            }
+            await telegramBackupStore.flush();
+        }
+    } else {
+        console.log('[Telegram backup] No configurado; se omitirá el respaldo remoto de Telegram.');
+    }
+    server.listen(PORT, async () => {
+        console.log(`\u{1F310} Web Dashboard disponible en http://localhost:${PORT}`);
+        await loadExistingSessions();
+        broadcastDashboardStats();
+    });
+}
+
+startServer().catch(error => {
+    console.error('[Startup] No se pudo iniciar JK-BOT-MD:', error.message);
+    if (tgBot) {
+        tgBot.stopPolling().finally(() => process.exit(1));
+    } else {
+        process.exit(1);
+    }
 });
+
+let shutdownStarted = false;
+async function flushAndExit(signal) {
+    if (shutdownStarted) return;
+    shutdownStarted = true;
+    console.log(`[Persistence] ${signal}: cerrando y vaciando escrituras remotas pendientes.`);
+    if (server.listening) server.close();
+    const forceExit = setTimeout(() => process.exit(1), 10000);
+    try {
+        await postgresPremiumStore.flush();
+        await telegramBackupStore.flush();
+        await postgresPremiumStore.close();
+        clearTimeout(forceExit);
+        process.exit(0);
+    } catch (error) {
+        console.error('[Persistence] No se pudieron vaciar todas las escrituras:', error.message);
+        clearTimeout(forceExit);
+        process.exit(1);
+    }
+}
+process.once('SIGTERM', () => flushAndExit('SIGTERM'));
+process.once('SIGINT', () => flushAndExit('SIGINT'));
 
 setInterval(broadcastDashboardStats, 5000).unref();

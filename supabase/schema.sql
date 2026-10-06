@@ -1,5 +1,11 @@
--- JK-Bot-MD: persistencia Premium en Supabase/PostgreSQL
+-- JK-Bot-MD: persistencia de estado completo y datos Premium en PostgreSQL
 -- El bot también crea estas tablas automáticamente al iniciar.
+
+create table if not exists public.jkbot_app_state (
+  id smallint primary key check (id = 1),
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
 
 create table if not exists public.jkbot_premium_users (
   jid text primary key,
