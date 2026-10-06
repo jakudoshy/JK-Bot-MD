@@ -21,8 +21,8 @@ Incluye comandos de grupos, descargas, stickers, economía, perfiles, IA, herram
 - Economía, perfiles, juegos y comandos interactivos.
 - IA opcional mediante OpenAI-compatible API.
 - Panel web con estadísticas, bots conectados, Premium, difusión y promoción.
-- Respaldo cifrado AES-256-GCM opcional en GitHub.
-- Persistencia Premium en PostgreSQL/Supabase con migración automática desde los JSON existentes.
+- Respaldo cifrado AES-256-GCM opcional en un repositorio privado separado (no el repositorio de código).
+- Persistencia del estado completo de la web y del bot en PostgreSQL/Supabase, con migración automática desde los JSON existentes.
 - IA conversacional con contexto temporal, preguntas de aclaración, generación de imágenes y cortos MP4 de 5 segundos.
 - Todos los comandos usan el prefijo `/` y los menús muestran ejemplos listos para copiar.
 
@@ -35,7 +35,7 @@ git clone https://github.com/jakudoshy/JK-Bot-MD.git
 cd JK-Bot-MD
 npm ci
 cp .env.example .env
-# Edita .env y configura ADMIN_USERNAME; la contraseña del panel es `04060120**`
+# Edita .env y configura ADMIN_USERNAME y ADMIN_PASSWORD.
 npm start
 ```
 
@@ -54,11 +54,13 @@ PORT=3000
 PERSISTENT_DATA_DIR=/data/bot
 ```
 
-No publiques `.env`, credenciales de WhatsApp, tokens de GitHub ni claves de cifrado. Sin Supabase, los usuarios Premium y los tokens completos se guardan únicamente en el servidor, en `premium_data.json` dentro de `PERSISTENT_DATA_DIR`; con Supabase configurado, PostgreSQL es la fuente principal y ese JSON queda como respaldo local. La web no los escribe en `localStorage` y sí los vuelve a cargar al recargar el panel. En Railway es obligatorio montar un volumen persistente en `/data` y configurar `PERSISTENT_DATA_DIR=/data/bot` para conservar sesiones y archivos, o configurar el respaldo cifrado de GitHub con **todas** sus variables (`GITHUB_BACKUP_TOKEN`, `GITHUB_BACKUP_REPO`, `GITHUB_BACKUP_BRANCH`, `GITHUB_BACKUP_PATH` y `BACKUP_ENCRYPTION_KEY`).
+No publiques `.env`, credenciales de WhatsApp, tokens de GitHub ni claves de cifrado. La web guarda los cambios en el servidor: al configurar PostgreSQL, toda la información persistente de la aplicación (incluidos ajustes, cuentas/datos de Warcraft y usuarios/tokens Premium) se conserva en `jkbot_app_state` y se vuelve a cargar tras reiniciar o desplegar una nueva versión. Sin PostgreSQL, el respaldo local queda en `PERSISTENT_DATA_DIR` y solo sobrevive si esa ruta está en un volumen persistente. La web no depende de `localStorage` para el estado administrativo.
 
-### PostgreSQL en Supabase
+En Railway, configura una base PostgreSQL y enlaza su variable privada `DATABASE_URL` al servicio del bot para persistir los datos de la web en ese servidor independiente. Además, monta un volumen en `/data` y configura `PERSISTENT_DATA_DIR=/data/bot` para conservar credenciales de sesión de WhatsApp y archivos subidos; PostgreSQL no almacena esos archivos. No guardes datos runtime ni respaldos en `jakudoshy/JK-Bot-MD`: el código omite automáticamente cualquier respaldo de GitHub que apunte a ese repositorio. Un despliegue reemplaza el sistema de archivos local, pero no la base de datos ni el volumen persistente.
 
-Para que el Premium sobreviva incluso cuando se reemplaza el contenedor, configura en el servicio donde ejecutas el bot la cadena privada de PostgreSQL de Supabase:
+### PostgreSQL en Railway o Supabase
+
+Para que los datos de la web sobrevivan incluso cuando se reemplaza el contenedor, configura en el servicio del bot una conexión privada PostgreSQL. En Railway, añade un servicio PostgreSQL y enlaza su variable `DATABASE_URL` al bot. En Supabase, usa la cadena privada/directa:
 
 ```env
 SUPABASE_DB_URL=postgresql://postgres:<PASSWORD>@db.<PROJECT-REF>.supabase.co:5432/postgres?sslmode=require
@@ -66,11 +68,11 @@ SUPABASE_DB_POOL_MAX=5
 SUPABASE_DB_SSL=true
 ```
 
-La aplicación crea automáticamente `jkbot_premium_users` y `jkbot_premium_tokens` al iniciar. En la primera ejecución sube los usuarios y tokens existentes desde `premium_data.json`; después, PostgreSQL pasa a ser la fuente de verdad. Cada alta, reclamación, modificación o eliminación del panel se sincroniza automáticamente con Supabase.
+La aplicación crea automáticamente `jkbot_app_state`, `jkbot_premium_users` y `jkbot_premium_tokens` al iniciar. En la primera ejecución migra el JSON local (y, si existe, el Premium previo) a PostgreSQL. Desde entonces `jkbot_app_state` es la fuente principal de verdad para el estado completo de la web y del bot, y cada guardado actualiza esa copia remota. Las tablas Premium separadas se mantienen por compatibilidad con versiones anteriores.
 
 También puedes ejecutar manualmente [`supabase/schema.sql`](supabase/schema.sql) desde el SQL Editor de Supabase. Usa la conexión privada/directa de PostgreSQL únicamente en el servidor; no pongas `SUPABASE_DB_URL`, la contraseña de la base de datos ni una service-role key en `index.html` o en el navegador.
 
-Supabase guarda el estado Premium, pero las credenciales de sesión de WhatsApp de Baileys y los archivos subidos siguen necesitando un volumen persistente (`PERSISTENT_DATA_DIR`) o un respaldo de archivos. La actualización del código no debe borrar ese volumen.
+PostgreSQL conserva el estado JSON de la aplicación, pero las credenciales de sesión de WhatsApp de Baileys y los archivos subidos siguen necesitando un volumen persistente (`PERSISTENT_DATA_DIR`) o un respaldo cifrado de archivos. Verifica que el volumen esté montado antes de desplegar y no lo elimines al actualizar el código.
 
 ### Comandos de IA
 
