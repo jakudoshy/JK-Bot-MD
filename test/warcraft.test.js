@@ -58,6 +58,79 @@ test('talentos se aplican y recalculan antes de gastar el punto', () => {
   assert.equal(game.spendTalent(player, 'ataque').error.includes('punto'), true);
 });
 
+test('las misiones se desbloquean por nivel y las recompensas escalan', () => {
+  const { player } = playerAtLevel(1);
+  assert.deepEqual(game.getQuestBoard(player).map(quest => quest.id), ['wolves']);
+  player.level = 25;
+  game.recalc(player);
+  const at25 = game.getQuestBoard(player).find(quest => quest.id === 'gran_mago');
+  player.level = 50;
+  game.recalc(player);
+  const at50 = game.getQuestBoard(player).find(quest => quest.id === 'gran_mago');
+  assert.ok(at25 && at50.xp > at25.xp && at50.gold > at25.gold);
+  assert.ok(game.getQuestBoard(player).some(quest => quest.id === 'ogres'));
+});
+
+test('aceptar la misión del Gran mago fija el objetivo en enemigos y paga al completarla', () => {
+  const { data, player } = playerAtLevel(25);
+  const root = game.ensureRoot(data);
+  const accepted = game.acceptQuest(player, 'el gran mago');
+  assert.equal(accepted.error, undefined);
+  assert.equal(player.activeQuest.id, 'gran_mago');
+  assert.match(game.acceptQuest(player, 'wolves').error, /misión activa/i);
+  assert.ok(game.getEnemiesForPlayer(player).some(enemy => enemy.id === 'gran_mago' && enemy.missionTarget));
+  const started = game.startCombat(root, player, 'gran_mago');
+  assert.equal(started.error, undefined, 'el objetivo activo puede buscarse fuera de su zona');
+  player.attack = 10000;
+  const victory = game.combatAttack(root, player, 'auto');
+  assert.equal(victory.victory, true);
+  assert.equal(victory.quest.completed, true);
+  assert.equal(victory.quest.q.name, 'El Gran mago');
+  assert.equal(player.activeQuest, null);
+  assert.equal(player.quests.gran_mago.completed, true);
+  assert.equal(game.getEnemiesForPlayer(player).some(enemy => enemy.id === 'gran_mago'), false);
+});
+
+test('cancelar una misión quita inmediatamente su objetivo especial', () => {
+  const { player } = playerAtLevel(25);
+  const accepted = game.acceptQuest(player, 'gran_mago');
+  assert.equal(accepted.error, undefined);
+  assert.ok(game.getEnemiesForPlayer(player).some(enemy => enemy.id === 'gran_mago'));
+  const cancelled = game.cancelQuest(player);
+  assert.equal(cancelled.error, undefined);
+  assert.equal(game.getEnemiesForPlayer(player).some(enemy => enemy.id === 'gran_mago'), false);
+  assert.equal(player.questHistory.at(-1).status, 'cancelled');
+});
+
+test('la misión de la cripta solo progresa después de aceptarla y se completa al vencer la mazmorra', () => {
+  const { player } = playerAtLevel(5);
+  const accepted = game.acceptQuest(player, 'crypt');
+  assert.equal(accepted.error, undefined);
+  const result = game.dungeon(player, 'crypt');
+  assert.equal(result.quest.completed, true);
+  assert.equal(result.quest.q.id, 'crypt');
+  assert.equal(player.activeQuest, null);
+  assert.equal(player.quests.crypt.status, 'completed');
+});
+
+test('aceptar, listar y cancelar misiones funciona en los comandos de WhatsApp', async () => {
+  const { data, player } = playerAtLevel(25);
+  const root = game.ensureRoot(data);
+  root.sessions[player.id] = 'tester';
+  const sent = [];
+  const sock = { sendMessage: async (_jid, payload) => sent.push(payload.text) };
+  const handler = require('../commands/warcraft');
+  const msg = { key: { remoteJid: `${player.id}@s.whatsapp.net` }, pushName: player.name };
+  await handler(sock, `${player.id}@s.whatsapp.net`, msg, 'misiones', '', data, () => {});
+  assert.match(sent.at(-1), /aceptarmision gran_mago/);
+  await handler(sock, `${player.id}@s.whatsapp.net`, msg, 'aceptarmision', 'gran_mago', data, () => {});
+  assert.match(sent.at(-1), /Misión aceptada: El Gran mago/);
+  await handler(sock, `${player.id}@s.whatsapp.net`, msg, 'enemigos', '', data, () => {});
+  assert.match(sent.at(-1), /gran_mago.*objetivo de misión activo/s);
+  await handler(sock, `${player.id}@s.whatsapp.net`, msg, 'cancelarmision', '', data, () => {});
+  assert.match(sent.at(-1), /Misión cancelada/);
+});
+
 test('el combate persiste la vida real del enemigo, informa ataques variados y permite morir', () => {
   const { data, player } = playerAtLevel();
   player.attack = 1;
@@ -91,6 +164,8 @@ test('los alias en español apuntan a sus comandos compatibles', () => {
   assert.equal(canonicalCommand('darporreembolso'), 'darporreembolso');
   assert.equal(canonicalCommand('aceptarreembolso'), 'aceptarreembolso');
   assert.equal(canonicalCommand('cancelarreembolso'), 'cancelarreembolso');
+  assert.equal(canonicalCommand('aceptarmision'), 'aceptarmision');
+  assert.equal(canonicalCommand('cancelarmision'), 'cancelarmision');
   assert.equal(spanishCommand('welcome'), 'bienvenida');
 });
 
