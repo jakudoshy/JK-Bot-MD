@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const QRCode = require('qrcode');
 const githubBackup = require('./lib/githubBackup');
 const postgresPremiumStore = require('./lib/postgresPremiumStore');
+const { createTelegramBackupStore } = require('./lib/telegramBackupStore');
 const aiMedia = require('./lib/aiMedia');
 const warcraftGame = require('./lib/warcraft');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
@@ -289,8 +290,20 @@ const tgBot = tgToken ? new TelegramBot(tgToken, {
         params: { timeout: 10 }
     }
 }) : null;
+const telegramBackupStore = createTelegramBackupStore({
+    token: tgToken,
+    chatId: process.env.TELEGRAM_BACKUP_CHAT_ID
+});
 
 if (tgBot) {
+    tgBot.on('channel_post', async (message) => {
+        if (!/^\/backupid(?:@[A-Za-z0-9_]+)?(?:\s|$)/i.test(message.text || '')) return;
+        try {
+            await tgBot.sendMessage(message.chat.id, `TELEGRAM_BACKUP_CHAT_ID=${message.chat.id}`, { disable_notification: true });
+        } catch (error) {
+            console.error('[Telegram backup] No se pudo responder con el ID del canal:', error.message);
+        }
+    });
     tgBot.on('polling_error', (error) => {
         console.log('Telegram polling error:', error.message);
         if (error.message && (error.message.includes('409') || error.message.includes('Conflict'))) {
@@ -977,18 +990,21 @@ function savePremiumData({ backupNow = false } = {}) {
     postgresPremiumStore.scheduleSave(botData.premiumUsers, botData.premiumTokens);
 }
 
-function saveBotData({ backupNow = false } = {}) {
+function saveBotData({ backupNow = false, skipTelegramBackup = false } = {}) {
     fs.ensureDirSync(PERSISTENT_DIR);
     fs.writeJsonSync(DATA_TEMP, botData, { spaces: 2 });
     if (fs.existsSync(DATA_FILE)) fs.copyFileSync(DATA_FILE, DATA_BACKUP);
     fs.renameSync(DATA_TEMP, DATA_FILE);
     savePremiumData({ backupNow });
     postgresPremiumStore.scheduleAppStateSave(botData);
+    if (!skipTelegramBackup) telegramBackupStore.scheduleSave(botData, { immediate: backupNow });
     if (typeof broadcastPremiumData === 'function') broadcastPremiumData();
-    githubBackup.scheduleBackup(
-        { dataFile: DATA_FILE, premiumDataFile: PREMIUM_DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR },
-        { delayMs: backupNow ? 0 : undefined }
-    );
+    if (!telegramBackupStore.enabled()) {
+        githubBackup.scheduleBackup(
+            { dataFile: DATA_FILE, premiumDataFile: PREMIUM_DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR },
+            { delayMs: backupNow ? 0 : undefined }
+        );
+    }
 }
 
 // Materialize the independent Premium store immediately, even before the first token is generated.
@@ -2810,10 +2826,10 @@ async function startServer() {
     const runningOnRailway = Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_SERVICE_ID || process.env.RAILWAY_PROJECT_ID);
     const hasPersistentVolume = Boolean(process.env.RAILWAY_VOLUME_MOUNT_PATH);
     const hasConfiguredLocalStore = Boolean(process.env.PERSISTENT_DATA_DIR) && !runningOnRailway;
-    if (!hasPersistentVolume && !hasConfiguredLocalStore && !githubBackup.enabled() && !postgresPremiumStore.enabled()) {
+    if (!hasPersistentVolume && !hasConfiguredLocalStore && !githubBackup.enabled() && !postgresPremiumStore.enabled() && !telegramBackupStore.enabled()) {
         console.warn('[Persistence] ADVERTENCIA: no hay PostgreSQL ni volumen persistente detectable. Un redeploy puede borrar datos de la web y tokens; PERSISTENT_DATA_DIR por sí sola no crea un volumen.');
     }
-    if (githubBackup.enabled()) {
+    if (githubBackup.enabled() && !telegramBackupStore.enabled()) {
         try {
             const localPremium = {
                 users: { ...(botData.premiumUsers || {}) },
@@ -2835,6 +2851,7 @@ async function startServer() {
     } else {
         console.log('[Backup] GitHub cifrado no configurado.');
     }
+    let postgresStateReady = false;
     if (postgresPremiumStore.enabled()) {
         try {
             await postgresPremiumStore.init();
@@ -2858,11 +2875,33 @@ async function startServer() {
                 await postgresPremiumStore.replacePremium(botData.premiumUsers, botData.premiumTokens);
                 console.log('[PostgreSQL] Migración inicial del estado completo completada.');
             }
+            postgresStateReady = true;
         } catch (error) {
             console.error('[PostgreSQL] No se pudo inicializar el estado remoto; se usará el almacenamiento local:', error.message);
         }
     } else {
         console.log('[PostgreSQL] No configurado; el estado completo requiere un volumen persistente o respaldo cifrado.');
+    }
+    if (telegramBackupStore.enabled()) {
+        if (postgresStateReady) {
+            telegramBackupStore.scheduleSave(botData, { immediate: true });
+            await telegramBackupStore.flush();
+            console.log('[Telegram backup] Copia cifrada sincronizada desde el estado principal.');
+        } else {
+            const restored = await telegramBackupStore.restore();
+            if (restored.hasData) {
+                botData = restored.state;
+                normalizeBotDataState();
+                saveBotData({ skipTelegramBackup: true });
+                console.log(`[Telegram backup] Estado completo restaurado desde la copia fijada (${restored.messageId}).`);
+            } else {
+                console.log('[Telegram backup] No había copia fijada; se creará la primera con los datos locales actuales.');
+                telegramBackupStore.scheduleSave(botData, { immediate: true });
+            }
+            await telegramBackupStore.flush();
+        }
+    } else {
+        console.log('[Telegram backup] No configurado; se omitirá el respaldo remoto de Telegram.');
     }
     server.listen(PORT, async () => {
         console.log(`\u{1F310} Web Dashboard disponible en http://localhost:${PORT}`);
@@ -2873,7 +2912,11 @@ async function startServer() {
 
 startServer().catch(error => {
     console.error('[Startup] No se pudo iniciar JK-BOT-MD:', error.message);
-    process.exitCode = 1;
+    if (tgBot) {
+        tgBot.stopPolling().finally(() => process.exit(1));
+    } else {
+        process.exit(1);
+    }
 });
 
 let shutdownStarted = false;
@@ -2885,6 +2928,7 @@ async function flushAndExit(signal) {
     const forceExit = setTimeout(() => process.exit(1), 10000);
     try {
         await postgresPremiumStore.flush();
+        await telegramBackupStore.flush();
         await postgresPremiumStore.close();
         clearTimeout(forceExit);
         process.exit(0);

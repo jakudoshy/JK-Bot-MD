@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
+const { createTelegramBackupStore, MARKER } = require('../lib/telegramBackupStore');
 
 let appState = null;
 let poolOptions = null;
@@ -57,4 +58,65 @@ test('el backup cifrado no puede apuntar al repositorio de código JK-Bot-MD', (
     const backup = require('../lib/githubBackup');
     assert.equal(backup.targetsCodeRepository(), true);
     assert.equal(backup.enabled(), false);
+});
+
+test('Telegram guarda cifrado el estado completo, fija la copia y la restaura sin leer historial', async () => {
+    const token = 'test-telegram-token';
+    const files = new Map();
+    const messages = new Map();
+    const pinnedIds = new Set();
+    let pinnedMessage = null;
+    let nextMessageId = 1;
+    const api = {
+        async getChat() { return { type: 'channel', message_auto_delete_time: 0, pinned_message: pinnedMessage }; },
+        async sendDocument(buffer, filename, caption) {
+            const id = nextMessageId++;
+            files.set(String(id), Buffer.from(buffer));
+            messages.set(id, { message_id: id, caption, document: { file_id: String(id) } });
+            return { message_id: id, filename, caption };
+        },
+        async pinMessage(messageId) {
+            pinnedIds.add(messageId);
+            pinnedMessage = messages.get(messageId);
+            return true;
+        },
+        async editDocument(messageId, buffer, caption) {
+            files.set(String(messageId), Buffer.from(buffer));
+            const message = messages.get(messageId);
+            message.caption = caption;
+            return message;
+        },
+        async unpinMessage(messageId) { pinnedIds.delete(messageId); return true; },
+        async downloadFile(fileId) { return files.get(String(fileId)); }
+    };
+    const logs = { log() {}, warn() {}, error(message) { throw new Error(message); } };
+    const store = createTelegramBackupStore({ token, chatId: '-100123', api, logger: logs, debounceMs: 0, minIntervalMs: 0 });
+    const state = { users: { userA: { progress: 42 } }, tokens: { secret: 'value' } };
+
+    store.scheduleSave(state, { immediate: true });
+    await store.flush();
+    const uploaded = files.get(String(pinnedMessage.message_id));
+    assert.ok(pinnedMessage.caption.startsWith(MARKER));
+    assert.equal(uploaded.includes(Buffer.from('secret')), false, 'el archivo almacenado no debe exponer el JSON en texto plano');
+    let latestState = state;
+    for (let version = 2; version <= 3; version++) {
+        latestState = { ...state, version };
+        store.scheduleSave(latestState, { immediate: true });
+        await store.flush();
+    }
+    assert.deepEqual([...pinnedIds].sort(), [1, 2], 'debe conservar fijada la copia anterior y actualizar la actual en el lugar');
+    assert.equal(files.size, 2, 'no debe crear un mensaje por cada guardado');
+    assert.deepEqual(await store.restore(), { hasData: true, state: latestState, messageId: pinnedMessage.message_id });
+});
+
+test('Telegram rechaza canales configurados con borrado automático', async () => {
+    const api = {
+        async getChat() { return { type: 'channel', message_auto_delete_time: 86400 }; },
+        async sendDocument() { throw new Error('no debe enviar'); },
+        async pinMessage() {},
+        async unpinMessage() {},
+        async downloadFile() { throw new Error('no debe descargar'); }
+    };
+    const store = createTelegramBackupStore({ token: 'test-token', chatId: '-100456', api, logger: { log() {}, warn() {}, error() {} }, debounceMs: 0, minIntervalMs: 0 });
+    await assert.rejects(store.restore(), /borrado automático/);
 });

@@ -48,7 +48,7 @@ Después abre el panel en `http://localhost:3000` y vincula el número desde **V
 # OWNER_NUMBER se conserva solo por compatibilidad con instalaciones antiguas.
 OWNER_NUMBER=5350898613
 ADMIN_USERNAME=tu_usuario_admin
-ADMIN_PASSWORD=04060120**
+ADMIN_PASSWORD=pon_una_clave_privada_en_Railway
 PORT=3000
 # Usa una ruta absoluta en un volumen persistente; no la pongas dentro del repositorio.
 PERSISTENT_DATA_DIR=/data/bot
@@ -73,6 +73,12 @@ La aplicación crea automáticamente `jkbot_app_state`, `jkbot_premium_users` y 
 También puedes ejecutar manualmente [`supabase/schema.sql`](supabase/schema.sql) desde el SQL Editor de Supabase. Usa la conexión privada/directa de PostgreSQL únicamente en el servidor; no pongas `SUPABASE_DB_URL`, la contraseña de la base de datos ni una service-role key en `index.html` o en el navegador.
 
 PostgreSQL conserva el estado JSON de la aplicación, pero las credenciales de sesión de WhatsApp de Baileys y los archivos subidos siguen necesitando un volumen persistente (`PERSISTENT_DATA_DIR`) o un respaldo cifrado de archivos. Verifica que el volumen esté montado antes de desplegar y no lo elimines al actualizar el código.
+
+### Alternativa gratuita: respaldo cifrado en un canal privado de Telegram
+
+Si no vas a usar una base PostgreSQL, el estado completo de la web puede guardarse como un documento cifrado en un canal privado dedicado. La aplicación consulta el mensaje fijado para restaurar el último estado; no necesita leer el historial ni depende de las actualizaciones pendientes de Telegram. Para activarlo, crea un bot con `@BotFather`, añádelo al canal como administrador con permiso para publicar y fijar mensajes, publica `/backupid` en ese canal y copia el ID que responde. Configura `TELEGRAM_BOT_TOKEN` y `TELEGRAM_BACKUP_CHAT_ID` como variables privadas del servicio, no en Git ni en mensajes. No hace falta usar un número virtual para esta opción.
+
+Las copias se comprimen y cifran usando el token del bot. El mensaje de estado actual se actualiza en el sitio y el mensaje anterior queda fijado como respaldo, sin crear un documento nuevo por cada guardado. Mantén el canal privado, desactiva el borrado automático y conserva el mismo token del bot para poder descifrar los respaldos. La Bot API permite descargar hasta 20 MB; el código limita cada copia a 19 MB comprimidos. Este respaldo cubre el estado JSON de la web (usuarios, configuraciones, progreso y tokens), no los archivos de sesión de WhatsApp ni los archivos subidos, que requieren un volumen persistente.
 
 ### Comandos de IA
 
