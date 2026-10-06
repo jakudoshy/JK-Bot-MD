@@ -136,6 +136,10 @@ La interfaz usa un diseño propio rojo/hacker con:
 - Generación y gestión de acceso Premium.
 - Difusión y promoción disponibles para el administrador autenticado.
 
+### Warcraft RPG
+
+La web conserva el registro/inicio de sesión y un perfil de solo consulta. El combate, las zonas, la tienda, los duelos y el resto de la partida se juegan únicamente por WhatsApp. Comandos iniciales: `/warcraft`, `/misiones`, `/aceptarmision <id>`, `/enemigos`, `/buscar <id_del_enemigo>`, `/atacar` y `/cancelarmision`. Al aceptar una misión se responde «Misión aceptada»; su objetivo permanece marcado en `/enemigos` hasta completarla o cancelarla. Se desbloquean misiones por nivel y sus recompensas aumentan con el nivel del personaje.
+
 > Nota de mantenimiento: los datos persistentes del bot se conservan fuera del código fuente.
 > Las actualizaciones del código no deben reemplazar el almacenamiento persistente.
 

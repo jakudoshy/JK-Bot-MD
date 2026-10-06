@@ -784,7 +784,7 @@ app.post('/api/warcraft/register/verify', (req, res) => {
     root.sessions[phone] = pending.username;
     const token = crypto.randomBytes(24).toString('hex'); root.webSessions[token] = { username: pending.username, expiresAt: Date.now() + 24 * 60 * 60 * 1000 };
     warcraftPendingCodes.delete(phone); saveBotData();
-    res.json({ ok: true, token, username: pending.username, message: `Cuenta registrada correctamente.\n\nUsuario: ${pending.username}\nContraseña: la que elegiste\n\nYa puedes usar /login y /warcraft.` });
+    res.json({ ok: true, token, username: pending.username, message: `Cuenta registrada correctamente.\n\nUsuario: ${pending.username}\nContraseña: la que elegiste\n\nPara jugar, abre WhatsApp y envía /login usuario contraseña y luego /warcraft.` });
 });
 app.post('/api/warcraft/login', (req, res) => {
     const username = String(req.body?.username || '').trim().toLowerCase(); const root = warcraftRoot();
@@ -792,57 +792,16 @@ app.post('/api/warcraft/login', (req, res) => {
     if (!account) return res.status(401).json({ ok: false, message: 'Usuario no registrado o usuario incorrecto.' });
     if (!checkWarcraftPassword(req.body?.password, account.passwordHash)) return res.status(401).json({ ok: false, message: 'Contraseña incorrecta.' });
     const token = crypto.randomBytes(24).toString('hex'); root.webSessions[token] = { username: account.username, expiresAt: Date.now() + 24 * 60 * 60 * 1000 }; root.sessions[account.phone] = account.username; saveBotData();
-    res.json({ ok: true, token, username: account.username, phone: account.phone, message: 'Sesión iniciada. Ya puedes usar /warcraft.' });
+    res.json({ ok: true, token, username: account.username, phone: account.phone, message: 'Sesión iniciada. Consulta tu perfil en la web y juega por WhatsApp con /warcraft.' });
 });
 app.post('/api/warcraft/character', (req, res) => res.status(410).json({ ok: false, message: 'El personaje se crea en WhatsApp con /nombredelpersonaje y /clase.' }));
 app.get('/api/warcraft/me', (req, res) => { const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' }); const root = warcraftRoot(); const player = warcraftGame.playerForAccount(root, account); const rank = player ? warcraftPublicLeaderboard(root).find(entry => entry.username === account.username)?.rank || null : null; const inventoryCounts = player ? warcraftGame.inventoryCounts(player) : {}; const inventoryDetails = Object.entries(inventoryCounts).map(([id, quantity]) => ({ id, quantity, name: warcraftGame.ITEMS[id]?.name || id, rarity: warcraftGame.ITEMS[id]?.rarity || 'common' })); const equipmentDetails = player ? Object.entries(player.equipment || {}).map(([slot, id]) => ({ slot, id, name: warcraftGame.ITEMS[id]?.name || id })) : []; res.json({ ok: true, account: { username: account.username, phone: account.phone }, player: warcraftWebPlayer(player), rank, inventoryDetails, equipmentDetails, combat: player ? root.combat[player.id] || null : null }); });
 app.get('/api/warcraft/shop', (req, res) => { const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' }); const root = warcraftRoot(); const player = warcraftGame.playerForAccount(root, account); if (!player) return res.status(400).json({ ok: false, message: 'Crea tu personaje primero.' }); res.json({ ok: true, items: warcraftGame.shopItems(player), level: player.level }); });
 app.get('/api/warcraft/active-users', (req, res) => { const root = warcraftRoot(); const users = warcraftPublicLeaderboard(root).map(({ phone, ...publicPlayer }) => publicPlayer); res.json({ ok: true, totalRegistered: Object.keys(root.accounts || {}).length, totalCharacters: users.length, users }); });
-app.post('/api/warcraft/duel', (req, res) => {
-    const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); const root = warcraftRoot(); if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' });
-    const player = warcraftGame.playerForAccount(root, account); if (!player) return res.status(400).json({ ok: false, message: 'Crea tu personaje primero.' }); const action = String(req.body?.action || '').toLowerCase(); let result;
-    if (action === 'challenge') { const target = String(req.body?.target || '').trim(); const targetAccount = root.accounts[target] || Object.values(root.accounts).find(a => a.phone === normalizeWarcraftPhone(target)); result = targetAccount ? warcraftGame.createDuel(root, player, targetAccount.phone) : { error: 'No se encontró ese usuario.' }; }
-    else if (action === 'accept') result = warcraftGame.acceptDuel(root, player);
-    else if (action === 'attack') result = warcraftGame.duelAttack(root, player, req.body?.skill || 'auto');
-    else if (action === 'forfeit') { const duel = Object.values(root.duels).find(d => d.status === 'active' && d.players.includes(player.id)); result = duel ? (duel.status = 'forfeit', duel.winner = duel.players.find(x => x !== player.id), { ok: true }) : { error: 'No estás en un duelo.' }; }
-    else result = { error: 'Acción de duelo desconocida.' };
-    if (result.error) return res.status(400).json({ ok: false, message: result.error }); saveBotData(); notifyWarcraftUpdate(); res.json({ ok: true, result });
-});
+app.post('/api/warcraft/duel', (req, res) => res.status(410).json({ ok: false, message: 'Los duelos se juegan por WhatsApp con /duelo y /aceptarduelo.' }));
 app.get('/api/warcraft/mmo/catalog', (req, res) => res.json({ ok: true, recipes: warcraftGame.RECIPES, sources: warcraftGame.MATERIAL_SOURCES }));
-app.post('/api/warcraft/mmo', (req, res) => {
-    const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); const root = warcraftRoot(); if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' }); const player = warcraftGame.playerForAccount(root, account); if (!player) return res.status(400).json({ ok: false, message: 'Crea tu personaje primero.' });
-    const action = String(req.body?.action || '').toLowerCase(); let result;
-    if (action === 'travel') result = warcraftGame.travel(player, req.body?.zone);
-    else if (action === 'learn_profession') result = warcraftGame.learnProfession(player, req.body?.profession);
-    else if (action === 'gather') result = warcraftGame.gather(player, req.body?.node);
-    else if (action === 'craft') result = warcraftGame.craft(player, req.body?.recipe);
-    else if (action === 'daily') result = warcraftGame.daily(player);
-    else if (action === 'mount') result = warcraftGame.buyMount(player, req.body?.mount);
-    else if (action === 'party_create') result = warcraftGame.createParty(root, player);
-    else if (action === 'party_join') result = warcraftGame.joinParty(root, player, req.body?.partyId);
-    else if (action === 'party_leave') result = warcraftGame.leaveParty(root, player);
-    else if (action === 'mail_claim') result = warcraftGame.claimMail(root, player);
-    else if (action === 'enchant') result = warcraftGame.enchant(player, req.body?.enchantId || req.body?.value, req.body?.slot || 'weapon');
-    else result = { error: 'Acción MMO desconocida.' };
-    if (result.error) return res.status(400).json({ ok: false, message: result.error }); warcraftGame.recalc(player); saveBotData(); notifyWarcraftUpdate(); res.json({ ok: true, result, player: warcraftWebPlayer(player) });
-});
-app.post('/api/warcraft/action', (req, res) => {
-    const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); const root = warcraftRoot();
-    if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' });
-    const player = warcraftGame.playerForAccount(root, account); if (!player) return res.status(400).json({ ok: false, message: 'Crea un personaje desde WhatsApp con /pjnombre y /clase.' });
-    const action = String(req.body?.action || '').toLowerCase(); let result;
-    if (action === 'search') result = warcraftGame.startCombat(root, player, String(req.body?.enemy || 'lobo').toLowerCase());
-    else if (action === 'attack') result = warcraftGame.combatAttack(root, player, 'auto');
-    else if (action === 'skill') result = warcraftGame.combatAttack(root, player, String(req.body?.skill || '').toLowerCase());
-    else if (action === 'use') result = warcraftGame.useItem(player, req.body?.item || 'health_potion');
-    else if (action === 'equip') result = warcraftGame.equip(player, req.body?.item || '');
-    else if (action === 'buy') result = warcraftGame.buy(player, String(req.body?.item || ''));
-    else if (action === 'dungeon') result = warcraftGame.dungeon(player, String(req.body?.dungeon || '').toLowerCase());
-    else if (action === 'flee') { if (!root.combat[player.id] || root.combat[player.id].status !== 'active') result = { error: 'No estás en combate.' }; else { root.combat[player.id].status = 'fled'; result = { ok: true, message: 'Has huido del combate.' }; } }
-    else result = { error: 'Acción Warcraft desconocida.' };
-    if (result.error) return res.status(400).json({ ok: false, message: result.error, player: warcraftWebPlayer(player), combat: root.combat[player.id] || null });
-    saveBotData(); notifyWarcraftUpdate(); res.json({ ok: true, result, player: warcraftWebPlayer(player), combat: root.combat[player.id] || null });
-});
+app.post('/api/warcraft/mmo', (req, res) => res.status(410).json({ ok: false, message: 'Las funciones del mundo se controlan por WhatsApp. Usa /warcraft.' }));
+app.post('/api/warcraft/action', (req, res) => res.status(410).json({ ok: false, message: 'El juego se realiza por WhatsApp. Usa /warcraft para ver los comandos.' }));
 // El comercio rápido web se retiró; los regalos e intercambios Warcraft se coordinan por WhatsApp.
 const LEGACY_DATA_DIR = path.resolve(__dirname, 'data');
 const LEGACY_RUNTIME_DIR = path.resolve(__dirname, 'bot');
@@ -1878,7 +1837,7 @@ class BotSession {
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
                                         case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🎮 MÓDULOS DE JUEGO', ['warcraft', 'balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
                                         case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, '/'); break;
-                                        case 'warcraft': case 'warcraftmenu': case 'ayudaw': case 'comandosw': case 'tutorialw': case 'tutorialwarcraft': case 'mapaw': case 'zonasw': case 'viajarw': case 'profesionesw': case 'aprenderw': case 'recolectarw': case 'recetasw': case 'fabricarw': case 'diariaw': case 'logrosw': case 'monturasw': case 'comprarmonturaw': case 'grupow': case 'subastaw': case 'venderw': case 'comprarsubastaw': case 'correow': case 'reclamarmailw': case 'enviarmailw': case 'encantamientosw': case 'encantarw': case 'pjnombre': case 'clase': case 'loginw': case 'estadow': case 'statusw': case 'personajew': case 'inventariow': case 'equiparw': case 'usarw': case 'pocionw': case 'enemigosw': case 'buscarw': case 'cazarw': case 'atacarw': case 'atacar': case 'attackw': case 'habilidadw': case 'skillw': case 'hechizow': case 'huirw': case 'misionesw': case 'mazmorrasw': case 'mazmorraw': case 'tiendaw': case 'comprarw': case 'confirmarcompra': case 'cancelarcompra': case 'talentosw': case 'guildw': case 'duelo': case 'desafiar': case 'aceptarduel': case 'aceptarduelo': case 'atacarduel': case 'dueloatacar': case 'habilidadduel': case 'rendirse': case 'comerciar': case 'trade': case 'dar': case 'ofrecer': case 'darporreembolso': case 'reembolso': case '-reembolso': case 'aceptarreembolso': case 'cancelarreembolso': case 'aceptc': case 'cancelc': if (['warcraft', 'warcraftmenu', 'ayudaw', 'comandosw'].includes(commandName) && !q.trim()) await sendWarcraftCommandMenu(this.sock, from, msg); else { let changed = false; const saveWarcraftData = (...saveArgs) => { changed = true; return saveBotData(...saveArgs); }; await commands.warcraft(this.sock, from, msg, commandName, q, botData, saveWarcraftData); if (changed) notifyWarcraftUpdate(); } break;
+                                        case 'warcraft': case 'warcraftmenu': case 'ayudaw': case 'comandosw': case 'tutorialw': case 'tutorialwarcraft': case 'mapaw': case 'zonasw': case 'viajarw': case 'profesionesw': case 'aprenderw': case 'recolectarw': case 'recetasw': case 'fabricarw': case 'diariaw': case 'logrosw': case 'monturasw': case 'comprarmonturaw': case 'grupow': case 'subastaw': case 'venderw': case 'comprarsubastaw': case 'correow': case 'reclamarmailw': case 'enviarmailw': case 'encantamientosw': case 'encantarw': case 'pjnombre': case 'clase': case 'loginw': case 'estadow': case 'statusw': case 'personajew': case 'inventariow': case 'equiparw': case 'usarw': case 'pocionw': case 'enemigosw': case 'buscarw': case 'cazarw': case 'atacarw': case 'atacar': case 'attackw': case 'habilidadw': case 'skillw': case 'hechizow': case 'huirw': case 'misionesw': case 'aceptarmision': case 'aceptarmisionw': case 'cancelarmision': case 'cancelarmisionw': case 'mazmorrasw': case 'mazmorraw': case 'tiendaw': case 'comprarw': case 'confirmarcompra': case 'cancelarcompra': case 'talentosw': case 'guildw': case 'duelo': case 'desafiar': case 'aceptarduel': case 'aceptarduelo': case 'atacarduel': case 'dueloatacar': case 'habilidadduel': case 'rendirse': case 'comerciar': case 'trade': case 'dar': case 'ofrecer': case 'darporreembolso': case 'reembolso': case '-reembolso': case 'aceptarreembolso': case 'cancelarreembolso': case 'aceptc': case 'cancelc': if (['warcraft', 'warcraftmenu', 'ayudaw', 'comandosw'].includes(commandName) && !q.trim()) await sendWarcraftCommandMenu(this.sock, from, msg); else { let changed = false; const saveWarcraftData = (...saveArgs) => { changed = true; return saveBotData(...saveArgs); }; await commands.warcraft(this.sock, from, msg, commandName, q, botData, saveWarcraftData); if (changed) notifyWarcraftUpdate(); } break;
                                         case 'open': case 'abrir': await commands.open(this.sock, from, msg, isAdmin, q); break;
                                         case 'close': case 'cerrar': await commands.close(this.sock, from, msg, isAdmin, q); break;
                                         case 'onlyadmin': case 'adminonly': await commands.onlyadmin(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
@@ -2373,36 +2332,37 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
 
 async function sendWarcraftCommandMenu(sock, jid, quoted) {
     const groups = [
-        ['🔐 CUENTA Y PERSONAJE', [
+        ['Cuenta y personaje', [
             ['login', 'Iniciar sesión', 'Vincula tu cuenta Warcraft'], ['nombredelpersonaje', 'Crear personaje', 'Elige el nombre de tu héroe'],
             ['clase', 'Elegir clase', 'Guerrero, mago o pícaro'], ['estadopersonaje', 'Estado del personaje', 'Vida, ataque, defensa y nivel'],
             ['inventario', 'Inventario', 'Equipo y objetos que posees'], ['equipar', 'Equipar objeto', 'Mejora tu equipo'],
             ['talentos', 'Mejorar talentos', 'Gasta puntos en ataque, defensa o vitalidad'], ['tutorial', 'Tutorial completo', 'Guía paso a paso']
         ]],
-        ['⚔️ COMBATE', [
+        ['Combate', [
             ['enemigos', 'Ver enemigos', 'Niveles, vida y fuerza'], ['buscar', 'Buscar enemigo', 'Empieza una pelea por turnos'],
             ['atacar', 'Atacar', 'Reduce la vida real del enemigo'], ['habilidad', 'Usar habilidad', 'Ataque especial de tu clase'],
             ['usar', 'Usar poción', 'Recupera vida, incluso tras caer'], ['huir', 'Huir', 'Termina el combate actual']
         ]],
-        ['🛒 TIENDA Y PROGRESO', [
+        ['Tienda y progreso', [
             ['tienda', 'Abrir tienda', 'Objetos del tramo de nivel y rarezas'], ['comprar', 'Comprar objeto', 'Compra por el ID mostrado en la tienda'],
             ['confirmarcompra', 'Confirmar compra', 'Completa la compra pendiente'], ['cancelarcompra', 'Cancelar compra', 'Cancela sin gastar oro'],
-            ['recompensadiaria', 'Recompensa diaria', 'Recoge oro y experiencia'], ['misiones', 'Misiones', 'Revisa objetivos y recompensas'],
+            ['recompensadiaria', 'Recompensa diaria', 'Recoge oro y experiencia'], ['misiones', 'Misiones', 'Consulta objetivos y recompensas según tu nivel'],
+            ['aceptarmision', 'Aceptar misión', 'Escribe el ID que aparece en /misiones'], ['cancelarmision', 'Cancelar misión', 'Libera el objetivo activo'],
             ['mazmorras', 'Ver mazmorras', 'Mira el nivel y los jefes'], ['mazmorra', 'Entrar a mazmorra', 'Completa una mazmorra'], ['logros', 'Logros', 'Consulta los hitos alcanzados']
         ]],
-        ['🗺️ MUNDO Y OFICIOS', [
+        ['Mundo y oficios', [
             ['mapa', 'Mapa', 'Zonas, requisitos y recursos'], ['viajar', 'Viajar', 'Cambia de zona'], ['profesiones', 'Profesiones', 'Consulta oficios y nivel'],
             ['aprender', 'Aprender oficio', 'Minería, herbalismo, alquimia o herrería'], ['recolectar', 'Recolectar', 'Recoge materiales disponibles'],
             ['recetas', 'Recetas', 'Consulta ingredientes necesarios'], ['fabricar', 'Fabricar', 'Crea objetos con materiales'],
             ['encantamientos', 'Encantamientos', 'Mejoras de arma y armadura'], ['encantar', 'Aplicar encantamiento', 'Aplica una mejora de equipo']
         ]],
-        ['🤝 JUGADORES Y COMUNIDAD', [
+        ['Jugadores y comunidad', [
             ['gruporpg', 'Grupo RPG', 'Crear, unirse o salir de un grupo'], ['monturas', 'Monturas', 'Revisa monturas y niveles'], ['comprarmontura', 'Comprar montura', 'Consigue una montura'],
             ['hermandad', 'Hermandad', 'Crea una guild del juego'], ['duelo', 'Desafiar jugador', 'Reta a otro personaje'],
             ['aceptarduelo', 'Aceptar duelo', 'Acepta un reto pendiente'], ['atacarduelo', 'Atacar en duelo', 'Ataca cuando sea tu turno'],
             ['habilidadduelo', 'Habilidad de duelo', 'Usa la habilidad de tu clase'], ['rendirse', 'Rendirse', 'Finaliza el duelo']
         ]],
-        ['📬 REGALOS, INTERCAMBIOS Y SUBASTA', [
+        ['Regalos, intercambios y subasta', [
             ['dar', 'Dar oro u objeto', 'Regalo inmediato: jugador oro 53 u objeto x1'], ['darporreembolso', 'Preparar reembolso', 'Jugador oro 1000 u objeto x1'],
             ['reembolso', 'Indicar lo que pides', 'Objeto x1, oro 53 o 0 si no pides nada'], ['aceptarreembolso', 'Aceptar reembolso', 'También puedes escribir /accept rem'],
             ['cancelarreembolso', 'Cancelar reembolso', 'También puedes escribir /cancel rem'],
