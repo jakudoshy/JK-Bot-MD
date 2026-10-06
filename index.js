@@ -84,6 +84,7 @@ const commands = {
     welcome: require('./commands/welcome'),
     bye: require('./commands/bye'),
     setwelcome: require('./commands/setwelcome'),
+    seguridad: require('./commands/seguridad'),
     setbye: require('./commands/setbye'),
     mutelist: require('./commands/mutelist'),
     testwelcome: require('./commands/testwelcome'),
@@ -766,7 +767,7 @@ app.post('/api/warcraft/register/verify', (req, res) => {
     root.sessions[phone] = pending.username;
     const token = crypto.randomBytes(24).toString('hex'); root.webSessions[token] = { username: pending.username, expiresAt: Date.now() + 24 * 60 * 60 * 1000 };
     warcraftPendingCodes.delete(phone); saveBotData();
-    res.json({ ok: true, token, username: pending.username, message: `Cuenta registrada correctamente.\n\nUsuario: ${pending.username}\nContraseña: la que elegiste\n\nYa puedes usar el comando /loginw y /Warcraft.` });
+    res.json({ ok: true, token, username: pending.username, message: `Cuenta registrada correctamente.\n\nUsuario: ${pending.username}\nContraseña: la que elegiste\n\nYa puedes usar /login y /warcraft.` });
 });
 app.post('/api/warcraft/login', (req, res) => {
     const username = String(req.body?.username || '').trim().toLowerCase(); const root = warcraftRoot();
@@ -774,9 +775,9 @@ app.post('/api/warcraft/login', (req, res) => {
     if (!account) return res.status(401).json({ ok: false, message: 'Usuario no registrado o usuario incorrecto.' });
     if (!checkWarcraftPassword(req.body?.password, account.passwordHash)) return res.status(401).json({ ok: false, message: 'Contraseña incorrecta.' });
     const token = crypto.randomBytes(24).toString('hex'); root.webSessions[token] = { username: account.username, expiresAt: Date.now() + 24 * 60 * 60 * 1000 }; root.sessions[account.phone] = account.username; saveBotData();
-    res.json({ ok: true, token, username: account.username, phone: account.phone, message: 'Sesión iniciada. Ya puedes usar el /Warcraft.' });
+    res.json({ ok: true, token, username: account.username, phone: account.phone, message: 'Sesión iniciada. Ya puedes usar /warcraft.' });
 });
-app.get('/api/warcraft/me', (req, res) => { const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); if (!account) return res.status(401).json({ ok: false }); const player = warcraftRoot().players[account.phone] || null; res.json({ ok: true, account: { username: account.username, phone: account.phone }, player }); });
+app.get('/api/warcraft/me', (req, res) => { const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); if (!account) return res.status(401).json({ ok: false }); const player = warcraftRoot().players[account.phone] || null; res.json({ ok: true, account: { username: account.username, phone: account.phone }, player, combat: player ? warcraftRoot().combat[player.id] || null : null }); });
 app.post('/api/warcraft/character', (req, res) => {
     const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' });
     const name = String(req.body?.name || '').trim(); const classKey = String(req.body?.classKey || '').toLowerCase();
@@ -785,6 +786,7 @@ app.post('/api/warcraft/character', (req, res) => {
     const result = warcraftGame.createPlayer(botData, `${account.phone}@s.whatsapp.net`, name, classKey); if (result.error) return res.status(400).json({ ok: false, message: result.error }); saveBotData(); res.json({ ok: true, player: result.player, message: 'Personaje creado. Bienvenido a la aventura.' });
 });
 app.get('/api/warcraft/classes', (req, res) => res.json({ ok: true, classes: Object.entries(warcraftGame.CLASS_CONFIG).map(([id, data]) => ({ id, ...data, image: `/public/warcraft/classes/${id === 'picaro' ? 'rogue' : id}.png` })) }));
+app.get('/api/warcraft/shop', (req, res) => { const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' }); const player = warcraftRoot().players[account.phone]; if (!player) return res.status(400).json({ ok: false, message: 'Crea tu personaje primero.' }); res.json({ ok: true, items: warcraftGame.shopItems(player), level: player.level }); });
 app.get('/api/warcraft/active-users', (req, res) => { const root = warcraftRoot(); const now = Date.now(); const activeNames = new Set(Object.values(root.webSessions || {}).filter(s => s.expiresAt > now).map(s => s.username)); const users = Object.values(root.accounts || {}).filter(a => activeNames.has(a.username)).map(a => { const p = root.players[a.phone]; return { username: a.username, character: p?.name || null, classKey: p?.classKey || null, gs: p?.gs || 0, level: p?.level || 0, online: true }; }); res.json({ ok: true, totalRegistered: Object.keys(root.accounts || {}).length, users }); });
 app.post('/api/warcraft/duel', (req, res) => {
     const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); const root = warcraftRoot(); if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' });
@@ -827,6 +829,8 @@ app.post('/api/warcraft/action', (req, res) => {
     else if (action === 'skill') result = warcraftGame.combatAttack(root, player, String(req.body?.skill || '').toLowerCase());
     else if (action === 'use') result = warcraftGame.useItem(player, req.body?.item || 'health_potion');
     else if (action === 'equip') result = warcraftGame.equip(player, req.body?.item || '');
+    else if (action === 'buy') result = warcraftGame.buy(player, String(req.body?.item || ''));
+    else if (action === 'talent') result = warcraftGame.spendTalent(player, String(req.body?.talent || ''));
     else if (action === 'dungeon') result = warcraftGame.dungeon(player, String(req.body?.dungeon || '').toLowerCase());
     else if (action === 'flee') { if (!root.combat[player.id] || root.combat[player.id].status !== 'active') result = { error: 'No estás en combate.' }; else { root.combat[player.id].status = 'fled'; result = { ok: true, message: 'Has huido del combate.' }; } }
     else result = { error: 'Acción Warcraft desconocida.' };
@@ -929,7 +933,7 @@ function loadBotDataFromDisk() {
     if (!botData.subbots || typeof botData.subbots !== 'object' || Array.isArray(botData.subbots)) botData.subbots = {};
     if (!botData.registeredUsers || typeof botData.registeredUsers !== 'object' || Array.isArray(botData.registeredUsers)) botData.registeredUsers = {};
     if (!botData.adminOnlyGroups || typeof botData.adminOnlyGroups !== 'object') botData.adminOnlyGroups = {};
-    for (const key of ['groupAlerts', 'groupWelcome', 'groupBye', 'groupWelcomeText', 'groupByeText', 'mutedUsers']) {
+    for (const key of ['groupAlerts', 'groupWelcome', 'groupBye', 'groupWelcomeText', 'groupByeText', 'mutedUsers', 'antiPornGroups', 'antiPhotoGroups', 'antiVideoGroups', 'antiAudioGroups', 'antiStickerGroups', 'antiDocumentGroups', 'antiMediaGroups', 'antiSpamGroups']) {
         if (!botData[key] || typeof botData[key] !== 'object') botData[key] = {};
     }
 }
@@ -1441,7 +1445,8 @@ class BotSession {
                             ? (botData.groupWelcomeText[id] || '👋 ¡Bienvenido/a @user a @grupo!')
                             : (botData.groupByeText[id] || '👋 @user ha salido de @grupo.');
                         const text = template.replace(/@user/g, names).replace(/@grupo/g, groupName).replace(/@desc/g, meta.desc || '');
-                        await this.sock.sendMessage(id, { text, mentions });
+                        const welcomeMenu = action === 'add' ? '\n\n📚 *MENÚ DE BIENVENIDA*\n• /menu · comandos del bot\n• /warcraft · secciones del Warcraft RPG\n• /ayuda · instrucciones de comandos' : '';
+                        await this.sock.sendMessage(id, { text: `${text}${welcomeMenu}`, mentions });
                     }
                     if (botData.groupAlerts[id] && (action === 'promote' || action === 'demote')) {
                         await this.sock.sendMessage(id, { text: `${action === 'promote' ? '⬆️' : '⬇️'} ${names} ${action === 'promote' ? 'ahora es administrador' : 'ya no es administrador'}.`, mentions });
@@ -1603,6 +1608,9 @@ class BotSession {
                             return;
                         }
 
+                        // Moderación de contenido: aplica solo a participantes, nunca a admins.
+                        if (isGroup && await commands.seguridad.enforce(this.sock, from, msg, botData, isAdmin, messageContent, text)) return;
+
                         // Anti-status in groups
                         if (isGroup && botData.antiStatusGroups && botData.antiStatusGroups[from] && !isAdmin) {
                             const isStatusMsg = msg.message?.protocolMessage?.type === 0 ||
@@ -1685,8 +1693,9 @@ class BotSession {
                             const cmd = normalizedCommandText.toLowerCase();
                             const args = normalizedCommandText.split(/\s+/).slice(1);
                             const q = args.join(' ');
-                            const commandName = cmd.slice(1).split(/\s+/)[0];
-                            const requiresPremium = PREMIUM_COMMANDS.has(commandName) || OWNER_PASSWORD_COMMANDS.has(commandName);
+                            const rawCommandName = cmd.slice(1).split(/\s+/)[0];
+                            const commandName = require('./lib/spanishCommands').canonicalCommand(rawCommandName);
+                            const requiresPremium = PREMIUM_COMMANDS.has(commandName) || OWNER_PASSWORD_COMMANDS.has(commandName) || PREMIUM_COMMANDS.has(rawCommandName) || OWNER_PASSWORD_COMMANDS.has(rawCommandName);
                             if (OWNER_PASSWORD_COMMANDS.has(commandName)) {
                                 if (!isOwner) {
                                     await this.sock.sendMessage(from, { text: '🚫 *ACCESO DENEGADO*\n\n👑 Esta sección es exclusiva del número Owner autorizado.' }, { quoted: msg });
@@ -1713,7 +1722,7 @@ class BotSession {
                                     // =================== 120+ COMMAND SWITCH ===================
                                     switch (commandName) {
                                         // ===== MENU =====
-                                        case 'start': case 'menu': case 'menú': {
+                                        case 'start': case 'inicio': case 'menu': case 'menú': {
                                             const customName = botData.userNames[this.userId] || msg.pushName || 'User';
                                             const menuText = decorateText(generateMenuText(customName, this));
                                             try {
@@ -1828,7 +1837,8 @@ class BotSession {
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ownerMenuItems); break;
                                         case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 Control de grupos', ['kick', 'ban', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
-                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ Seguridad', ['open', 'close', 'grouplink', 'revoke', 'add', 'kick', 'ban', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
+                                        case 'seguridad': await sendCategoryMenu(this.sock, from, msg, '🛡️ Seguridad del grupo', ['antilink', 'antiporno', 'antifoto', 'antivideo', 'antiaudio', 'antisticker', 'antidocumento', 'antimedia', 'antispam', 'welcome', 'setwelcome']); break;
+                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ Seguridad', ['open', 'close', 'grouplink', 'revoke', 'add', 'kick', 'ban', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc', 'antiporno', 'antifoto', 'antivideo', 'antiaudio', 'antisticker', 'antidocumento', 'antimedia', 'antispam']); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'aiclear', 'imagen', 'videoia', 'gali']); break;
@@ -1838,11 +1848,12 @@ class BotSession {
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
                                         case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🎮 MÓDULOS DE JUEGO', ['warcraft', 'balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
                                         case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, '/'); break;
-                                        case 'warcraft': case 'warcraftmenu': case 'ayudaw': case 'comandosw': case 'tutorialw': case 'tutorialwarcraft': case 'mapaw': case 'zonasw': case 'viajarw': case 'profesionesw': case 'aprenderw': case 'recolectarw': case 'recetasw': case 'fabricarw': case 'diariaw': case 'logrosw': case 'monturasw': case 'comprarmonturaw': case 'grupow': case 'subastaw': case 'venderw': case 'comprarsubastaw': case 'correow': case 'reclamarmailw': case 'enviarmailw': case 'encantamientosw': case 'encantarw': case 'pjnombre': case 'clase': case 'loginw': case 'estadow': case 'statusw': case 'personajew': case 'inventariow': case 'equiparw': case 'usarw': case 'pocionw': case 'enemigosw': case 'buscarw': case 'cazarw': case 'atacarw': case 'atacar': case 'attackw': case 'habilidadw': case 'skillw': case 'hechizow': case 'huirw': case 'misionesw': case 'mazmorrasw': case 'mazmorraw': case 'tiendaw': case 'comprarw': case 'confirmarcompra': case 'cancelarcompra': case 'talentosw': case 'guildw': case 'duelo': case 'desafiar': case 'aceptarduel': case 'aceptarduelo': case 'atacarduel': case 'dueloatacar': case 'habilidadduel': case 'rendirse': case 'comerciar': case 'trade': case 'dar': case 'aceptc': case 'cancelc': await commands.warcraft(this.sock, from, msg, commandName, q, botData, saveBotData); break;
+                                        case 'warcraft': case 'warcraftmenu': case 'ayudaw': case 'comandosw': case 'tutorialw': case 'tutorialwarcraft': case 'mapaw': case 'zonasw': case 'viajarw': case 'profesionesw': case 'aprenderw': case 'recolectarw': case 'recetasw': case 'fabricarw': case 'diariaw': case 'logrosw': case 'monturasw': case 'comprarmonturaw': case 'grupow': case 'subastaw': case 'venderw': case 'comprarsubastaw': case 'correow': case 'reclamarmailw': case 'enviarmailw': case 'encantamientosw': case 'encantarw': case 'pjnombre': case 'clase': case 'loginw': case 'estadow': case 'statusw': case 'personajew': case 'inventariow': case 'equiparw': case 'usarw': case 'pocionw': case 'enemigosw': case 'buscarw': case 'cazarw': case 'atacarw': case 'atacar': case 'attackw': case 'habilidadw': case 'skillw': case 'hechizow': case 'huirw': case 'misionesw': case 'mazmorrasw': case 'mazmorraw': case 'tiendaw': case 'comprarw': case 'confirmarcompra': case 'cancelarcompra': case 'talentosw': case 'guildw': case 'duelo': case 'desafiar': case 'aceptarduel': case 'aceptarduelo': case 'atacarduel': case 'dueloatacar': case 'habilidadduel': case 'rendirse': case 'comerciar': case 'trade': case 'dar': case 'aceptc': case 'cancelc': if (['warcraft', 'warcraftmenu', 'ayudaw', 'comandosw'].includes(commandName) && !q.trim()) await sendWarcraftCommandMenu(this.sock, from, msg); else await commands.warcraft(this.sock, from, msg, commandName, q, botData, saveBotData); break;
                                         case 'open': case 'abrir': await commands.open(this.sock, from, msg, isAdmin, q); break;
                                         case 'close': case 'cerrar': await commands.close(this.sock, from, msg, isAdmin, q); break;
                                         case 'onlyadmin': case 'adminonly': await commands.onlyadmin(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'alertas': case 'alerts': case 'avisos': await commands.alertas(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'antiporno': case 'antifoto': case 'antivideo': case 'antiaudio': case 'antisticker': case 'antidocumento': case 'antimedia': case 'antispam': await commands.seguridad.command(this.sock, from, msg, isAdmin, botData, saveBotData, args, commandName); break;
                                         case 'welcome': case 'bienvenida': await commands.welcome(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'bye': case 'despedida': await commands.bye(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'setwelcome': await commands.setwelcome(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
@@ -2263,6 +2274,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
                     ['profilemenu', '👤 Perfil'],
                     ['aimenu', '🤖 Núcleo IA'],
                     ['downloadmenu', '📥 Descargas'],
+                    ['warcraftmenu', '⚔️ Warcraft RPG'],
                     ['gamemenu', '🎮 Mini juegos'],
                     ['subbotmenu', '🔗 Vincular bot'],
                     ['toolsmenu', '🧰 Herramientas'],
@@ -2324,6 +2336,56 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     });
 }
 
+
+async function sendWarcraftCommandMenu(sock, jid, quoted) {
+    const groups = [
+        ['🔐 CUENTA Y PERSONAJE', [
+            ['login', 'Iniciar sesión', 'Vincula tu cuenta Warcraft'], ['nombredelpersonaje', 'Crear personaje', 'Elige el nombre de tu héroe'],
+            ['clase', 'Elegir clase', 'Guerrero, mago o pícaro'], ['estadopersonaje', 'Estado del personaje', 'Vida, ataque, defensa y nivel'],
+            ['inventario', 'Inventario', 'Equipo y objetos que posees'], ['equipar', 'Equipar objeto', 'Mejora tu equipo'],
+            ['talentos', 'Mejorar talentos', 'Gasta puntos en ataque, defensa o vitalidad'], ['tutorial', 'Tutorial completo', 'Guía paso a paso']
+        ]],
+        ['⚔️ COMBATE', [
+            ['enemigos', 'Ver enemigos', 'Niveles, vida y fuerza'], ['buscar', 'Buscar enemigo', 'Empieza una pelea por turnos'],
+            ['atacar', 'Atacar', 'Reduce la vida real del enemigo'], ['habilidad', 'Usar habilidad', 'Ataque especial de tu clase'],
+            ['usar', 'Usar poción', 'Recupera vida, incluso tras caer'], ['huir', 'Huir', 'Termina el combate actual']
+        ]],
+        ['🛒 TIENDA Y PROGRESO', [
+            ['tienda', 'Abrir tienda', 'Objetos del tramo de nivel y rarezas'], ['comprar', 'Comprar objeto', 'Compra por el ID mostrado en la tienda'],
+            ['confirmarcompra', 'Confirmar compra', 'Completa la compra pendiente'], ['cancelarcompra', 'Cancelar compra', 'Cancela sin gastar oro'],
+            ['recompensadiaria', 'Recompensa diaria', 'Recoge oro y experiencia'], ['misiones', 'Misiones', 'Revisa objetivos y recompensas'],
+            ['mazmorras', 'Ver mazmorras', 'Mira el nivel y los jefes'], ['mazmorra', 'Entrar a mazmorra', 'Completa una mazmorra'], ['logros', 'Logros', 'Consulta los hitos alcanzados']
+        ]],
+        ['🗺️ MUNDO Y OFICIOS', [
+            ['mapa', 'Mapa', 'Zonas, requisitos y recursos'], ['viajar', 'Viajar', 'Cambia de zona'], ['profesiones', 'Profesiones', 'Consulta oficios y nivel'],
+            ['aprender', 'Aprender oficio', 'Minería, herbalismo, alquimia o herrería'], ['recolectar', 'Recolectar', 'Recoge materiales disponibles'],
+            ['recetas', 'Recetas', 'Consulta ingredientes necesarios'], ['fabricar', 'Fabricar', 'Crea objetos con materiales'],
+            ['encantamientos', 'Encantamientos', 'Mejoras de arma y armadura'], ['encantar', 'Aplicar encantamiento', 'Aplica una mejora de equipo']
+        ]],
+        ['🤝 JUGADORES Y COMUNIDAD', [
+            ['gruporpg', 'Grupo RPG', 'Crear, unirse o salir de un grupo'], ['monturas', 'Monturas', 'Revisa monturas y niveles'], ['comprarmontura', 'Comprar montura', 'Consigue una montura'],
+            ['hermandad', 'Hermandad', 'Crea una guild del juego'], ['duelo', 'Desafiar jugador', 'Reta a otro personaje'],
+            ['aceptarduelo', 'Aceptar duelo', 'Acepta un reto pendiente'], ['atacarduelo', 'Atacar en duelo', 'Ataca cuando sea tu turno'],
+            ['habilidadduelo', 'Habilidad de duelo', 'Usa la habilidad de tu clase'], ['rendirse', 'Rendirse', 'Finaliza el duelo']
+        ]],
+        ['📬 COMERCIO Y SUBASTA', [
+            ['comerciar', 'Abrir comercio', 'Intercambia oro y objetos'], ['ofrecer', 'Ofrecer intercambio', 'Ofrece un objeto o cantidad de oro'],
+            ['aceptarcomercio', 'Aceptar intercambio', 'Confirma tu oferta'], ['cancelarcomercio', 'Cancelar intercambio', 'Cancela sin transferir objetos'],
+            ['subasta', 'Casa de subastas', 'Consulta artículos publicados'], ['vender', 'Publicar objeto', 'Pon un artículo en subasta'],
+            ['comprarsubasta', 'Comprar en subasta', 'Compra por el ID de publicación'], ['correo', 'Abrir correo', 'Consulta objetos y monedas recibidos'],
+            ['reclamarmail', 'Reclamar correo', 'Recibe los adjuntos pendientes'], ['enviarmail', 'Enviar correo', 'Envía un objeto a otro personaje']
+        ]]
+    ];
+    const selector = { name: 'single_select', buttonParamsJson: JSON.stringify({ title: 'Elegir comando Warcraft', sections: groups.map(([title, rows]) => ({ title, rows: rows.map(([id, label, description]) => ({ title: label, description, id: `cmd_${id}` })) })) }) };
+    const channelButton = { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: settings.officialChannelName, url: settings.whatsappChannel, merchant_url: settings.whatsappChannel }) };
+    const body = `⚔️ *WARCRAFT RPG*\nElige una sección y pulsa el comando.\n\n📖 Tutorial disponible en el selector.\nLos comandos del juego se escriben sin W final.`;
+    const userJid = sock.user?.id;
+    const fullMessage = generateWAMessageFromContent(jid, { interactiveMessage: { body: { text: body }, footer: { text: settings.officialChannelName }, nativeFlowMessage: { buttons: [selector, channelButton], messageVersion: 1 } } }, { logger: sock.logger, userJid, messageId: generateMessageIDV2(userJid), timestamp: new Date() });
+    const additionalNodes = [{ tag: 'biz', attrs: {}, content: [{ tag: 'interactive', attrs: { type: 'native_flow', v: '1' }, content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }] }] }];
+    if (!isJidGroup(jid)) additionalNodes.push({ tag: 'bot', attrs: { biz_bot: '1' } });
+    await sock.relayMessage(jid, fullMessage.message, { messageId: fullMessage.key.id, additionalNodes });
+}
+
 const TOOL_DISPLAY_NAMES = {
     ping: 'velocidad', dp: 'fotoperfil', vv: 'veruna', translate: 'traducir', base64: 'base64', qr: 'codigoqr',
     shorturl: 'acortar', calc: 'calcular', weather: 'clima', github: 'github', ipinfo: 'infoip', tempmail: 'correotemporal',
@@ -2335,7 +2397,8 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
     const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
     const animeAliases = commands.anime?.aliases || [];
     const profileAliases = commands.profile?.aliases || [];
-    const available = names.filter(name => name === 'menu' || name === 'difunción' || Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name));
+    const securityCommands = new Set(['antiporno', 'antifoto', 'antivideo', 'antiaudio', 'antisticker', 'antidocumento', 'antimedia', 'antispam']);
+    const available = names.filter(name => name === 'menu' || name === 'difunción' || securityCommands.has(name) || Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name));
     if (!available.length) {
         await sendSubmenuWithChannel(sock, from, `${title}\n\nNo hay módulos activos en esta sección.`, msg);
         return;
@@ -2377,7 +2440,7 @@ const descriptions = {
         `${sectionIcons[title] || '📚'} ${styledTitle}`,
         `📋 ${available.length} comandos disponibles`,
         '',
-        ...available.map((name) => `${commandIcons[name] || commandIcons.default} /${name} — ${descriptions[name] || `ejecuta ${name}`}`),
+        ...available.map((name) => { const localized = require('./lib/spanishCommands').spanishCommand(name); return `${commandIcons[name] || commandIcons.default} /${localized} — ${descriptions[name] || `ejecuta ${localized}`}`; }),
         '',
         '💡 Elige un comando para comenzar.'
     ];
@@ -2444,16 +2507,16 @@ function generateMenuText(userName, session) {
         '✅ Estado: disponible',
         `🔐 Modo: ${mode}`,
         '',
-        '📚 Funciones principales:',
-        '🛡️ Protección y administración de grupos',
-        '🎵 Música, vídeos, stickers y descargas',
-        '🤖 IA, traducciones y herramientas útiles',
-        '🎮 Diversión, perfiles y economía',
+        '📚 Warcraft RPG: /warcraft · elige sección y comandos del juego',
+        '🛡️ /seguridad · filtros antiporno, multimedia y antispam del grupo',
+        '👋 /bienvenida · configurar el mensaje y menú de entrada',
+        '🎵 /cancion nombre · buscar y enviar audio',
+        '🤖 /ia · ayuda, traducción y utilidades',
         '',
-        '❔ Usa */help* para ver ejemplos rápidos.',
-        '📝 Guarda cosas con */note add texto*.',
-        '🕒 Consulta una ciudad con */time Madrid*.',
-        '⚡ Escribe */allmenu* para ver todos los comandos.',
+        '❔ Usa */ayuda* para ver ejemplos rápidos.',
+        '📝 Guarda cosas con */nota agregar texto*.',
+        '🕒 Consulta una ciudad con */hora Madrid*.',
+        '⚡ Escribe */todos* para ver todos los comandos en español.',
         '📖 Cada módulo explica para qué sirve.',
         `👑 ${settings.officialChannelName}: ${settings.whatsappChannel}`,
         '',
