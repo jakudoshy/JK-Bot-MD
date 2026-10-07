@@ -40,6 +40,7 @@ const CLASS_COLORS = { tank: '#6595d4', healer: '#66bd8a', damage: '#d56e70' };
 // Recortes ajustados a sprites completos del atlas transparente items23.png.
 const ITEM_SPRITES = {
   blade: { file: 'items23.png', left: 129, top: 130, width: 63, height: 63 },
+  dagger: { file: 'items23.png', left: 515, top: 197, width: 60, height: 52 },
   bow: { file: 'items23.png', left: 193, top: 67, width: 63, height: 62 },
   staff: { file: 'items23.png', left: 833, top: 129, width: 64, height: 64 },
   armor: { file: 'items23.png', left: 390, top: 5, width: 55, height: 57 },
@@ -49,7 +50,7 @@ const ITEM_SPRITES = {
   herb: { file: 'activables2.png', left: 0, top: 64, width: 61, height: 61 },
   mineral: { file: 'items23.png', left: 132, top: 259, width: 57, height: 58 },
   crystal: { file: 'items23.png', left: 332, top: 140, width: 41, height: 41 },
-  fang: { file: 'items30.png', left: 0, top: 0, width: 64, height: 64 },
+  fang: { file: 'items30.png', left: 128, top: 0, width: 64, height: 64 },
   shadow: { file: 'items23.png', left: 332, top: 140, width: 41, height: 41 }
 };
 

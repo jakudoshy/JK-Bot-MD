@@ -5,7 +5,7 @@
   const setup = document.getElementById('wcCharacterSetup');
   if (!mount || !setup) return;
 
-  const state = { catalog: null, me: null, shop: [], tab: 'resumen', shopFilter: 'all', classKey: '', notice: '', noticeError: false, pendingPurchase: null, players: [], playersLoadedAt: 0 };
+  const state = { catalog: null, me: null, shop: [], tab: 'resumen', shopFilter: 'all', classKey: '', notice: '', noticeError: false, pendingPurchase: null, players: [], playersLoadedAt: 0, awaitingCharacterSelection: false };
   const token = () => localStorage.getItem(TOKEN_KEY);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const el = id => document.getElementById(id);
@@ -57,6 +57,7 @@
       }
       state.me = data;
       if (!keepNotice) setNotice('');
+      if (state.awaitingCharacterSelection) { renderCharacterPicker(); return; }
       if (!data.player) { renderClassSetup(); mount.innerHTML = ''; return; }
       setup.style.display = 'none';
       if (!state.shop.length || state.tab === 'tienda') {
@@ -90,12 +91,18 @@
     if (el('wcCreateClass')) el('wcCreateClass').value = state.classKey;
     if (el('wcCreateCharacterButton')) el('wcCreateCharacterButton').disabled = !state.classKey;
   }
+  function renderCharacterPicker() {
+    setup.style.display = 'none';
+    const characters = state.me?.characters || [];
+    const cards = characters.map(character => `<article class="wc-character-card"><div class="wc-character-portrait">${img(character.classImage, `${character.className} · ${character.name}`)}</div><div class="wc-character-info"><h3>${esc(character.name)}${character.selected ? ' <span class="wc-character-active">Activo</span>' : ''}</h3><p>${esc(character.className)} · Nivel ${num(character.level)} · ${esc(character.zoneName || labelForZone(character.zone))}</p><p class="wc-character-health">${num(character.hp)} / ${num(character.maxHp)} vida <span>GS ${num(character.gs)}</span></p><button class="wc-game-btn gold" type="button" data-select-character="${esc(character.id)}"><i class="fas fa-play"></i> Jugar con este personaje</button></div></article>`).join('');
+    mount.innerHTML = `<section class="wc-character-picker"><div class="wc-character-picker-heading"><div><span class="wc-game-kicker">Cuenta ${esc(state.me?.account?.username || '')}</span><h3>Elige tu personaje</h3><p>Selecciona con cuál continuar. Cada uno conserva su propio nivel, equipo, misiones y progreso.</p></div><button class="wc-game-btn" type="button" data-wc-local="create-character"><i class="fas fa-user-plus"></i> Crear otro personaje</button></div>${state.notice ? `<div class="wc-game-notice ${state.noticeError ? 'error' : ''}" role="status">${esc(state.notice)}</div>` : ''}${cards ? `<div class="wc-character-list">${cards}</div>` : '<div class="wc-game-empty">Todavía no tienes personajes. Crea uno para comenzar.</div>'}</section>`;
+  }
   function render() {
     const p = state.me?.player;
     if (!p || !token()) return;
     const tabs = [['resumen', 'Resumen', 'compass'], ['misiones', 'Misiones', 'scroll'], ['combate', 'Combate', 'dragon'], ['tienda', 'Tienda', 'store'], ['inventario', 'Inventario', 'bag-shopping'], ['mapa', 'Mapa', 'map'], ['oficios', 'Oficios', 'hammer'], ['mazmorras', 'Mazmorras', 'dungeon'], ['jugadores', 'Jugadores', 'users'], ['mas', 'Más funciones', 'ellipsis']];
     const bar = (current, max, kind = '') => `<div class="wc-game-bar ${kind}"><span style="width:${pct(current, max)}%"></span></div>`;
-    const hero = `<header class="wc-game-hero">${img(p.classImage, classLabel(p.classKey), 'wc-game-portrait')}<div><h3 class="wc-game-title">${esc(p.name)} · Nivel ${esc(p.level)}</h3><p class="wc-game-subtitle">${esc(classLabel(p.classKey))} · ${esc(labelForZone(p.zone))} · GS ${esc(p.gs)}</p>${bar(p.hp, p.maxHp, 'hp')}<div class="wc-game-statline"><span>Vida</span><strong>${num(p.hp)} / ${num(p.maxHp)}</strong></div>${bar(p.xp, p.xpForNext || 100, 'xp')}<div class="wc-game-statline"><span>Experiencia</span><strong>${num(p.xp)} / ${num(p.xpForNext || 100)}</strong></div></div><div class="wc-game-vitals"><span class="wc-game-chip">${img('/assets/warcraft/generated/ui/gold.png', 'Oro')}<strong>${num(p.gold)}</strong> oro</span><span class="wc-game-chip"><i class="fas fa-khanda"></i> Ataque <strong>${num(p.attack)}</strong></span><span class="wc-game-chip"><i class="fas fa-shield-halved"></i> Defensa <strong>${num(p.defense)}</strong></span></div></header>`;
+    const hero = `<header class="wc-game-hero">${img(p.classImage, classLabel(p.classKey), 'wc-game-portrait')}<div><h3 class="wc-game-title">${esc(p.name)} · Nivel ${esc(p.level)}</h3><p class="wc-game-subtitle">${esc(classLabel(p.classKey))} · ${esc(labelForZone(p.zone))} · GS ${esc(p.gs)}</p>${bar(p.hp, p.maxHp, 'hp')}<div class="wc-game-statline"><span>Vida</span><strong>${num(p.hp)} / ${num(p.maxHp)}</strong></div>${bar(p.xp, p.xpForNext || 100, 'xp')}<div class="wc-game-statline"><span>Experiencia</span><strong>${num(p.xp)} / ${num(p.xpForNext || 100)}</strong></div></div><div class="wc-game-vitals"><span class="wc-game-chip">${img('/assets/warcraft/generated/ui/gold.png', 'Oro')}<strong>${num(p.gold)}</strong> oro</span><span class="wc-game-chip"><i class="fas fa-khanda"></i> Ataque <strong>${num(p.attack)}</strong></span><span class="wc-game-chip"><i class="fas fa-shield-halved"></i> Defensa <strong>${num(p.defense)}</strong></span><button class="wc-game-btn wc-manage-characters" type="button" data-wc-local="characters"><i class="fas fa-users"></i> Personajes</button></div></header>`;
     mount.innerHTML = `<section class="wc-game-shell">${hero}<nav class="wc-game-tabs" aria-label="Secciones del juego">${tabs.map(([id, label, icon]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-tab="${id}"><i class="fas fa-${icon}"></i> ${label}</button>`).join('')}</nav><div class="wc-game-body"><div class="wc-game-notice ${state.noticeError ? 'error' : ''}" role="status">${esc(state.notice)}</div>${renderTab()}</div></section>${state.pendingPurchase ? renderPurchaseOverlay() : ''}`;
   }
   function renderTab() {
@@ -144,9 +151,9 @@
     return `<div class="wc-game-grid"><article class="wc-game-card wide"><h4>Elige un enemigo</h4><p>Estos objetivos corresponden a tu nivel y zona. Si tienes una misión activa, su objetivo se mantiene disponible en la lista.</p><div class="wc-game-item-grid">${enemies.map(enemy => `<article class="wc-game-item"><div class="wc-item-art"><i class="fas fa-dragon"></i></div><div><h4 class="wc-item-name">${esc(enemy.name)}</h4><div class="wc-rarity-label">Nivel ${num(enemy.level)} · ${num(enemy.hp)} vida</div><div class="wc-item-stats"><span class="wc-item-stat">Ataque ${num(enemy.attack)}</span><span class="wc-item-stat">Defensa ${num(enemy.defense)}</span></div></div><div class="wc-item-card-actions"><button class="wc-game-btn gold" data-wc-action="combat_start" data-id="${esc(enemy.id)}"><i class="fas fa-crosshairs"></i> Enfrentar</button></div></article>`).join('') || '<div class="wc-game-empty">No hay enemigos en esta zona.</div>'}</div></article></div>`;
   }
   function renderShop() {
-    const filters = [['all', 'Todo'], ['weapon', 'Armas'], ['armor', 'Armaduras'], ['consumable', 'Consumibles']];
+    const filters = [['all', 'Todo', 'layer-group'], ['weapon', 'Armas', 'sword'], ['armor', 'Armaduras', 'shield-halved'], ['consumable', 'Consumibles', 'flask']];
     const items = state.shop.filter(item => state.shopFilter === 'all' || item.slot === state.shopFilter);
-    return `<div class="wc-game-grid"><article class="wc-game-card wide"><h4>Tienda de equipo</h4><p>El catálogo se filtra por tu nivel. La rareza, el ataque y las estadísticas de cada pieza se muestran en su ficha.</p><div class="wc-game-actions">${filters.map(([id, label]) => `<button class="wc-game-btn ${state.shopFilter === id ? 'gold' : 'secondary'}" data-shop-filter="${id}">${label}</button>`).join('')}</div></article><div class="wc-game-item-grid wide">${items.map(item => itemCard(item, { action: 'shop_prepare', buttonLabel: 'Comprar' })).join('') || '<div class="wc-game-empty">No hay objetos disponibles en esta categoría para tu nivel.</div>'}</div></div>`;
+    return `<div class="wc-game-grid wc-shop-layout"><article class="wc-game-card wide wc-shop-toolbar"><div><h4>Tienda de equipo</h4><p>Artículos de tu tramo de nivel. Revisa rareza y estadísticas; toca Comprar para ver la confirmación.</p></div><div class="wc-game-actions wc-shop-filters">${filters.map(([id, label, icon]) => `<button class="wc-game-btn ${state.shopFilter === id ? 'gold' : 'secondary'}" type="button" aria-pressed="${state.shopFilter === id}" data-shop-filter="${id}"><i class="fas fa-${icon}"></i>${label}</button>`).join('')}</div></article><div class="wc-game-item-grid wide wc-shop-grid">${items.map(item => itemCard(item, { action: 'shop_prepare', buttonLabel: 'Comprar' })).join('') || '<div class="wc-game-empty">No hay objetos disponibles en esta categoría para tu nivel.</div>'}</div></div>`;
   }
   function renderInventory() {
     const inventory = state.me.inventoryDetails || [];
@@ -222,6 +229,28 @@
   }
   function values(form) { return Object.fromEntries(new FormData(form).entries()); }
   mount.addEventListener('click', async event => {
+    const localAction = event.target.closest('[data-wc-local]');
+    if (localAction) {
+      if (localAction.dataset.wcLocal === 'characters') { state.awaitingCharacterSelection = true; await refresh(); return; }
+      if (localAction.dataset.wcLocal === 'create-character') {
+        state.awaitingCharacterSelection = false;
+        mount.innerHTML = '';
+        setup.style.display = 'block';
+        setup.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+    }
+    const characterChoice = event.target.closest('[data-select-character]');
+    if (characterChoice) {
+      const { response, data } = await api('/api/warcraft/action', { method: 'POST', body: JSON.stringify({ action: 'select_character', characterId: characterChoice.dataset.selectCharacter }) });
+      setNotice(data.message || 'No se pudo seleccionar el personaje.', !response.ok || !data.ok);
+      if (response.ok && data.ok) {
+        state.awaitingCharacterSelection = false;
+        state.tab = 'resumen';
+        await refresh();
+      } else renderCharacterPicker();
+      return;
+    }
     const tab = event.target.closest('[data-tab]');
     if (tab) { state.tab = tab.dataset.tab; if (state.tab === 'jugadores') await loadPlayers(); render(); return; }
     const filter = event.target.closest('[data-shop-filter]');
@@ -270,8 +299,10 @@
     const { response, data } = await api('/api/warcraft/action', { method: 'POST', body: JSON.stringify({ action: 'create_character', name, classKey: state.classKey }) });
     if (status) status.textContent = data.message || (data.ok ? 'Personaje creado.' : 'No se pudo crear el personaje.');
     if (button) button.disabled = false;
-    if (data.ok && response.ok) { state.tab = 'resumen'; state.classKey = ''; await refresh({ keepNotice: false }); }
+    if (data.ok && response.ok) { state.tab = 'resumen'; state.classKey = ''; state.awaitingCharacterSelection = true; await refresh({ keepNotice: false }); }
   });
+  el('wcLoginForm')?.addEventListener('submit', () => { state.awaitingCharacterSelection = true; }, true);
+  el('wcVerifyBtn')?.addEventListener('click', () => { state.awaitingCharacterSelection = true; }, true);
   const lockLandscape = () => {
     try {
       const orientation = window.screen?.orientation;

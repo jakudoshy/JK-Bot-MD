@@ -2,7 +2,7 @@
 
 `source/` conserva los 38 PNG originales extraídos del ZIP que proporcionó el usuario. Incluye atlas de objetos/equipo, habilidades, mapas, objetos del mundo, monedas, emblemas y elementos de interfaz. Los originales se mantienen intactos.
 
-`generated/` contiene recortes listos para adjuntar en WhatsApp: emblemas ilustrados de clase, íconos de equipo con borde por rareza, imágenes de inventario/oro/hermandad y 36 miniaturas de mapa. Los emblemas de clase provienen de arte de habilidades; el ZIP no incluye retratos completos independientes para las trece clases.
+`generated/` contiene recortes listos para adjuntar en WhatsApp y mostrar en la web: emblemas ilustrados de clase, iconos de armas y armaduras con borde por rareza, imágenes de inventario/oro/hermandad y 36 miniaturas de mapa. Daga, arco y colmillo tienen sprites propios; el catálogo clasifica primero el tipo de arma para evitar que palabras como «sombra» cambien su imagen. Los emblemas de clase provienen de arte de habilidades; el ZIP no incluye retratos completos independientes para las trece clases.
 
 Para reconstruir los recortes y `manifest.json` desde los originales, ejecutar desde la raíz del repositorio:
 

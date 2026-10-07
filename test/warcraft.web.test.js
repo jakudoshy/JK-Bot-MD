@@ -53,7 +53,57 @@ test('la creación de personaje web usa el mismo motor y las 13 clases aceptan r
   assert.equal(state.player.classKey, 'deathknight');
   assert.equal(state.player.classImage, '/assets/warcraft/generated/classes/deathknight.png');
   assert.ok(state.player.xpForNext > 0);
-  assert.equal(act(botData, root, playerAccount, 'create_character', { name: 'Otra', classKey: 'warrior' }).ok, false);
+  const created = act(botData, root, playerAccount, 'create_character', { name: 'Otra', classKey: 'warrior' });
+  assert.equal(created.ok, true, created.message);
+  assert.equal(created.result.characters.length, 2);
+  assert.equal(web.playerState(root, playerAccount).player.name, 'Ana', 'crear otro personaje no cambia el activo sin seleccionarlo');
+});
+
+test('la cuenta conserva el progreso independiente de cada personaje al cambiar el activo', () => {
+  const { botData, root } = setup();
+  const playerAccount = account(botData, root, 'ana', '5350002003', 'Ana', 'deathknight');
+  const first = game.playerForAccount(root, playerAccount);
+  first.level = 8;
+  first.gold = 321;
+  const creation = act(botData, root, playerAccount, 'create_character', { name: 'Bran', classKey: 'warrior' });
+  assert.equal(creation.ok, true, creation.message);
+  const second = creation.result.characters.find(character => character.name === 'Bran');
+  assert.ok(second);
+  const outsider = account(botData, root, 'outsider', '5350002004', 'Lia', 'priest');
+  assert.equal(act(botData, root, outsider, 'select_character', { characterId: second.id }).ok, false, 'una cuenta no puede seleccionar personajes ajenos');
+  const switched = act(botData, root, playerAccount, 'select_character', { characterId: second.id });
+  assert.equal(switched.ok, true, switched.message);
+  assert.equal(game.playerForAccount(root, playerAccount).name, 'Bran');
+  game.playerForAccount(root, playerAccount).level = 4;
+  game.playerForAccount(root, playerAccount).gold = 77;
+  assert.equal(act(botData, root, playerAccount, 'select_character', { characterId: second.id }).ok, true, 'seleccionar otra vez el actual es idempotente');
+  const back = act(botData, root, playerAccount, 'select_character', { characterId: first.characterId });
+  assert.equal(back.ok, true, back.message);
+  const restored = game.playerForAccount(root, playerAccount);
+  assert.equal(restored.name, 'Ana');
+  assert.equal(restored.level, 8);
+  assert.equal(restored.gold, 321);
+  assert.equal(game.ensurePlayer(botData, `${playerAccount.phone}@s.whatsapp.net`).name, 'Ana', 'WhatsApp utiliza el mismo personaje activo');
+  const finalState = web.playerState(root, playerAccount);
+  assert.equal(finalState.characters.length, 2);
+  assert.equal(finalState.characters.filter(character => character.selected).length, 1);
+  const reloaded = JSON.parse(JSON.stringify(botData));
+  const reloadedRoot = reloaded.warcraft;
+  const reloadedAccount = reloadedRoot.accounts.ana;
+  assert.equal(web.playerState(reloadedRoot, reloadedAccount).player.name, 'Ana');
+  const reloadedSecond = web.playerState(reloadedRoot, reloadedAccount).characters.find(character => character.name === 'Bran');
+  assert.ok(act(reloaded, reloadedRoot, reloadedAccount, 'select_character', { characterId: reloadedSecond.id }).ok);
+  assert.equal(game.playerForAccount(reloadedRoot, reloadedAccount).name, 'Bran');
+  assert.equal(game.playerForAccount(reloadedRoot, reloadedAccount).level, 4);
+});
+
+test('arco, daga y colmillo de lobo muestran sprites de su categoría y rareza', () => {
+  assert.match(web.itemImage({ id: 'common_1_bow', name: 'Arco Común', slot: 'weapon', rarity: 'common' }), /items\/bow-common\.png$/);
+  assert.match(web.itemImage({ id: 'shadow_dagger', name: 'Daga de sombra', slot: 'weapon', rarity: 'rare' }), /items\/dagger-rare\.png$/);
+  assert.match(web.itemImage({ ...game.ITEMS.colmillo_lobo, id: 'colmillo_lobo' }), /items\/fang-common\.png$/);
+  assert.equal(media.itemRelativePath({ id: 'shadow_dagger', name: 'Daga de sombra', slot: 'weapon', rarity: 'rare' }), 'items/dagger-rare.png');
+  assert.equal(media.itemRelativePath({ ...game.ITEMS.colmillo_lobo, id: 'colmillo_lobo' }), 'items/fang-common.png');
+  for (const name of ['dagger-common.png', 'fang-common.png']) assert.ok(fs.existsSync(path.join(__dirname, '..', 'assets/warcraft/generated/items', name)));
 });
 
 test('duelo web de dos cuentas: aceptación válida, HP visible, turno y reintento idempotente', () => {
@@ -195,11 +245,60 @@ test('el cliente web renderiza sus pestañas y conserva la tienda al cambiar de 
     document.querySelector('[data-tab="misiones"]').click();
     assert.ok(document.querySelector('.wc-game-card'));
     document.querySelector('[data-tab="tienda"]').click();
+    assert.ok(document.querySelector('.wc-shop-grid'), 'la tienda usa la cuadrícula de selección táctil');
+    assert.equal(document.querySelector('[data-shop-filter="all"]')?.getAttribute('aria-pressed'), 'true');
     const buy = document.querySelector('[data-wc-action="shop_prepare"]');
     assert.ok(buy, 'la tienda conserva artículos al entrar desde otra pestaña');
     buy.click();
     await new Promise(resolve => setTimeout(resolve, 60));
     assert.ok(requests.some(url => url.endsWith('/action')), 'el botón envía una acción autenticada');
+  } finally {
+    window.close();
+  }
+});
+
+test('tras autenticar aparece la lista y se puede seleccionar un personaje con botón', async () => {
+  const { botData, root } = setup();
+  const user = account(botData, root, 'selector', '5350002041', 'Alba', 'priest');
+  const created = act(botData, root, user, 'create_character', { name: 'Daro', classKey: 'hunter' });
+  assert.equal(created.ok, true, created.message);
+  const second = created.result.characters.find(character => character.name === 'Daro');
+  const catalog = web.catalog();
+  let current = web.playerState(root, user);
+  const requests = [];
+  const script = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.js'), 'utf8');
+  const dom = new JSDOM('<form id="wcLoginForm"></form><button id="wcVerifyBtn"></button><div id="wcCharacterSetup"><div id="wcClassGrid"></div><input id="wcCreateClass"><button id="wcCreateCharacterButton"></button><form id="wcCreateCharacterForm"><input id="wcCreateName"><div id="wcCreateStatus"></div></form></div><div id="wcGameMount"></div>', { runScripts: 'dangerously', url: 'http://localhost/' });
+  const window = dom.window;
+  try {
+    window.fetch = async (url, options = {}) => {
+      requests.push({ url: String(url), body: options.body });
+      let data = { ok: true };
+      if (String(url).endsWith('/catalog')) data = { ok: true, ...catalog };
+      else if (String(url).endsWith('/me')) data = { ok: true, account: { username: user.username }, ...current, rank: 1 };
+      else if (String(url).endsWith('/shop')) data = { ok: true, items: game.shopItems(game.playerForAccount(root, user)) };
+      else if (String(url).endsWith('/action')) {
+        const payload = JSON.parse(options.body || '{}');
+        const result = act(botData, root, user, payload.action, payload);
+        current = web.playerState(root, user);
+        data = result;
+      }
+      return { ok: true, status: 200, json: async () => data };
+    };
+    window.eval(script);
+    window.document.getElementById('wcLoginForm').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+    window.localStorage.setItem('jk_warcraft_token', 'test-token');
+    window.dispatchEvent(new window.Event('wc-profile-refresh'));
+    await new Promise(resolve => setTimeout(resolve, 80));
+    const document = window.document;
+    assert.ok(document.querySelector('.wc-character-picker'), 'el login abre la lista de personajes');
+    document.querySelector(`[data-select-character="${second.id}"]`).click();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    assert.equal(game.playerForAccount(root, user).name, 'Daro');
+    assert.ok(document.querySelector('.wc-game-shell'));
+    assert.ok(requests.some(request => request.url.endsWith('/action') && JSON.parse(request.body).action === 'select_character'));
+    document.querySelector('[data-wc-local="characters"]').click();
+    await new Promise(resolve => setTimeout(resolve, 60));
+    assert.ok(document.querySelector('.wc-character-picker'), 'el botón Personajes vuelve a mostrar el selector');
   } finally {
     window.close();
   }

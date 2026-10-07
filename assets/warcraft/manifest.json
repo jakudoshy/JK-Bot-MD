@@ -1,7 +1,7 @@
 {
   "source": "ZIP proporcionado por el usuario mediante MediaFire; licencia de los gráficos no incluida en el archivo.",
   "sourceCount": 38,
-  "generatedCount": 125,
+  "generatedCount": 131,
   "rarityColors": {
     "common": "#49c774",
     "uncommon": "#4e9de0",
@@ -132,6 +132,23 @@
         "items/blade-epic.png",
         "items/blade-legendary.png",
         "items/blade-mythic.png"
+      ]
+    },
+    "dagger": {
+      "source": "items23.png",
+      "sourceRect": [
+        515,
+        197,
+        60,
+        52
+      ],
+      "variants": [
+        "items/dagger-common.png",
+        "items/dagger-uncommon.png",
+        "items/dagger-rare.png",
+        "items/dagger-epic.png",
+        "items/dagger-legendary.png",
+        "items/dagger-mythic.png"
       ]
     },
     "bow": {
@@ -290,7 +307,7 @@
     "fang": {
       "source": "items30.png",
       "sourceRect": [
-        0,
+        128,
         0,
         64,
         64
