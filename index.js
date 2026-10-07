@@ -735,15 +735,16 @@ app.use(express.static(path.join(__dirname), { index: false }));
 
 const INDEX_TEMPLATE = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 const BANNER_FILE = 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg';
-function sendIndexWithPreview(req, res) {
+function sendIndexWithPreview(req, res, withJkBotPortal = false) {
     res.set({ 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate', 'Pragma': 'no-cache', 'Expires': '0' });
     const protocol = req.get('x-forwarded-proto') || req.protocol || 'https';
     const imageUrl = `${protocol.split(',')[0].trim()}://${req.get('host')}/${BANNER_FILE}`;
-    res.type('html').send(INDEX_TEMPLATE.replaceAll('__JK_OG_IMAGE__', imageUrl));
+    const html = withJkBotPortal ? renderJkBotPage(INDEX_TEMPLATE, imageUrl) : INDEX_TEMPLATE.replaceAll('__JK_OG_IMAGE__', imageUrl);
+    res.type('html').send(html);
 }
 
 app.get('/', (req, res) => {
-    sendIndexWithPreview(req, res);
+    sendIndexWithPreview(req, res, true);
 });
 
 app.get('/admin', (req, res) => {
@@ -751,10 +752,7 @@ app.get('/admin', (req, res) => {
 });
 
 app.get(['/jkbot', '/jkbot/'], (req, res) => {
-    res.set({ 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate', 'Pragma': 'no-cache', 'Expires': '0' });
-    const protocol = req.get('x-forwarded-proto') || req.protocol || 'https';
-    const imageUrl = `${protocol.split(',')[0].trim()}://${req.get('host')}/${BANNER_FILE}`;
-    res.type('html').send(renderJkBotPage(INDEX_TEMPLATE, imageUrl));
+    sendIndexWithPreview(req, res, true);
 });
 
 app.get('/health', (req, res) => {
@@ -773,7 +771,7 @@ function warcraftRoot() { botData.warcraft ||= { players: {}, accounts: {}, trad
 function warcraftSessionForPhone(phone) { const target = normalizeWarcraftPhone(phone); return Object.values(sessions || {}).find(session => [session.phoneNumber, session.requestedPhoneNumber, session.userId, session.sock?.user?.id].some(value => normalizeWarcraftPhone(value) === target) && session.sock && session.isConnected); }
 function warcraftAccountFromToken(token) { const root = warcraftRoot(); const session = root.webSessions[String(token || '')]; if (!session || session.expiresAt < Date.now()) return null; return root.accounts[session.username] || null; }
 function warcraftPublicLeaderboard(root = warcraftRoot()) { return Object.values(root.accounts || {}).map(account => { const player = warcraftGame.playerForAccount(root, account); if (!player) return null; warcraftGame.recalc(player); return { username: account.username, character: player.name, classKey: player.classKey, className: warcraftGame.CLASS_CONFIG[player.classKey]?.label || 'Aventurero', gs: Number(player.gs || 0), level: Number(player.level || 1), xp: Number(player.xp || 0), phone: normalizeWarcraftPhone(account.phone) }; }).filter(Boolean).sort((a, b) => b.gs - a.gs || b.level - a.level || b.xp - a.xp || a.username.localeCompare(b.username)).map((player, index) => ({ ...player, rank: index + 1 })); }
-function handleWarcraftWebAction(req, res, forcedAction = null) {
+async function handleWarcraftWebAction(req, res, forcedAction = null) {
     const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, ''));
     if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' });
     const root = warcraftRoot();
@@ -781,7 +779,14 @@ function handleWarcraftWebAction(req, res, forcedAction = null) {
     const result = warcraftWeb.execute({ botData, root, account, input });
     if (result.changed) { saveBotData(); notifyWarcraftUpdate(); }
     if (!result.ok) return res.status(result.status || 400).json({ ok: false, message: result.message });
-    res.json({ ok: true, message: result.message });
+    let whatsappSent = 0;
+    for (const notice of warcraftWeb.whatsappNotifications(root, account, input, result)) {
+        const session = warcraftSessionForPhone(notice.phone);
+        if (!session) continue;
+        try { await session.sock.sendMessage(`${notice.phone}@s.whatsapp.net`, { text: notice.text }); whatsappSent++; }
+        catch (error) { console.warn(`[Warcraft] No se pudo enviar aviso WhatsApp: ${error.message}`); }
+    }
+    res.json({ ok: true, message: result.message, ...(whatsappSent ? { whatsappNotified: true } : {}) });
 }
 app.get('/api/warcraft/catalog', (req, res) => res.json({ ok: true, ...warcraftWeb.catalog() }));
 app.post('/api/warcraft/register/request-code', async (req, res) => {

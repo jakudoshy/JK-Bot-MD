@@ -54,6 +54,8 @@ test('la creación de personaje web usa el mismo motor y las 13 clases aceptan r
   assert.equal(state.player.classImage, '/assets/warcraft/generated/classes/deathknight.png');
   assert.ok(state.player.xpForNext > 0);
   assert.equal(state.player.talentPointsSpent, 0);
+  assert.equal(state.secondaryQuests.length, 3);
+  assert.deepEqual(new Set(state.secondaryQuests.map(quest => quest.missionType)), new Set(['hunt', 'elite', 'gather']));
   assert.equal(state.skillProgression.find(skill => skill.id === 'golpe_muerte').unlocked, false);
   game.playerForAccount(root, playerAccount).level = 5;
   assert.equal(web.playerState(root, playerAccount).skills.golpe_muerte.name, 'Golpe de muerte');
@@ -61,6 +63,41 @@ test('la creación de personaje web usa el mismo motor y las 13 clases aceptan r
   assert.equal(created.ok, true, created.message);
   assert.equal(created.result.characters.length, 2);
   assert.equal(web.playerState(root, playerAccount).player.name, 'Ana', 'crear otro personaje no cambia el activo sin seleccionarlo');
+});
+
+test('un desafío creado en la web genera un aviso WhatsApp al teléfono del rival', () => {
+  const { botData, root } = setup();
+  const sender = account(botData, root, 'alfa', '5350002101', 'Alfa');
+  const target = account(botData, root, 'beta', '5350002102', 'Beta');
+  const input = { action: 'duel_challenge', params: { target: 'Beta' } };
+  const result = act(botData, root, sender, input.action, input.params);
+  assert.equal(result.ok, true, result.message);
+  const notices = web.whatsappNotifications(root, sender, input, result);
+  assert.equal(notices.length, 1);
+  assert.equal(notices[0].phone, target.phone);
+  assert.match(notices[0].text, /Alfa te retó a un duelo desde la web/);
+});
+
+test('la aceptación web avisa por WhatsApp a quien inició el duelo o intercambio', () => {
+  const { botData, root } = setup();
+  const sender = account(botData, root, 'alfa', '5350002111', 'Alfa');
+  const target = account(botData, root, 'beta', '5350002112', 'Beta');
+  const challenge = act(botData, root, sender, 'duel_challenge', { target: 'Beta' });
+  assert.equal(challenge.ok, true, challenge.message);
+  const acceptedDuelInput = { action: 'duel_accept', params: {} };
+  const acceptedDuel = act(botData, root, target, acceptedDuelInput.action, acceptedDuelInput.params);
+  const duelNotices = web.whatsappNotifications(root, target, acceptedDuelInput, acceptedDuel);
+  assert.equal(duelNotices[0].phone, sender.phone);
+  assert.match(duelNotices[0].text, /aceptó tu desafío/);
+
+  const request = act(botData, root, sender, 'refund_create', { target: 'Beta', offerType: 'gold', offerAmount: 20, requestType: 'gold', requestAmount: 10 });
+  assert.equal(request.ok, true, request.message);
+  const acceptedRequestInput = { action: 'refund_accept', params: { transactionId: request.result.transaction.id } };
+  const acceptedRequest = act(botData, root, target, acceptedRequestInput.action, acceptedRequestInput.params);
+  assert.equal(acceptedRequest.ok, true, acceptedRequest.message);
+  const refundNotices = web.whatsappNotifications(root, target, acceptedRequestInput, acceptedRequest);
+  assert.equal(refundNotices[0].phone, sender.phone);
+  assert.match(refundNotices[0].text, /Intercambio completado/);
 });
 
 test('la cuenta conserva el progreso independiente de cada personaje al cambiar el activo', () => {

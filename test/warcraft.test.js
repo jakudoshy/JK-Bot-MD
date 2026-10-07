@@ -99,8 +99,12 @@ test('el tablón muestra una sola misión principal por nivel y sus recompensas 
   const at25 = game.getQuestBoard(player);
   assert.equal(at25.length, 1);
   assert.ok(at25[0].mainQuest);
-  assert.match(at25[0].description, /Gran mago/);
   assert.equal(at25[0].enemyId, 'elite_25');
+  assert.match(at25[0].description, new RegExp(game.ENEMIES.elite_25.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.notEqual(game.ENEMIES.elite_25.name, game.ENEMIES.elite_26.name, 'los jefes cambian entre niveles');
+  assert.notDeepEqual(game.ENEMIES.elite_25.attacks, game.ENEMIES.elite_26.attacks, 'cada jefe usa ataques propios');
+  assert.ok(game.ENEMIES.elite_70.hp > game.ENEMIES.elite_69.hp, 'la dificultad aumenta en niveles altos');
+  assert.ok(game.ENEMIES.elite_70.attacks[0].max > game.ENEMIES.elite_25.attacks[0].max, 'el daño de las habilidades escala con nivel');
   const at50 = game.questRewards(at25[0], 50);
   assert.ok(at50.xp > at25[0].xp && at50.gold > at25[0].gold);
 });
@@ -146,6 +150,24 @@ test('la experiencia permite subir y aceptar la misión principal sin secundaria
   assert.equal(accepted.error, undefined);
   assert.equal(player.activeQuest.mainQuest, true);
   assert.doesNotMatch(game.formatStatus(player), /Completa.*desbloquear el siguiente nivel/i);
+});
+
+test('el tablero ofrece cacería, élite y recolección en todos los niveles y repone la misión al cobrarla', () => {
+  const { player } = playerAtLevel(1);
+  const board = game.ensureRepeatableMissionBoard(player).missions;
+  assert.equal(board.length, 3);
+  assert.deepEqual(new Set(board.map(quest => quest.missionType)), new Set(['hunt', 'elite', 'gather']));
+  const gathering = board.find(quest => quest.missionType === 'gather');
+  player.professions[gathering.materialId.includes('hierba') ? 'herbalismo' : 'mineria'] = 1;
+  assert.equal(game.acceptQuest(player, gathering.id).error, undefined);
+  let result;
+  for (let i = 0; i < gathering.goal; i++) result = game.gather(player, gathering.materialId);
+  assert.equal(result.quest.completed, true);
+  assert.equal(player.activeQuest, null);
+  const replenished = game.ensureRepeatableMissionBoard(player).missions;
+  assert.equal(replenished.length, 3);
+  assert.deepEqual(new Set(replenished.map(quest => quest.missionType)), new Set(['hunt', 'elite', 'gather']));
+  assert.notEqual(replenished.find(quest => quest.missionType === 'gather').id, gathering.id);
 });
 
 test('aceptar la misión del Gran mago fija el objetivo en enemigos y paga al completarla', () => {

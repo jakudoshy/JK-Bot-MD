@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { JSDOM } = require('jsdom');
 const { renderJkBotPage } = require('../lib/jkbotPage');
 
 const original = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
@@ -15,8 +16,18 @@ test('la página JK Bot conserva el sitio actual y añade los módulos independi
   assert.match(page, /class="jkbot-app"/);
   assert.match(page, /id="menuPlayWow"/);
   assert.match(page, /id="menuAutoReaction"/);
-  assert.match(page, /fa-ellipsis-vertical/);
+  assert.match(page, /id="menuToggle"/);
+  assert.doesNotMatch(page, /fa-ellipsis-vertical/);
   assert.match(page, /id="jkNotificationBell"/);
+  const portalCss = fs.readFileSync(path.join(__dirname, '..', 'public/jkbot/jkbot.css'), 'utf8');
+  assert.match(portalCss, /#jkNotificationBell\{position:fixed;top:16px;right:72px/);
+  assert.match(portalCss, /#menuToggle\{position:fixed;top:16px;right:18px;z-index:700;display:grid;align-content:center/);
+  assert.doesNotMatch(portalCss, /#menuToggle\{[^}]*place-items:center/);
+  const dom = new JSDOM(page);
+  const menu = dom.window.document.getElementById('menuToggle');
+  assert.equal(menu.querySelectorAll('span').length, 3, 'el botón conserva exactamente sus tres rayitas');
+  assert.equal(menu.nextElementSibling.id, 'jkNotificationBell', 'la campana queda inmediatamente al lado');
+  dom.window.close();
   assert.match(page, /id="jkNotificationPanel"/);
   assert.match(page, /id="jkNotificationToast"/);
   assert.match(page, /src="\/public\/jkbot\/notifications\.js"/);

@@ -27,6 +27,10 @@
     const current = new Map();
     const duel = state.pendingDuel;
     if (duel?.id) current.set(`duel:${duel.id}`, { id: `duel:${duel.id}`, kind: 'duel', title: 'Nuevo desafío', message: `${duel.challenger || 'Un jugador'} te retó a un duelo.`, target: 'jugadores' });
+    if (state.duel?.id && state.duel.status === 'active') {
+      const rival = (state.duel.players || []).find(player => !player.isMe);
+      current.set(`duel-active:${state.duel.id}`, { id: `duel-active:${state.duel.id}`, kind: 'duel', title: 'Duelo aceptado', message: `El duelo con ${rival?.name || 'el rival'} está activo.`, target: 'jugadores' });
+    }
     for (const [index, mail] of (state.mail || []).entries()) {
       if (mail.claimed) continue;
       const id = String(mail.id || mail.sentAt || `${mail.senderName || 'correo'}:${index}`);
@@ -76,7 +80,6 @@
     if (!account) return;
     if (username !== account) { username = account; notifications = readSaved(account); }
     const current = collect(state);
-    notifications = notifications.filter(item => current.has(item.id));
     const fresh = [];
     for (const [id, item] of current) {
       if (notifications.some(existing => existing.id === id)) continue;

@@ -18,7 +18,7 @@
 @media(prefers-reduced-motion:reduce){.wc-game-btn,.wc-game-tabs button,.wc-game-bar span{transition:none}}
 
 
-/* Modo de juego integrado: tablero ancho dentro de la página, sin Fullscreen API. */
+/* Modo de juego: fullscreen vertical cuando el navegador lo autoriza; panel interno desplazable como respaldo. */
 .wc-game-mode-bar,.wc-orientation-hint{display:none}
 body.wc-game-mode #warcraft{position:relative;z-index:1;width:100%;max-width:1560px;height:auto;min-height:0;max-height:none;margin:clamp(12px,2vw,26px) auto;padding:clamp(10px,1.8vw,22px);overflow:visible;overscroll-behavior:auto;border:1px solid rgba(215,174,104,.3);border-radius:20px;background:radial-gradient(ellipse at 12% 0%,rgba(101,65,37,.24),transparent 45%),linear-gradient(155deg,#0b0d12,#100d13 72%,#17110d)!important;box-shadow:0 18px 50px rgba(0,0,0,.3)!important;scroll-margin-top:88px}
 body.wc-game-mode #warcraft>h2,body.wc-game-mode #warcraft>.sample-note,body.wc-game-mode #wcLobbyCard,body.wc-game-mode #wcTutorials,body.wc-game-mode #wcProfilePanel>.wc-profile-top,body.wc-game-mode #wcProfileStats,body.wc-game-mode #wcProfilePanel>.wc-profile-columns{display:none!important}
@@ -39,15 +39,12 @@ body.wc-game-mode.wc-portrait-override #wcOrientationHint{display:none!important
 @media (orientation:portrait) and (max-width:900px){body.wc-game-mode #wcOrientationHint{display:block;position:relative;z-index:1;margin:8px 0 12px;padding:10px 12px;border:1px solid rgba(215,174,104,.25);border-radius:12px;background:rgba(165,116,54,.1)}body.wc-game-mode #wcOrientationHint .wc-orientation-card{display:flex;align-items:center;gap:10px;width:auto;padding:0;border:0;border-radius:0;background:transparent;color:#eee5d7;text-align:left;box-shadow:none}body.wc-game-mode #wcOrientationHint .wc-orientation-card>i{color:#f0c36f;font-size:1rem}body.wc-game-mode #wcOrientationHint h2{margin:0;color:#ffe0a2;font-size:.9rem}body.wc-game-mode #wcOrientationHint p{flex:1;margin:0;color:#c8bead;font-size:.78rem;line-height:1.4}body.wc-game-mode #wcOrientationHint .wc-game-btn{width:auto;min-height:34px;white-space:nowrap;padding:6px 9px;font-size:.75rem}}
 @media(prefers-reduced-motion:reduce){body.wc-game-mode *{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 
-/* Giro visual de respaldo: no solicita Fullscreen y mantiene el juego visible si el navegador rechaza orientation.lock(). */
-body.wc-game-mode.wc-css-landscape{overflow:hidden!important}
-body.wc-game-mode.wc-css-landscape #warcraft{position:fixed!important;z-index:1200!important;top:50%!important;left:50%!important;width:100vh!important;width:100dvh!important;height:100vw!important;min-height:0!important;max-width:none!important;max-height:none!important;margin:0!important;padding:10px!important;transform:translate(-50%,-50%) rotate(90deg);transform-origin:center center;overflow:auto!important;overscroll-behavior:contain;border-radius:0!important}
-body.wc-game-mode.wc-css-landscape #wcOrientationHint{display:none!important}
-body.wc-game-mode.wc-css-landscape #warcraft>.premium-grid{grid-template-columns:minmax(0,1fr)!important}
-body.wc-game-mode.wc-css-landscape #wcProfilePanel,body.wc-game-mode.wc-css-landscape #wcCharacterSetup{grid-column:1/-1!important}
-body.wc-game-mode.wc-css-landscape .wc-game-shell{min-height:calc(100vw - 90px)!important}
 body.wc-game-mode .wc-game-mode-bar #wcRotateGame{margin-left:auto}
 body.wc-game-mode .wc-game-mode-bar #wcExitGameMode{margin-left:0}
+body.wc-game-mode #warcraft:fullscreen,body.wc-game-mode #warcraft:-webkit-full-screen{position:fixed!important;inset:0!important;z-index:12000!important;box-sizing:border-box;width:100vw!important;height:100vh!important;height:100dvh!important;min-height:0!important;max-width:none!important;max-height:none!important;margin:0!important;padding:clamp(8px,2vw,18px)!important;overflow:auto!important;overscroll-behavior:contain;border:0!important;border-radius:0!important;background:radial-gradient(ellipse at 12% 0%,rgba(101,65,37,.24),transparent 45%),linear-gradient(155deg,#0b0d12,#100d13 72%,#17110d)!important}
+body.wc-game-mode #warcraft:fullscreen>.premium-grid,body.wc-game-mode #warcraft:-webkit-full-screen>.premium-grid{grid-template-columns:minmax(0,1fr)!important}
+body.wc-game-mode #warcraft:fullscreen #wcOrientationHint,body.wc-game-mode #warcraft:-webkit-full-screen #wcOrientationHint{display:none!important}
+body.wc-game-mode #warcraft:fullscreen .wc-game-shell,body.wc-game-mode #warcraft:-webkit-full-screen .wc-game-shell{min-height:0;max-height:none}
 
 /* Character selection after login */
 .wc-character-picker{display:grid;gap:16px;padding:clamp(14px,2.3vw,26px);border:1px solid rgba(215,174,104,.24);border-radius:18px;background:linear-gradient(145deg,rgba(24,29,37,.98),rgba(12,16,22,.98));box-shadow:0 18px 50px rgba(0,0,0,.22)}

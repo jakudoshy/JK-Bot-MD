@@ -70,6 +70,8 @@
         return;
       }
       state.me = data;
+      window.jkbotGameState = data;
+      window.dispatchEvent(new CustomEvent('jkbot:state', { detail: data }));
       if (!keepNotice) setNotice('');
       if (state.awaitingCharacterSelection) {
         const portraitAccountView = window.matchMedia?.('(max-width: 720px) and (orientation: portrait)').matches === true;
@@ -203,14 +205,18 @@
   }
   function renderQuests() {
     const quests = state.me.quests || [];
+    const secondaryQuests = state.me.secondaryQuests || [];
     const active = state.me.player.activeQuest;
     const activeBox = active ? `<article class="wc-game-card wide"><h4>Misión en progreso</h4><p><strong>${esc(active.name || active.id)}</strong> · ${esc(active.description || 'Completa el objetivo para cobrar la recompensa.')}</p><div class="wc-game-statline"><span>Progreso</span><strong>${num(active.progress || 0)} / ${num(active.goal || 1)}</strong></div><div class="wc-game-actions"><button class="wc-game-btn danger" data-wc-action="quest_cancel"><i class="fas fa-ban"></i> Cancelar misión</button></div></article>` : '';
-    const board = quests.length ? quests.map(q => {
+    const cards = list => list.map(q => {
       const main = q.mainQuest || q.questType === 'main' || q.campaign === 'main';
       const rewardItems = (q.rewardItems || []).map(id => itemInfo(id)).filter(Boolean);
-      return `<article class="wc-game-card"><h4>${main ? '<i class="fas fa-crown"></i> Misión principal' : '<i class="fas fa-feather-pointed"></i> Misión secundaria'}</h4><p><strong>${esc(q.name)}</strong></p><p>${esc(q.description)}</p><div class="wc-game-statline"><span>Objetivo</span><strong>${num(q.goal || 1)} · ${esc(q.enemyName || enemyLabel(q.enemyId))}</strong></div><div class="wc-game-statline"><span>Recompensas</span><strong>${num(q.xp)} XP · ${num(q.gold)} oro</strong></div>${rewardItems.length ? `<div class="wc-item-stats">${rewardItems.map(i => `<span class="wc-game-chip">${img(i.image, i.name)}${esc(i.name)}</span>`).join('')}</div>` : ''}<div class="wc-game-actions"><button class="wc-game-btn gold" type="button" data-wc-action="quest_accept" data-id="${esc(q.id)}" ${active ? 'disabled' : ''}><i class="fas fa-check"></i> Aceptar misión</button></div></article>`;
-    }).join('') : '<div class="wc-game-empty">La misión principal de este nivel ya está completada. Sigue ganando experiencia: las misiones no bloquean el siguiente nivel.</div>';
-    return `<div class="wc-game-grid">${activeBox}<article class="wc-game-card wide"><h4>Misión principal</h4><p>La misión principal está disponible sin completar secundarias. Gana experiencia en combate para subir de nivel; las misiones secundarias son opcionales.</p></article>${board}</div>`;
+      const objective = q.objective === 'gather' ? `${num(q.goal || 1)} · ${state.catalog.items?.[q.materialId]?.name || esc(q.materialId || 'recurso')}` : q.objective === 'dungeon' ? `${num(q.goal || 1)} · ${esc(q.dungeonName || q.dungeonId || 'mazmorra')}` : `${num(q.goal || 1)} · ${esc(q.enemyName || enemyLabel(q.enemyId))}`;
+      return `<article class="wc-game-card"><h4>${main ? '<i class="fas fa-crown"></i> Misión principal' : '<i class="fas fa-feather-pointed"></i> Misión secundaria'}</h4><p><strong>${esc(q.name)}</strong></p><p>${esc(q.description)}</p><div class="wc-game-statline"><span>Objetivo</span><strong>${objective}</strong></div><div class="wc-game-statline"><span>Recompensas</span><strong>${num(q.xp)} XP · ${num(q.gold)} oro</strong></div>${rewardItems.length ? `<div class="wc-item-stats">${rewardItems.map(i => `<span class="wc-game-chip">${img(i.image, i.name)}${esc(i.name)}</span>`).join('')}</div>` : ''}<div class="wc-game-actions"><button class="wc-game-btn gold" type="button" data-wc-action="quest_accept" data-id="${esc(q.id)}" ${active ? 'disabled' : ''}><i class="fas fa-check"></i> Aceptar misión</button></div></article>`;
+    }).join('');
+    const mainBoard = quests.length ? cards(quests) : '<div class="wc-game-empty">La misión principal de este nivel ya está completada. Sigue ganando experiencia para avanzar.</div>';
+    const sideBoard = secondaryQuests.length ? cards(secondaryQuests) : '<div class="wc-game-empty">Preparando encargos secundarios…</div>';
+    return `<div class="wc-game-grid">${activeBox}<article class="wc-game-card wide"><h4>Misión principal</h4><p>La principal está disponible sin terminar secundarias. Gana XP en combate para subir de nivel; las misiones no bloquean tu progreso.</p></article>${mainBoard}<article class="wc-game-card wide"><h4>Misiones secundarias · ${num(secondaryQuests.length)} disponibles</h4><p>Se reponen al completar encargos. Puedes elegir cacerías, campeones de élite y suministros de recolección; no son requisito para subir de nivel.</p></article>${sideBoard}</div>`;
   }
   function renderCombat() {
     const combat = state.me.combat;
@@ -388,36 +394,34 @@
   });
   el('wcLoginForm')?.addEventListener('submit', () => { state.awaitingCharacterSelection = true; }, true);
   el('wcVerifyBtn')?.addEventListener('click', () => { state.awaitingCharacterSelection = true; }, true);
-  let nativeLandscapeLock = false;
-  const isPortraitViewport = () => {
-    try { if (typeof window.matchMedia === 'function') return window.matchMedia('(orientation: portrait)').matches; } catch {}
-    return Number(window.innerHeight || 0) > Number(window.innerWidth || 0);
+  let nativePortraitLock = false;
+  const gameElement = () => el('warcraft') || document.documentElement;
+  const requestGameFullscreen = () => {
+    if (document.fullscreenElement) return Promise.resolve(true);
+    const target = gameElement();
+    if (typeof target?.requestFullscreen !== 'function') return Promise.resolve(false);
+    try { return Promise.resolve(target.requestFullscreen()).then(() => true, () => false); }
+    catch { return Promise.resolve(false); }
   };
-  const rotateGameLandscape = async () => {
+  const lockGamePortrait = async () => {
     const orientation = window.screen?.orientation;
-    if (!isPortraitViewport()) { document.body.classList.remove('wc-css-landscape'); return true; }
-    if (typeof orientation?.lock === 'function') {
-      try {
-        await orientation.lock('landscape');
-        nativeLandscapeLock = true;
-        document.body.classList.remove('wc-css-landscape');
-        return true;
-      } catch {}
-    }
-    nativeLandscapeLock = false;
-    document.body.classList.add('wc-css-landscape');
-    return false;
+    if (typeof orientation?.lock !== 'function') return false;
+    try { await orientation.lock('portrait'); nativePortraitLock = true; return true; }
+    catch { nativePortraitLock = false; return false; }
+  };
+  const activateFullscreenPortrait = async fullscreenPromise => {
+    const entered = await fullscreenPromise;
+    if (entered) await lockGamePortrait();
+    return entered;
   };
   const restoreGameOrientation = () => {
-    if (nativeLandscapeLock) { try { window.screen?.orientation?.unlock?.(); } catch {} }
-    nativeLandscapeLock = false;
-    document.body.classList.remove('wc-css-landscape');
+    if (nativePortraitLock) { try { window.screen?.orientation?.unlock?.(); } catch {} }
+    nativePortraitLock = false;
   };
   const enterGameMode = async event => {
     event?.preventDefault?.();
+    const fullscreenPromise = requestGameFullscreen();
     document.body.classList.add('wc-game-mode');
-    const rotation = rotateGameLandscape();
-    el('warcraft')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     const profile = el('wcProfilePanel');
     if (profile) profile.style.display = 'block';
     if (!token()) {
@@ -426,20 +430,20 @@
       if (status) status.textContent = state.notice;
       setup.style.display = 'none';
       renderLoginNeeded(state.notice);
-      await rotation;
+      await activateFullscreenPortrait(fullscreenPromise);
       return;
     }
     mount.innerHTML = '<div class="wc-game-loading" role="status"><span class="wc-game-spinner"></span><h3>Entrando a Warcraft</h3><p>Cargando tu cuenta, personaje y mundo…</p></div>';
-    await refresh({ keepNotice: false });
-    await rotation;
+    await Promise.all([refresh({ keepNotice: false }), activateFullscreenPortrait(fullscreenPromise)]);
     if (!state.me && token()) {
       if (profile) profile.style.display = 'block';
       mount.innerHTML = `<div class="wc-game-load-error" role="alert"><h3>No se pudo cargar el juego</h3><p>${esc(state.notice || 'Revisa tu conexión e inténtalo de nuevo.')}</p><button class="wc-game-btn" type="button" data-wc-local="retry-game">Reintentar</button></div>`;
     }
   };
-  const leaveGameMode = () => {
+  const leaveGameMode = async () => {
     restoreGameOrientation();
     document.body.classList.remove('wc-game-mode', 'wc-portrait-override');
+    if (document.fullscreenElement === gameElement()) { try { await document.exitFullscreen?.(); } catch {} }
   };
   document.addEventListener('click', event => {
     const play = event.target?.closest?.('#menuPlayWow');
@@ -448,27 +452,19 @@
     enterGameMode(event);
   }, true);
   el('wcExitGameMode')?.addEventListener('click', leaveGameMode);
-  el('wcRotateGame')?.addEventListener('click', () => { rotateGameLandscape(); });
-  el('wcContinuePortrait')?.addEventListener('click', () => {
-    rotateGameLandscape();
-  });
+  el('wcRotateGame')?.addEventListener('click', () => { activateFullscreenPortrait(requestGameFullscreen()); });
+  el('wcContinuePortrait')?.addEventListener('click', () => { activateFullscreenPortrait(requestGameFullscreen()); });
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && document.body.classList.contains('wc-game-mode')) leaveGameMode();
   });
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && document.body.classList.contains('wc-game-mode')) {
+      restoreGameOrientation();
+      document.body.classList.remove('wc-game-mode', 'wc-portrait-override');
+    }
+  });
   window.addEventListener('wc-profile-refresh', () => refresh());
-  window.addEventListener('orientationchange', () => {
-    if (document.body.classList.contains('wc-game-mode') && !nativeLandscapeLock) {
-      if (isPortraitViewport()) document.body.classList.add('wc-css-landscape');
-      else document.body.classList.remove('wc-css-landscape');
-    }
-    refresh();
-  });
-  window.addEventListener('resize', () => {
-    if (document.body.classList.contains('wc-game-mode') && !nativeLandscapeLock) {
-      if (isPortraitViewport()) document.body.classList.add('wc-css-landscape');
-      else document.body.classList.remove('wc-css-landscape');
-    }
-  });
+  window.addEventListener('orientationchange', () => refresh());
   window.wcGameRefresh = refresh;
   refresh();
 })();

@@ -49,9 +49,22 @@ test('la campana avisa de desafíos, correos, comercios y reembolsos sin duplica
       account: { username: 'ana' }, pendingDuel: null,
       mail: [{ id: 'mail-1', senderName: 'Cami', claimed: true }], transactions: [], trades: []
     } }));
-    assert.equal(list.querySelectorAll('.jkbot-notification-item').length, 0, 'los avisos desaparecen cuando la acción ya se resolvió');
-    assert.match(list.textContent, /No tienes notificaciones/);
+    assert.equal(list.querySelectorAll('.jkbot-notification-item').length, 4, 'el historial persiste después de resolver la acción');
+    assert.equal(badge.hidden, true, 'los avisos leídos no vuelven a alertar');
+    list.querySelector('[data-jkbot-notification-dismiss]')?.click();
+    assert.equal(list.querySelectorAll('.jkbot-notification-item').length, 3, 'se pueden quitar manualmente del historial');
   } finally {
     window.close();
   }
+});
+
+test('la campana avisa también cuando el duelo pasa de solicitud a combate activo', () => {
+  const dom = new JSDOM(markup, { url: 'https://jkbot.test/jkbot', runScripts: 'outside-only', pretendToBeVisual: true });
+  try {
+    dom.window.eval(source);
+    dom.window.dispatchEvent(new dom.window.CustomEvent('jkbot:state', { detail: { account: { username: 'ana' }, duel: { id: 'duel-live', status: 'active', players: [{ name: 'Ana', isMe: true }, { name: 'Bran', isMe: false }] } } }));
+    assert.equal(dom.window.document.getElementById('jkNotificationBadge').textContent, '1');
+    assert.match(dom.window.document.getElementById('jkNotificationList').textContent, /Duelo aceptado/);
+    assert.match(dom.window.document.getElementById('jkNotificationList').textContent, /Bran/);
+  } finally { dom.window.close(); }
 });

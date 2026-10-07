@@ -26,7 +26,9 @@ test('la página incluye acceso WoW y tutoriales de cada sección', () => {
   assert.match(gameCss, /body\.wc-game-mode #warcraft\{position:relative/);
   assert.doesNotMatch(gameCss, /body\.wc-game-mode> :not\(#warcraft\)/);
   assert.match(gameCss, /orientation:landscape/);
-  assert.match(gameCss, /sin Fullscreen API/);
+  assert.match(gameCss, /fullscreen vertical/);
+  assert.match(gameCss, /body\.wc-game-mode #warcraft:fullscreen/);
+  assert.doesNotMatch(gameCss, /rotate\(90deg\)/);
   assert.match(gameCss, /body:not\(\.wc-game-mode\):not\(\.wc-account-authenticated\) #warcraft\{display:none!important\}/);
   assert.match(gameCss, /body\.wc-account-authenticated:not\(\.wc-game-mode\) #wcGameMount\{display:none!important\}/);
   assert.match(html, /jugar con botones en la web o comandos en WhatsApp/i);
@@ -35,6 +37,8 @@ test('la página incluye acceso WoW y tutoriales de cada sección', () => {
 
 test('las rutas de juego web usan el adaptador Warcraft autenticado', () => {
   const server = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
+  assert.match(server, /app\.get\('\/',[\s\S]*?sendIndexWithPreview\(req, res, true\)/);
+  assert.match(server, /app\.get\(\['\/jkbot', '\/jkbot\/'\],[\s\S]*?sendIndexWithPreview\(req, res, true\)/);
   assert.match(server, /app\.post\('\/api\/warcraft\/duel'.*?handleWarcraftWebAction\(req, res, 'duel_challenge'\)/s);
   assert.match(server, /app\.post\('\/api\/warcraft\/mmo'.*?handleWarcraftWebAction\(req, res\)/s);
   assert.match(server, /app\.post\('\/api\/warcraft\/action'.*?handleWarcraftWebAction\(req, res\)/s);
@@ -156,7 +160,7 @@ test('la navegación alterna entre acceso público y cuenta sin solapar menús',
   }
 });
 
-test('Jugar WoW carga el juego horizontal dentro de la página, sin pantalla completa', async () => {
+test('Jugar WoW carga el juego en fullscreen vertical y no deja una pantalla negra', async () => {
   let fullscreenRequests = 0;
   let orientationLocks = 0;
   let orientationUnlocks = 0;
@@ -204,7 +208,7 @@ test('Jugar WoW carga el juego horizontal dentro de la página, sin pantalla com
   });
   const window = dom.window;
   try {
-    window.document.documentElement.requestFullscreen = () => { fullscreenRequests++; return Promise.resolve(); };
+    window.document.getElementById('warcraft').requestFullscreen = () => { fullscreenRequests++; return Promise.resolve(); };
     const gameScript = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.js'), 'utf8');
     window.eval(gameScript);
     await new Promise(resolve => setTimeout(resolve, 80));
@@ -216,8 +220,8 @@ test('Jugar WoW carga el juego horizontal dentro de la página, sin pantalla com
     assert.ok(window.document.body.classList.contains('wc-game-mode'));
     assert.equal(window.document.getElementById('menuDrawer').getAttribute('aria-hidden'), 'true');
     assert.ok(window.document.querySelector('.wc-game-shell'), 'Jugar no deja la pantalla en negro: muestra el juego');
-    assert.equal(fullscreenRequests, 0, 'no solicita pantalla completa');
-    assert.equal(orientationLocks, 1, 'la página raíz solicita el giro al tocar Jugar');
+    assert.equal(fullscreenRequests, 1, 'la página raíz solicita fullscreen al tocar Jugar');
+    assert.equal(orientationLocks, 1, 'la página raíz solicita orientación vertical');
     window.document.getElementById('wcExitGameMode').click();
     assert.equal(window.document.documentElement.classList.contains('wc-game-mode'), false);
     assert.equal(window.document.body.classList.contains('wc-game-mode'), false);
@@ -227,7 +231,7 @@ test('Jugar WoW carga el juego horizontal dentro de la página, sin pantalla com
   }
 });
 
-test('en /jkbot el giro se intenta al tocar, usa fallback sin fullscreen y conserva talentos/poderes visibles', async () => {
+test('en /jkbot fullscreen vertical conserva talentos, poderes y formularios visibles', async () => {
   let orientationLocks = 0;
   let fullscreenRequests = 0;
   const botData = {};
@@ -272,7 +276,6 @@ test('en /jkbot el giro se intenta al tocar, usa fallback sin fullscreen y conse
   });
   const window = dom.window;
   try {
-    window.document.documentElement.requestFullscreen = () => { fullscreenRequests++; return Promise.resolve(); };
     window.eval(fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.js'), 'utf8'));
     await new Promise(resolve => setTimeout(resolve, 80));
     assert.match(window.document.getElementById('wcProfileStats').textContent, /Talentos disponibles\s*4/);
@@ -280,16 +283,17 @@ test('en /jkbot el giro se intenta al tocar, usa fallback sin fullscreen y conse
     assert.match(window.document.getElementById('wcProfileAbilities').textContent, /Talentos asignados:\s*Ataque 1/);
     assert.match(window.document.getElementById('wcProfileAbilities').textContent, /Golpe de muerte/);
     assert.match(window.document.getElementById('wcProfileAbilities').textContent, /Espiral mortal/);
+    window.document.getElementById('warcraft').requestFullscreen = () => { fullscreenRequests++; return Promise.resolve(); };
     window.document.getElementById('menuToggle').click();
     window.document.getElementById('menuPlayWow').click();
     await new Promise(resolve => setTimeout(resolve, 100));
-    assert.equal(orientationLocks, 1, 'se pide el giro horizontal durante el gesto de Jugar');
-    assert.equal(window.document.body.classList.contains('wc-css-landscape'), true, 'si el navegador lo rechaza aplica el fallback visual');
-    assert.ok(window.document.querySelector('.wc-game-shell'), 'la partida se carga aun cuando falla el bloqueo nativo');
+    assert.equal(orientationLocks, 1, 'se solicita orientación vertical después de fullscreen');
+    assert.equal(window.document.body.classList.contains('wc-css-landscape'), false, 'el juego no rota fuera del viewport');
+    assert.ok(window.document.querySelector('.wc-game-shell'), 'la partida carga aunque el navegador rechace el bloqueo de orientación');
     window.document.getElementById('wcRotateGame').click();
     await new Promise(resolve => setTimeout(resolve, 10));
-    assert.equal(orientationLocks, 2, 'el botón Girar pantalla vuelve a intentarlo');
-    assert.equal(fullscreenRequests, 0, 'no utiliza pantalla completa');
+    assert.equal(orientationLocks, 2, 'el botón vuelve a solicitar orientación vertical');
+    assert.equal(fullscreenRequests, 2, 'Jugar y el botón usan fullscreen iniciado por clic');
     window.document.querySelector('[data-tab="mas"]').click();
     const mailTarget = window.document.querySelector('form[data-wc-form="mail_send"] input[name="target"]');
     mailTarget.focus();

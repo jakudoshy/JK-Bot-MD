@@ -735,7 +735,7 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
 
   <section id="warcraft" class="panel" data-label="./warcraft">
     <div id="wcGameModeBar" class="wc-game-mode-bar"><strong>Warcraft RPG</strong><span>Partida compartida con WhatsApp</span><button id="wcExitGameMode" type="button"><i class="fas fa-arrow-left"></i> Volver al sitio</button></div>
-    <div id="wcOrientationHint" class="wc-orientation-hint" role="status"><div class="wc-orientation-card"><i class="fas fa-mobile-screen-button"></i><h2>Gira el teléfono</h2><p>La vista horizontal muestra más juego. Gira el teléfono si quieres; también puedes continuar en vertical sin pantalla completa.</p><button id="wcContinuePortrait" class="wc-game-btn" type="button">Entendido</button></div></div>
+    <div id="wcOrientationHint" class="wc-orientation-hint" role="status"><div class="wc-orientation-card"><i class="fas fa-mobile-screen-button"></i><h2>Modo de juego vertical</h2><p>El juego se abre en pantalla completa cuando tu navegador lo permite. Si Chrome bloquea la orientación, el panel sigue ajustado y puedes continuar aquí.</p><button id="wcContinuePortrait" class="wc-game-btn" type="button">Activar pantalla completa</button></div></div>
     <h2><i class="fas fa-dragon"></i> WoW · Warcraft RPG</h2>
     <p class="sample-note">Un mundo de fantasía original para jugar con botones en la web o comandos en WhatsApp. Ambos usan la misma cuenta, personaje, inventario y progreso.</p>
     <div class="premium-grid">
@@ -899,8 +899,9 @@ function setStatus(msg, type){
 
 /* ---------------- Pairing logic ---------------- */
 const menuToggle=document.getElementById('menuToggle'),menuDrawer=document.getElementById('menuDrawer'),menuClose=document.getElementById('menuClose');function setMenu(open){menuDrawer.classList.toggle('open',open);menuDrawer.setAttribute('aria-hidden',String(!open));menuToggle.setAttribute('aria-expanded',String(open));if(open&&document.getElementById('wcAccountDropdown')){document.getElementById('wcAccountDropdown').style.display='none';document.getElementById('wcAccountButton')?.setAttribute('aria-expanded','false');}}menuToggle?.addEventListener('click',()=>setMenu(!menuDrawer.classList.contains('open')));menuClose?.addEventListener('click',()=>setMenu(false));menuDrawer?.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>setMenu(false)));
-	const socket = io();
-	const phoneInput = document.getElementById('phone');
+		const socket = io();
+		socket.on('warcraft:update', () => window.dispatchEvent(new Event('wc-profile-refresh')));
+		const phoneInput = document.getElementById('phone');
 	const requestBtn = document.getElementById('requestPairing');
 const codeWrap = document.getElementById('codeWrap');
 const pairingCode = document.getElementById('pairingCode');
