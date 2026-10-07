@@ -15,6 +15,13 @@ const html = `<!doctype html><html><body>
 <form id="channelReactionTokenForm"><input id="channelReactionToken"><button id="channelReactionTokenSubmit">Activar</button><p id="channelReactionTokenStatus"></p></form></section>
 </body></html>`;
 const script = fs.readFileSync(path.join(__dirname, '..', 'public/reactions/reaction-ui.js'), 'utf8');
+const styles = fs.readFileSync(path.join(__dirname, '..', 'public/reactions/reaction-ui.css'), 'utf8');
+
+test('Auto Reacción usa tema rojo y evita los acentos turquesa anteriores', () => {
+  assert.match(styles, /--reaction-accent:#ff315b/);
+  assert.match(styles, /#channelReactionSubmit\{[^}]*linear-gradient\(135deg,var\(--reaction-accent\),var\(--reaction-accent-deep\)\)/);
+  assert.doesNotMatch(styles, /#(?:2ac49d|198b7a|45d9b3|42d7b0|68e5c4)/i);
+});
 
 test('el modo Reacciones se separa del sitio y cierra el menú principal', () => {
   const dom = new JSDOM(html, { runScripts: 'dangerously', url: 'https://example.test/', virtualConsole: new VirtualConsole() });
@@ -53,9 +60,11 @@ test('exige confirmación antes de mandar la solicitud de reacción', async () =
 
 test('al confirmar usa el token de la cuenta y muestra respuesta del servidor', async () => {
   let request;
+  let requestCount = 0;
   const dom = new JSDOM(html, { runScripts: 'dangerously', url: 'https://example.test/', virtualConsole: new VirtualConsole(), beforeParse(window) {
     window.localStorage.setItem('jk_warcraft_token', 'session-token');
     window.fetch = async (url, options) => {
+      requestCount++;
       request = { url, options };
       return { ok: true, status: 200, json: async () => ({ ok: true, message: 'Reacción enviada.', quota: { used: 1, limit: 10, remaining: 9, hasToken: true } }) };
     };
@@ -69,6 +78,7 @@ test('al confirmar usa el token de la cuenta y muestra respuesta del servidor', 
     window.document.getElementById('channelReactionForm').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
     await new Promise(resolve => setTimeout(resolve, 0));
     assert.equal(request.url, '/api/reactions/channel');
+    assert.equal(requestCount, 1, 'un clic confirmado envía una sola solicitud');
     assert.equal(request.options.headers.Authorization, 'Bearer session-token');
     assert.deepEqual(JSON.parse(request.options.body), {
       url: 'https://whatsapp.com/channel/0029VbBVupfKbYMFuKLsIg2M/436', emoji: '🔥', confirmed: true
