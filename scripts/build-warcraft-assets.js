@@ -85,6 +85,15 @@ async function cropCell(file, left, top, width, height) {
   return sharp(sourcePath(file)).extract({ left, top, width, height }).png().toBuffer();
 }
 
+async function makeLongbowIcon(sourceBuffer, outputFile, rarityColor) {
+  const color = safeColor(rarityColor);
+  const background = Buffer.from(`<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#254d34"/><stop offset="1" stop-color="#101d16"/></linearGradient></defs><rect x="3" y="3" width="122" height="122" rx="18" fill="url(#g)" stroke="${color}" stroke-width="7"/><rect x="10" y="10" width="108" height="108" rx="12" fill="none" stroke="${color}" stroke-opacity=".25" stroke-width="1.5"/></svg>`);
+  const icon = await sharp(sourceBuffer).trim().resize(96, 96, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer();
+  return sharp({ create: { width: 128, height: 128, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([{ input: background }, { input: icon, left: 16, top: 16 }])
+    .png().toFile(outputFile);
+}
+
 async function build() {
   for (const dir of ['classes', 'items', 'ui', 'maps']) ensureDir(path.join(OUTPUT, dir));
   const generated = [];
@@ -98,10 +107,12 @@ async function build() {
   }
 
   for (const [kind, spec] of Object.entries(ITEM_SPRITES)) {
-    const crop = await cropCell(spec.file, spec.left, spec.top, spec.width, spec.height);
+    const crop = kind === 'bow' ? fs.readFileSync(sourcePath('bow-clear.png')) : await cropCell(spec.file, spec.left, spec.top, spec.width, spec.height);
     for (const rarity of Object.keys(RARITIES)) {
-      const relative = `items/${kind}-${rarity}.png`;
-      await makeIcon(crop, path.join(OUTPUT, relative), RARITIES[rarity]);
+      const prefix = kind === 'bow' ? 'longbow' : kind;
+      const relative = `items/${prefix}-${rarity}.png`;
+      if (kind === 'bow') await makeLongbowIcon(crop, path.join(OUTPUT, relative), RARITIES[rarity]);
+      else await makeIcon(crop, path.join(OUTPUT, relative), RARITIES[rarity]);
       generated.push(relative);
     }
   }
@@ -152,7 +163,7 @@ async function build() {
     generatedCount: generated.length,
     rarityColors: RARITIES,
     classIcons: Object.fromEntries(Object.entries(CLASSES).map(([key, value]) => [key, { asset: `classes/${key}.png`, cell: value.cell, role: value.role }])),
-    itemIcons: Object.fromEntries(Object.entries(ITEM_SPRITES).map(([key, value]) => [key, { source: value.file, sourceRect: [value.left, value.top, value.width, value.height], variants: Object.keys(RARITIES).map(rarity => `items/${key}-${rarity}.png`) }])),
+    itemIcons: Object.fromEntries(Object.entries(ITEM_SPRITES).map(([key, value]) => [key, { source: key === 'bow' ? 'bow-clear.png' : value.file, sourceRect: key === 'bow' ? null : [value.left, value.top, value.width, value.height], variants: Object.keys(RARITIES).map(rarity => `items/${key === 'bow' ? 'longbow' : key}-${rarity}.png`) }])),
     zoneMaps: Object.fromEntries(Object.entries(ZONE_CELLS).map(([key, cell]) => [key, { asset: `maps/map-${cell[0]}-${cell[1]}.png`, cell }])),
     sourceAssets
   };

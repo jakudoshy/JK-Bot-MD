@@ -6,7 +6,7 @@ async function allMenu(sock, from, msg, session, commands) {
         ['🤖 IA Y UTILIDADES', ['help', 'id', 'time', 'note', 'ai', 'chatbot', 'translate', 'qr', 'weather', 'github', 'shorturl', 'calc']],
         ['🛡️ SEGURIDAD', ['antibug', 'antilink', 'antidelete', 'anticall', 'antiporno', 'antifoto', 'antivideo', 'antiaudio', 'antimedia', 'antispam', 'ghostmode', 'private', 'backup', 'restore']],
         ['📥 DESCARGAS Y MEDIA', ['song', 'video', 'tiktok', 'youtube', 'spotify', 'gdrive', 'apk', 'sticker', 'tempmail', 'fakeinfo']],
-        ['👥 GRUPOS', ['groupinfo', 'grouplink', 'tagall', 'hidetag', 'welcome', 'setwelcome', 'promote', 'demote', 'mute', 'unmute', 'poll']],
+        ['👥 GRUPOS', ['groupinfo', 'grouplink', 'tagall', 'hidetag', 'welcome', 'setwelcome', 'open', 'close', 'promote', 'demote', 'mute', 'unmute', 'poll']],
         ['👤 PERFIL', ['profile', 'getbio', 'getdp', 'logo', 'meme', 'quote', 'status']],
         ['🎮 JUEGOS', ['joke', 'truth', 'dare', 'riddle', 'trivia', 'roll', 'ship', 'emojimix']],
         ['👑 OWNER', ['owner', 'ownermenu', 'mode', 'setname', 'restart', 'shutdown', 'clear']]
@@ -19,7 +19,7 @@ async function allMenu(sock, from, msg, session, commands) {
         restore: 'restauración de datos', song: 'descarga de audio', video: 'descarga de vídeo', tiktok: 'contenido social',
         youtube: 'vídeos online', spotify: 'música', gdrive: 'archivos compartidos', apk: 'enlaces de aplicaciones', sticker: 'creación de stickers', tempmail: 'correo temporal', fakeinfo: 'datos de prueba',
         groupinfo: 'información del grupo', grouplink: 'enlace del grupo', tagall: 'menciones organizadas', hidetag: 'aviso silencioso',
-        welcome: 'mensajes de bienvenida', setwelcome: 'configura y activa la bienvenida', promote: 'gestión de moderadores', demote: 'retirada de permisos', mute: 'silenciar participantes',
+        welcome: 'mensajes de bienvenida', setwelcome: 'configura y activa la bienvenida', open: 'abre el grupo para todos', close: 'cierra el grupo para participantes', promote: 'gestión de moderadores', demote: 'retirada de permisos', mute: 'silenciar participantes',
         unmute: 'reactivar participantes', poll: 'encuestas', profile: 'tarjeta de perfil', getbio: 'biografía del usuario',
         getdp: 'foto de perfil', logo: 'diseños de marca', meme: 'contenido visual', quote: 'frases para compartir', status: 'estados',
         joke: 'chistes', truth: 'preguntas sinceras', dare: 'retos', riddle: 'adivinanzas', trivia: 'preguntas de cultura',

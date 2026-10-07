@@ -45,7 +45,12 @@
     return state.catalog;
   }
   async function refresh({ keepNotice = true } = {}) {
-    if (!token()) { mount.innerHTML = ''; setup.style.display = 'none'; return; }
+    if (!token()) {
+      setup.style.display = 'none';
+      if (document.body.classList.contains('wc-game-mode')) { if (el('wcProfilePanel')) el('wcProfilePanel').style.display = 'block'; renderLoginNeeded(); }
+      else mount.innerHTML = '';
+      return;
+    }
     try {
       await loadCatalog();
       const { response, data } = await api('/api/warcraft/me');
@@ -55,9 +60,9 @@
           window.setWcAuth?.('');
           state.me = null;
           setNotice('La sesión caducó. Inicia sesión otra vez.', true);
-          mount.innerHTML = '';
-          if (document.body.classList.contains('wc-game-mode')) leaveGameMode();
           document.getElementById('wcLoginStatus')?.replaceChildren(document.createTextNode(state.notice));
+          if (document.body.classList.contains('wc-game-mode')) { if (el('wcProfilePanel')) el('wcProfilePanel').style.display = 'block'; renderLoginNeeded(state.notice); }
+          else mount.innerHTML = '';
         } else {
           setNotice(data.message || 'No se pudo cargar el personaje.', true);
           if (state.me?.player) render();
@@ -89,8 +94,8 @@
     const p = state.me?.player;
     if (!p) return;
     const setText = (id, value) => { if (el(id)) el(id).textContent = String(value); };
-    setText('wcProfileTitle', p.name || 'Personaje');
-    setText('wcProfileSubtitle', `${state.me.account?.username || ''} · ${classLabel(p.classKey)} · ${labelForZone(p.zone)}`);
+    setText('wcProfileTitle', state.me.account?.username || 'Cuenta WoW');
+    setText('wcProfileSubtitle', `Sesión activa · ${p.name || 'Personaje'} · ${classLabel(p.classKey)} · ${labelForZone(p.zone)}`);
     if (el('wcProfileStats')) {
       const rows = [['Puesto', state.me.rank ? `#${state.me.rank}` : '—'], ['Nivel', `${p.level}/80`], ['Clase', classLabel(p.classKey)], ['GS', p.gs], ['Vida', `${p.hp}/${p.maxHp}`], ['Experiencia', p.xp], ['Oro', num(p.gold)], ['Ataque', p.attack], ['Defensa', p.defense]];
       el('wcProfileStats').innerHTML = rows.map(([label, value]) => `<div class="wc-profile-stat"><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`).join('');
@@ -108,6 +113,9 @@
   function renderAccountLanding() {
     const username = state.me?.account?.username || 'tu cuenta';
     mount.innerHTML = `<section class="wc-account-ready"><span class="wc-game-kicker">CUENTA WOW</span><h3>Cuenta autenticada</h3><p>${esc(username)}. Pulsa <strong>Jugar WoW</strong> para elegir personaje y entrar al juego.</p></section>`;
+  }
+  function renderLoginNeeded(message = 'Inicia sesión para cargar tu cuenta y abrir tu partida guardada.') {
+    mount.innerHTML = `<section class="wc-game-load-error" role="status"><h3>Accede a tu cuenta WoW</h3><p>${esc(message)}</p><button class="wc-game-btn gold" type="button" data-wc-local="goto-login">Iniciar sesión</button></section>`;
   }
   function renderCharacterPicker() {
     setup.style.display = 'none';
@@ -250,6 +258,7 @@
     if (localAction) {
       if (localAction.dataset.wcLocal === 'characters') { state.awaitingCharacterSelection = true; await refresh(); return; }
       if (localAction.dataset.wcLocal === 'retry-game') { await enterGameMode(); return; }
+      if (localAction.dataset.wcLocal === 'goto-login') { const form = el('wcLoginForm'); form?.scrollIntoView?.({ behavior: 'smooth', block: 'center' }); form?.querySelector('input')?.focus?.(); form?.classList.add('wc-auth-attention'); return; }
       if (localAction.dataset.wcLocal === 'create-character') {
         state.awaitingCharacterSelection = false;
         mount.innerHTML = '';
@@ -321,54 +330,39 @@
   });
   el('wcLoginForm')?.addEventListener('submit', () => { state.awaitingCharacterSelection = true; }, true);
   el('wcVerifyBtn')?.addEventListener('click', () => { state.awaitingCharacterSelection = true; }, true);
-  const lockLandscape = () => {
-    try {
-      const orientation = window.screen?.orientation;
-      const result = orientation?.lock?.('landscape');
-      if (result?.catch) result.catch(() => {});
-    } catch {}
-  };
-  const enterGameMode = async () => {
-    if (!token()) {
-      const status = el('wcLoginStatus');
-      if (status) status.textContent = 'Inicia sesión o crea tu cuenta de WoW antes de jugar.';
-      const login = el('wcLoginForm');
-      login?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-      login?.classList.add('wc-auth-attention');
-      window.setTimeout(() => login?.classList.remove('wc-auth-attention'), 1800);
-      return;
-    }
-    document.documentElement.classList.add('wc-game-mode');
+  const enterGameMode = async event => {
+    event?.preventDefault?.();
     document.body.classList.add('wc-game-mode');
     document.body.classList.remove('wc-portrait-override');
+    el('warcraft')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     const profile = el('wcProfilePanel');
     if (profile) profile.style.display = 'block';
+    if (!token()) {
+      setNotice('Inicia sesión o crea tu cuenta de WoW para cargar tu partida.');
+      const status = el('wcLoginStatus');
+      if (status) status.textContent = state.notice;
+      setup.style.display = 'none';
+      renderLoginNeeded(state.notice);
+      return;
+    }
     mount.innerHTML = '<div class="wc-game-loading" role="status"><span class="wc-game-spinner"></span><h3>Entrando a Warcraft</h3><p>Cargando tu cuenta, personaje y mundo…</p></div>';
-    try {
-      const fullscreen = document.documentElement.requestFullscreen?.();
-      if (fullscreen?.then) fullscreen.then(lockLandscape).catch(lockLandscape);
-      else lockLandscape();
-    } catch { lockLandscape(); }
     await refresh({ keepNotice: false });
     if (!state.me && token()) {
+      if (profile) profile.style.display = 'block';
       mount.innerHTML = `<div class="wc-game-load-error" role="alert"><h3>No se pudo cargar el juego</h3><p>${esc(state.notice || 'Revisa tu conexión e inténtalo de nuevo.')}</p><button class="wc-game-btn" type="button" data-wc-local="retry-game">Reintentar</button></div>`;
     }
   };
   const leaveGameMode = () => {
-    document.documentElement.classList.remove('wc-game-mode');
     document.body.classList.remove('wc-game-mode', 'wc-portrait-override');
-    try { window.screen?.orientation?.unlock?.(); } catch {}
-    try {
-      const result = document.fullscreenElement ? document.exitFullscreen?.() : null;
-      if (result?.catch) result.catch(() => {});
-    } catch {}
   };
-  el('menuPlayWow')?.addEventListener('click', enterGameMode);
+  document.addEventListener('click', event => {
+    const play = event.target?.closest?.('#menuPlayWow');
+    if (!play) return;
+    event.preventDefault();
+    enterGameMode(event);
+  }, true);
   el('wcExitGameMode')?.addEventListener('click', leaveGameMode);
   el('wcContinuePortrait')?.addEventListener('click', () => document.body.classList.add('wc-portrait-override'));
-  document.addEventListener('fullscreenchange', () => {
-    if (document.body.classList.contains('wc-game-mode') && !document.fullscreenElement) leaveGameMode();
-  });
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && document.body.classList.contains('wc-game-mode')) leaveGameMode();
   });

@@ -98,12 +98,14 @@ test('la cuenta conserva el progreso independiente de cada personaje al cambiar 
 });
 
 test('arco, daga y colmillo de lobo muestran sprites de su categoría y rareza', () => {
-  assert.match(web.itemImage({ id: 'common_1_bow', name: 'Arco Común', slot: 'weapon', rarity: 'common' }), /items\/bow-common\.png$/);
+  const bow = { id: 'common_1_bow', name: 'Arco Común', slot: 'weapon', rarity: 'common' };
+  assert.match(web.itemImage(bow), /items\/longbow-common\.png$/);
+  assert.equal(media.itemRelativePath(bow), 'items/longbow-common.png');
   assert.match(web.itemImage({ id: 'shadow_dagger', name: 'Daga de sombra', slot: 'weapon', rarity: 'rare' }), /items\/dagger-rare\.png$/);
   assert.match(web.itemImage({ ...game.ITEMS.colmillo_lobo, id: 'colmillo_lobo' }), /items\/fang-common\.png$/);
   assert.equal(media.itemRelativePath({ id: 'shadow_dagger', name: 'Daga de sombra', slot: 'weapon', rarity: 'rare' }), 'items/dagger-rare.png');
   assert.equal(media.itemRelativePath({ ...game.ITEMS.colmillo_lobo, id: 'colmillo_lobo' }), 'items/fang-common.png');
-  for (const name of ['dagger-common.png', 'fang-common.png']) assert.ok(fs.existsSync(path.join(__dirname, '..', 'assets/warcraft/generated/items', name)));
+  for (const name of ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'].map(rarity => `longbow-${rarity}.png`).concat(['dagger-common.png', 'fang-common.png'])) assert.ok(fs.existsSync(path.join(__dirname, '..', 'assets/warcraft/generated/items', name)), `${name} debe existir`);
 });
 
 test('duelo web de dos cuentas: aceptación válida, HP visible, turno y reintento idempotente', () => {

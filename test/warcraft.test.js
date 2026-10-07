@@ -274,12 +274,35 @@ test('los alias en español apuntan a sus comandos compatibles', () => {
   assert.equal(canonicalCommand('darporreembolso'), 'darporreembolso');
   assert.equal(canonicalCommand('aceptarreembolso'), 'aceptarreembolso');
   assert.equal(canonicalCommand('cancelarreembolso'), 'cancelarreembolso');
+  assert.equal(canonicalCommand('cerrargrupo'), 'close');
+  assert.equal(canonicalCommand('cerrar_grupo'), 'close');
+  assert.equal(canonicalCommand('abrir_grupo'), 'open');
+  assert.equal(canonicalCommand('set_bienvenida'), 'setwelcome');
+  assert.equal(canonicalCommand('nombre_del_personaje'), 'pjnombre');
+  assert.equal(canonicalCommand('nombredelpersonaje'), 'pjnombre');
+  assert.equal(canonicalCommand('anti_enlaces'), 'antilink');
+  assert.equal(canonicalCommand('codigo_qr'), 'qr');
+  assert.equal(canonicalCommand('aceptar_duelo'), 'aceptarduelo');
   assert.equal(canonicalCommand('aceptarmision'), 'aceptarmision');
   assert.equal(canonicalCommand('cancelarmision'), 'cancelarmision');
   assert.equal(canonicalCommand('agro'), 'agrow');
   assert.equal(canonicalCommand('curar'), 'curarw');
   assert.equal(canonicalCommand('especializacion'), 'especializacionw');
   assert.equal(spanishCommand('welcome'), 'bienvenida');
+  assert.equal(spanishCommand('close'), 'cerrar_grupo');
+  assert.equal(spanishCommand('aceptarmision'), 'aceptar_mision');
+  assert.equal(parseCommandText('/cerrar_grupo').commandName, 'close');
+  assert.equal(parseCommandText('/cerrargrupo').commandName, 'close');
+});
+
+test('el menú completo muestra aliases compuestos separados con guion bajo', async () => {
+  const allMenu = require('../commands/allmenu');
+  let text = '';
+  const commands = { groupinfo: true, grouplink: true, tagall: true, hidetag: true, welcome: true, setwelcome: true, open: true, close: true, promote: true, demote: true, mute: true, unmute: true, poll: true };
+  await allMenu({ sendMessage: async (_chat, payload) => { text = payload.text; } }, 'chat', {}, null, commands);
+  assert.match(text, /\/cerrar_grupo/);
+  assert.match(text, /\/abrir_grupo/);
+  assert.match(text, /\/set_bienvenida/);
 });
 
 

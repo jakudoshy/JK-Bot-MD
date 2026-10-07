@@ -1,6 +1,6 @@
 {
   "source": "ZIP proporcionado por el usuario mediante MediaFire; licencia de los gráficos no incluida en el archivo.",
-  "sourceCount": 38,
+  "sourceCount": 39,
   "generatedCount": 131,
   "rarityColors": {
     "common": "#49c774",
@@ -152,20 +152,15 @@
       ]
     },
     "bow": {
-      "source": "items23.png",
-      "sourceRect": [
-        193,
-        67,
-        63,
-        62
-      ],
+      "source": "bow-clear.png",
+      "sourceRect": null,
       "variants": [
-        "items/bow-common.png",
-        "items/bow-uncommon.png",
-        "items/bow-rare.png",
-        "items/bow-epic.png",
-        "items/bow-legendary.png",
-        "items/bow-mythic.png"
+        "items/longbow-common.png",
+        "items/longbow-uncommon.png",
+        "items/longbow-rare.png",
+        "items/longbow-epic.png",
+        "items/longbow-legendary.png",
+        "items/longbow-mythic.png"
       ]
     },
     "staff": {
@@ -392,6 +387,14 @@
       "height": 273,
       "bytes": 293986,
       "sha256": "c4dc3f21c4bcdfd9a4932f3b82ca08cff766136f2b521465057ccd8044ec3e18"
+    },
+    {
+      "file": "bow-clear.png",
+      "category": "iconos de interfaz",
+      "width": 512,
+      "height": 512,
+      "bytes": 30755,
+      "sha256": "160a04cbcb6783baeaef2ae6a26c3454f8aebd0d052ecfd91e4011388ee88be6"
     },
     {
       "file": "flags.png",

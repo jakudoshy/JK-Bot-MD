@@ -21,8 +21,12 @@ test('la página incluye acceso WoW y tutoriales de cada sección', () => {
   assert.ok(document.getElementById('wcExitGameMode'));
   assert.ok(document.getElementById('wcOrientationHint'));
   const gameCss = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.css'), 'utf8');
-  assert.match(gameCss, /body\.wc-game-mode> :not\(#warcraft\)/);
+  assert.match(gameCss, /body\.wc-game-mode #warcraft\{position:relative/);
+  assert.doesNotMatch(gameCss, /body\.wc-game-mode> :not\(#warcraft\)/);
   assert.match(gameCss, /orientation:landscape/);
+  assert.match(gameCss, /sin Fullscreen API/);
+  assert.match(gameCss, /body:not\(\.wc-game-mode\):not\(\.wc-account-authenticated\) #warcraft\{display:none!important\}/);
+  assert.match(gameCss, /body\.wc-account-authenticated:not\(\.wc-game-mode\) #wcGameMount\{display:none!important\}/);
   assert.match(html, /jugar con botones en la web o comandos en WhatsApp/i);
   dom.window.close();
 });
@@ -140,7 +144,7 @@ test('la navegación alterna entre acceso público y cuenta sin solapar menús',
   }
 });
 
-test('Jugar WoW carga el juego autenticado a pantalla completa y permite volver al sitio', async () => {
+test('Jugar WoW carga el juego horizontal dentro de la página, sin pantalla completa', async () => {
   let fullscreenRequests = 0;
   let orientationLocks = 0;
   let orientationUnlocks = 0;
@@ -194,16 +198,16 @@ test('Jugar WoW carga el juego autenticado a pantalla completa y permite volver 
     window.document.getElementById('menuToggle').click();
     window.document.getElementById('menuPlayWow').click();
     await new Promise(resolve => setTimeout(resolve, 100));
-    assert.ok(window.document.documentElement.classList.contains('wc-game-mode'));
+    assert.equal(window.document.documentElement.classList.contains('wc-game-mode'), false);
     assert.ok(window.document.body.classList.contains('wc-game-mode'));
     assert.equal(window.document.getElementById('menuDrawer').getAttribute('aria-hidden'), 'true');
     assert.ok(window.document.querySelector('.wc-game-shell'), 'Jugar no deja la pantalla en negro: muestra el juego');
-    assert.equal(fullscreenRequests, 1);
-    assert.equal(orientationLocks, 1);
+    assert.equal(fullscreenRequests, 0, 'no solicita pantalla completa');
+    assert.equal(orientationLocks, 0, 'no depende del bloqueo de orientación');
     window.document.getElementById('wcExitGameMode').click();
     assert.equal(window.document.documentElement.classList.contains('wc-game-mode'), false);
     assert.equal(window.document.body.classList.contains('wc-game-mode'), false);
-    assert.equal(orientationUnlocks, 1);
+    assert.equal(orientationUnlocks, 0);
   } finally {
     window.close();
   }
@@ -231,7 +235,8 @@ test('sin sesión, Jugar WoW pide iniciar sesión y no abre un panel negro', asy
     window.eval(gameScript);
     await new Promise(resolve => setTimeout(resolve, 15));
     window.document.getElementById('menuPlayWow').click();
-    assert.equal(window.document.body.classList.contains('wc-game-mode'), false);
+    assert.equal(window.document.body.classList.contains('wc-game-mode'), true, 'Jugar abre la vista integrada sin sesión');
+    assert.ok(window.document.querySelector('.wc-game-load-error'), 'muestra el acceso y nunca queda en negro');
     assert.match(window.document.getElementById('wcLoginStatus').textContent, /Inicia sesión o crea tu cuenta/i);
     assert.equal(window.document.getElementById('wcLoginForm').style.display, '');
   } finally {

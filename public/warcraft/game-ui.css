@@ -18,45 +18,25 @@
 @media(prefers-reduced-motion:reduce){.wc-game-btn,.wc-game-tabs button,.wc-game-bar span{transition:none}}
 
 
-/* Modo de juego dedicado: oculta el sitio y usa toda la pantalla para Warcraft. */
-.wc-game-mode-bar,
-.wc-orientation-hint{display:none}
-html.wc-game-mode,
-html.wc-game-mode body{width:100%;height:100%;min-height:100%;overflow:hidden}
-body.wc-game-mode{height:100vh;height:100dvh;min-height:0;overflow:hidden;background:#09090c!important}
-body.wc-game-mode> :not(#warcraft):not(script):not(noscript){display:none!important}
-body.wc-game-mode #warcraft{position:fixed;z-index:1000;inset:0;width:100vw;height:100vh;height:100dvh;max-width:none;margin:0;padding:clamp(8px,1.4vw,20px);overflow:auto;overscroll-behavior:contain;border:0;border-radius:0;background:radial-gradient(ellipse at 12% 0%,rgba(101,65,37,.24),transparent 45%),linear-gradient(155deg,#0b0d12,#100d13 72%,#17110d)!important;box-shadow:none!important;scrollbar-color:#604728 #0c0d11}
-body.wc-game-mode #warcraft>h2,
-body.wc-game-mode #warcraft>.sample-note,
-body.wc-game-mode #wcLobbyCard,
-body.wc-game-mode #wcTutorials,
-body.wc-game-mode #wcProfilePanel>.wc-profile-top,
-body.wc-game-mode #wcProfileStats,
-body.wc-game-mode #wcProfilePanel>.wc-profile-columns{display:none!important}
-body.wc-game-mode .wc-game-mode-bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;min-height:48px;margin:-2px 0 12px;padding:8px 12px;border:1px solid rgba(210,170,100,.24);border-radius:13px;background:rgba(8,9,13,.94);backdrop-filter:blur(12px)}
+/* Modo de juego integrado: tablero ancho dentro de la página, sin Fullscreen API. */
+.wc-game-mode-bar,.wc-orientation-hint{display:none}
+body.wc-game-mode #warcraft{position:relative;z-index:1;width:100%;max-width:1560px;height:auto;min-height:0;max-height:none;margin:clamp(12px,2vw,26px) auto;padding:clamp(10px,1.8vw,22px);overflow:visible;overscroll-behavior:auto;border:1px solid rgba(215,174,104,.3);border-radius:20px;background:radial-gradient(ellipse at 12% 0%,rgba(101,65,37,.24),transparent 45%),linear-gradient(155deg,#0b0d12,#100d13 72%,#17110d)!important;box-shadow:0 18px 50px rgba(0,0,0,.3)!important;scroll-margin-top:88px}
+body.wc-game-mode #warcraft>h2,body.wc-game-mode #warcraft>.sample-note,body.wc-game-mode #wcLobbyCard,body.wc-game-mode #wcTutorials,body.wc-game-mode #wcProfilePanel>.wc-profile-top,body.wc-game-mode #wcProfileStats,body.wc-game-mode #wcProfilePanel>.wc-profile-columns{display:none!important}
+body.wc-game-mode .wc-game-mode-bar{position:sticky;top:8px;z-index:20;display:flex;align-items:center;gap:12px;min-height:48px;margin:-2px 0 12px;padding:8px 12px;border:1px solid rgba(210,170,100,.24);border-radius:13px;background:rgba(8,9,13,.96);backdrop-filter:blur(12px)}
 body.wc-game-mode .wc-game-mode-bar strong{color:#f5d59d;font-size:.96rem}
 body.wc-game-mode .wc-game-mode-bar span{flex:1;color:#a99f90;font-size:.78rem}
 body.wc-game-mode .wc-game-mode-bar button{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:7px 11px;border:1px solid rgba(215,174,104,.38);border-radius:10px;background:rgba(255,255,255,.04);color:#f0dfc2;font:inherit;font-size:.78rem;font-weight:600;cursor:pointer}
 body.wc-game-mode .wc-game-mode-bar button:hover{border-color:#e1bd79;background:rgba(165,116,54,.2)}
-body.wc-game-mode #warcraft>.premium-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:12px;margin:0}
-body.wc-game-mode #wcProfilePanel,
-body.wc-game-mode #wcCharacterSetup{grid-column:1/-1!important;width:100%;margin:0;padding:0;border:0;background:transparent!important;box-shadow:none!important}
+body.wc-game-mode #warcraft>.premium-grid{display:grid!important;grid-template-columns:minmax(0,1fr);align-items:start;gap:12px;margin:0}
+body.wc-game-mode #wcProfilePanel,body.wc-game-mode #wcCharacterSetup{grid-column:1/-1!important;width:100%;margin:0;padding:0;border:0;background:transparent!important;box-shadow:none!important}
 body.wc-game-mode #wcProfilePanel #wcGameMount{margin:0}
-body.wc-game-mode #wcCreateCharacterForm,
-body.wc-game-mode #wcLoginForm,
-body.wc-game-mode #wcRegisterForm{min-width:0}
-body.wc-game-mode #wcLoginForm[style*="display: none"],
-body.wc-game-mode #wcRegisterForm[style*="display: none"]{display:none!important}
+body.wc-game-mode #wcCreateCharacterForm,body.wc-game-mode #wcLoginForm,body.wc-game-mode #wcRegisterForm{min-width:0}
+body.wc-game-mode #wcLoginForm[style*="display: none"],body.wc-game-mode #wcRegisterForm[style*="display: none"]{display:none!important}
 body.wc-game-mode .wc-orientation-hint{display:none}
 body.wc-game-mode.wc-portrait-override #wcOrientationHint{display:none!important}
-body.wc-game-mode #wcOrientationHint .wc-orientation-card{width:min(420px,calc(100vw - 32px));padding:24px;border:1px solid #b58a4b;border-radius:20px;background:#151217;color:#eee5d7;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.55)}
-body.wc-game-mode #wcOrientationHint .wc-orientation-card>i{color:#f0c36f;font-size:2rem}
-body.wc-game-mode #wcOrientationHint h2{margin:12px 0 8px;color:#ffe0a2;font-size:1.2rem}
-body.wc-game-mode #wcOrientationHint p{margin:0 0 16px;color:#c8bead;font-size:.88rem;line-height:1.5}
-body.wc-game-mode #wcOrientationHint .wc-game-btn{width:100%}
-@media (orientation:portrait) and (max-width:900px){body.wc-game-mode #wcOrientationHint{position:fixed;inset:0;z-index:10030;display:grid;place-items:center;padding:18px;background:rgba(3,4,7,.96)}}
-@media (orientation:landscape) and (max-height:620px){body.wc-game-mode #warcraft{padding:7px 12px}body.wc-game-mode .wc-game-mode-bar{min-height:40px;margin-bottom:7px;padding:5px 9px}body.wc-game-mode .wc-game-hero{grid-template-columns:auto minmax(120px,1fr) auto;gap:10px;padding:10px 14px}body.wc-game-mode .wc-game-portrait{width:48px;height:48px;border-radius:12px}body.wc-game-mode .wc-game-vitals{gap:5px}body.wc-game-mode .wc-game-chip{padding:5px 8px;font-size:.72rem}body.wc-game-mode .wc-game-chip img{width:18px;height:18px}body.wc-game-mode .wc-game-tabs{gap:5px;padding:7px 9px}body.wc-game-mode .wc-game-tabs button{padding:7px 10px;font-size:.76rem}body.wc-game-mode .wc-game-body{padding:10px}body.wc-game-mode .wc-game-card{padding:12px}}
-@media(max-width:720px){body.wc-game-mode #warcraft>.premium-grid{grid-template-columns:minmax(0,1fr)}body.wc-game-mode .wc-game-mode-bar span{display:none}body.wc-game-mode .wc-game-mode-bar button{margin-left:auto}}
+@media (orientation:landscape) and (min-width:700px){body.wc-game-mode #warcraft>.premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))}body.wc-game-mode #wcProfilePanel,body.wc-game-mode #wcCharacterSetup{grid-column:1/-1}body.wc-game-mode .wc-game-shell{min-height:min(68vh,780px)}body.wc-game-mode .wc-game-hero{grid-template-columns:auto minmax(120px,1fr) auto;gap:12px;padding:14px 18px}body.wc-game-mode .wc-game-tabs{gap:5px;padding:8px 10px}body.wc-game-mode .wc-game-tabs button{padding:8px 10px;font-size:.78rem}}
+@media (max-width:720px){body.wc-game-mode #warcraft>.premium-grid{grid-template-columns:minmax(0,1fr)}body.wc-game-mode .wc-game-mode-bar span{display:none}body.wc-game-mode .wc-game-mode-bar button{margin-left:auto}}
+@media (orientation:portrait) and (max-width:900px){body.wc-game-mode #wcOrientationHint{display:block;position:relative;z-index:1;margin:8px 0 12px;padding:10px 12px;border:1px solid rgba(215,174,104,.25);border-radius:12px;background:rgba(165,116,54,.1)}body.wc-game-mode #wcOrientationHint .wc-orientation-card{display:flex;align-items:center;gap:10px;width:auto;padding:0;border:0;border-radius:0;background:transparent;color:#eee5d7;text-align:left;box-shadow:none}body.wc-game-mode #wcOrientationHint .wc-orientation-card>i{color:#f0c36f;font-size:1rem}body.wc-game-mode #wcOrientationHint h2{margin:0;color:#ffe0a2;font-size:.9rem}body.wc-game-mode #wcOrientationHint p{flex:1;margin:0;color:#c8bead;font-size:.78rem;line-height:1.4}body.wc-game-mode #wcOrientationHint .wc-game-btn{width:auto;min-height:34px;white-space:nowrap;padding:6px 9px;font-size:.75rem}}
 @media(prefers-reduced-motion:reduce){body.wc-game-mode *{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 
 /* Character selection after login */
@@ -127,3 +107,14 @@ body.wc-game-mode #wcOrientationHint .wc-game-btn{width:100%}
   body.wc-game-mode #warcraft{padding-top:max(7px,env(safe-area-inset-top));padding-right:max(12px,env(safe-area-inset-right));padding-bottom:max(7px,env(safe-area-inset-bottom));padding-left:max(12px,env(safe-area-inset-left))}
 }
 @media(prefers-reduced-motion:reduce){.wc-game-spinner,.wc-auth-attention{animation:none}}
+
+
+/* La portada del bot no contiene el lobby ni controles Warcraft. La cuenta autenticada conserva su resumen; Jugar muestra el juego. */
+body:not(.wc-game-mode):not(.wc-account-authenticated) #warcraft{display:none!important}
+body.wc-account-authenticated:not(.wc-game-mode) #warcraft{display:block!important;max-width:1120px;margin:16px auto;padding:0;border:0;background:transparent!important;box-shadow:none!important}
+body:not(.wc-game-mode) #warcraft>h2,body:not(.wc-game-mode) #warcraft>.sample-note,body:not(.wc-game-mode) #wcLobbyCard,body:not(.wc-game-mode) #wcTutorials,body:not(.wc-game-mode) #wcCharacterSetup,body:not(.wc-game-mode) #wcLoginForm,body:not(.wc-game-mode) #wcRegisterForm,body:not(.wc-game-mode) #wcGameModeBar,body:not(.wc-game-mode) #wcOrientationHint,body:not(.wc-game-mode) #wcGameMount{display:none!important}
+body.wc-account-authenticated:not(.wc-game-mode) #wcProfilePanel{display:block!important;grid-column:1/-1!important;width:100%;margin:0;padding:clamp(14px,2vw,24px);border:1px solid rgba(211,170,101,.34);border-radius:18px;background:linear-gradient(145deg,rgba(17,20,28,.98),rgba(29,22,33,.97));box-shadow:0 18px 48px rgba(0,0,0,.24)}
+body.wc-account-authenticated:not(.wc-game-mode) #wcProfilePanel>.wc-profile-top{display:flex!important;align-items:center;gap:12px}
+body.wc-account-authenticated:not(.wc-game-mode) #wcProfileStats{display:grid!important}
+body.wc-account-authenticated:not(.wc-game-mode) #wcProfilePanel>.wc-profile-columns{display:grid!important}
+body.wc-account-authenticated:not(.wc-game-mode) #wcGameMount{display:none!important}
