@@ -14,19 +14,17 @@ test('la página incluye acceso WoW y tutoriales de cada sección', () => {
   assert.ok(document.getElementById('wcTutorials'));
   assert.equal(document.querySelectorAll('#wcTutorials .wc-help').length, 10);
   assert.ok(document.querySelector('#wcCharacterSetup .wc-help'));
-  assert.ok(document.getElementById('wcWhatsAppOnlyNote')?.textContent.includes('WhatsApp'));
-  for (const id of ['wcGamePanel', 'wcShopPanel', 'wcDuelPanel', 'wcMmoPanel']) assert.equal(document.getElementById(id), null);
-  assert.match(html, /juego se juega por WhatsApp/i);
+  assert.ok(document.getElementById('wcGameMount'));
+  assert.match(html, /jugar con botones en la web o comandos en WhatsApp/i);
   dom.window.close();
 });
 
-test('las rutas web de combate, duelo y mundo están desactivadas', () => {
+test('las rutas de juego web usan el adaptador Warcraft autenticado', () => {
   const server = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
-  for (const route of ['duel', 'mmo', 'action']) {
-    const pattern = new RegExp(`app\\.post\\\\?\\('/api/warcraft/${route}'`);
-    assert.match(server, pattern);
-  }
-  assert.equal((server.match(/app\.post\('\/api\/warcraft\/(?:duel|mmo|action)'.*?status\(410\)/gs) || []).length, 3);
+  assert.match(server, /app\.post\('\/api\/warcraft\/duel'.*?handleWarcraftWebAction\(req, res, 'duel_challenge'\)/s);
+  assert.match(server, /app\.post\('\/api\/warcraft\/mmo'.*?handleWarcraftWebAction\(req, res\)/s);
+  assert.match(server, /app\.post\('\/api\/warcraft\/action'.*?handleWarcraftWebAction\(req, res\)/s);
+  assert.doesNotMatch(server, /app\.post\('\/api\/warcraft\/(?:duel|mmo|action)'.*?status\(410\)/s);
 });
 
 test('WhatsApp ofrece un menú interactivo para aceptar las misiones del nivel', () => {
@@ -92,22 +90,20 @@ test('la navegación alterna entre acceso público y cuenta sin solapar menús',
     assert.equal(profileLink.style.display, 'block');
     assert.equal(get('wcAccountAvatar').textContent, 'N');
     window.eval("showWcPlayer(null,'Nara')");
-    assert.equal(get('wcGamePanel'), null);
+    assert.ok(get('wcGameMount'));
     assert.equal(get('wcCharacterSetup').style.display, 'block');
-    assert.match(get('wcWhatsAppOnlyNote').textContent, /WhatsApp/i);
     assert.equal(get('wcProfileTalents'), null);
-    assert.equal(window.document.querySelectorAll('[data-wc-talent]').length, 0);
+    assert.match(get('wcProfileSubtitle').textContent, /todavía no hay personaje/i);
 
     const character = { id: '5350000099', name: 'Nara', classKey: 'warrior', level: 7, xp: 25, gold: 500, hp: 80, maxHp: 120, attack: 19, defense: 15, gs: 99, zone: 'aldea', inventory: ['health_potion'], equipment: { weapon: 'rusty_sword' }, talents: { attack: 6 }, talentPoints: 3 };
     const profilePayload = { rank: 2, inventoryDetails: [{ id: 'health_potion', name: 'Poción de salud', quantity: 2 }], equipmentDetails: [{ slot: 'weapon', id: 'rusty_sword', name: 'Espada desgastada' }] };
     window.eval(`showWcPlayer(${JSON.stringify(character)},'Nara',${JSON.stringify(profilePayload)})`);
-    assert.equal(get('wcGamePanel'), null);
+    assert.ok(get('wcGameMount'));
     assert.match(get('wcProfileTitle').textContent, /Nara/);
     assert.match(get('wcProfileStats').textContent, /Oro\s*500/);
     assert.match(get('wcProfileStats').textContent, /Nivel\s*7/);
     assert.match(get('wcProfileInventory').textContent, /Poción de salud\s*× 2/);
     assert.match(get('wcProfileEquipment').textContent, /Espada desgastada/);
-    assert.doesNotMatch(get('wcProfilePanel').textContent, /talento/i);
 
     button.click();
     assert.equal(accountPopup.style.display, 'block');

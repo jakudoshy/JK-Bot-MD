@@ -1,0 +1,668 @@
+{
+  "source": "ZIP proporcionado por el usuario mediante MediaFire; licencia de los gráficos no incluida en el archivo.",
+  "sourceCount": 38,
+  "generatedCount": 125,
+  "rarityColors": {
+    "common": "#49c774",
+    "uncommon": "#4e9de0",
+    "rare": "#a56be8",
+    "epic": "#dc5fca",
+    "legendary": "#f0a23b",
+    "mythic": "#d94b55"
+  },
+  "classIcons": {
+    "warrior": {
+      "asset": "classes/warrior.png",
+      "cell": [
+        0,
+        3
+      ],
+      "role": "tank"
+    },
+    "paladin": {
+      "asset": "classes/paladin.png",
+      "cell": [
+        0,
+        2
+      ],
+      "role": "tank"
+    },
+    "hunter": {
+      "asset": "classes/hunter.png",
+      "cell": [
+        2,
+        0
+      ],
+      "role": "damage"
+    },
+    "picaro": {
+      "asset": "classes/picaro.png",
+      "cell": [
+        1,
+        0
+      ],
+      "role": "damage"
+    },
+    "priest": {
+      "asset": "classes/priest.png",
+      "cell": [
+        4,
+        12
+      ],
+      "role": "healer"
+    },
+    "shaman": {
+      "asset": "classes/shaman.png",
+      "cell": [
+        0,
+        8
+      ],
+      "role": "healer"
+    },
+    "mago": {
+      "asset": "classes/mago.png",
+      "cell": [
+        2,
+        3
+      ],
+      "role": "damage"
+    },
+    "warlock": {
+      "asset": "classes/warlock.png",
+      "cell": [
+        5,
+        7
+      ],
+      "role": "damage"
+    },
+    "monk": {
+      "asset": "classes/monk.png",
+      "cell": [
+        2,
+        1
+      ],
+      "role": "tank"
+    },
+    "druida": {
+      "asset": "classes/druida.png",
+      "cell": [
+        3,
+        1
+      ],
+      "role": "damage"
+    },
+    "deathknight": {
+      "asset": "classes/deathknight.png",
+      "cell": [
+        2,
+        7
+      ],
+      "role": "tank"
+    },
+    "demonhunter": {
+      "asset": "classes/demonhunter.png",
+      "cell": [
+        1,
+        11
+      ],
+      "role": "damage"
+    },
+    "evoker": {
+      "asset": "classes/evoker.png",
+      "cell": [
+        0,
+        13
+      ],
+      "role": "healer"
+    }
+  },
+  "itemIcons": {
+    "blade": {
+      "source": "items23.png",
+      "sourceRect": [
+        129,
+        130,
+        63,
+        63
+      ],
+      "variants": [
+        "items/blade-common.png",
+        "items/blade-uncommon.png",
+        "items/blade-rare.png",
+        "items/blade-epic.png",
+        "items/blade-legendary.png",
+        "items/blade-mythic.png"
+      ]
+    },
+    "bow": {
+      "source": "items23.png",
+      "sourceRect": [
+        193,
+        67,
+        63,
+        62
+      ],
+      "variants": [
+        "items/bow-common.png",
+        "items/bow-uncommon.png",
+        "items/bow-rare.png",
+        "items/bow-epic.png",
+        "items/bow-legendary.png",
+        "items/bow-mythic.png"
+      ]
+    },
+    "staff": {
+      "source": "items23.png",
+      "sourceRect": [
+        833,
+        129,
+        64,
+        64
+      ],
+      "variants": [
+        "items/staff-common.png",
+        "items/staff-uncommon.png",
+        "items/staff-rare.png",
+        "items/staff-epic.png",
+        "items/staff-legendary.png",
+        "items/staff-mythic.png"
+      ]
+    },
+    "armor": {
+      "source": "items23.png",
+      "sourceRect": [
+        390,
+        5,
+        55,
+        57
+      ],
+      "variants": [
+        "items/armor-common.png",
+        "items/armor-uncommon.png",
+        "items/armor-rare.png",
+        "items/armor-epic.png",
+        "items/armor-legendary.png",
+        "items/armor-mythic.png"
+      ]
+    },
+    "leather": {
+      "source": "items23.png",
+      "sourceRect": [
+        263,
+        3,
+        52,
+        60
+      ],
+      "variants": [
+        "items/leather-common.png",
+        "items/leather-uncommon.png",
+        "items/leather-rare.png",
+        "items/leather-epic.png",
+        "items/leather-legendary.png",
+        "items/leather-mythic.png"
+      ]
+    },
+    "robe": {
+      "source": "items23.png",
+      "sourceRect": [
+        769,
+        4,
+        64,
+        61
+      ],
+      "variants": [
+        "items/robe-common.png",
+        "items/robe-uncommon.png",
+        "items/robe-rare.png",
+        "items/robe-epic.png",
+        "items/robe-legendary.png",
+        "items/robe-mythic.png"
+      ]
+    },
+    "potion": {
+      "source": "items23.png",
+      "sourceRect": [
+        1,
+        320,
+        62,
+        64
+      ],
+      "variants": [
+        "items/potion-common.png",
+        "items/potion-uncommon.png",
+        "items/potion-rare.png",
+        "items/potion-epic.png",
+        "items/potion-legendary.png",
+        "items/potion-mythic.png"
+      ]
+    },
+    "herb": {
+      "source": "activables2.png",
+      "sourceRect": [
+        0,
+        64,
+        61,
+        61
+      ],
+      "variants": [
+        "items/herb-common.png",
+        "items/herb-uncommon.png",
+        "items/herb-rare.png",
+        "items/herb-epic.png",
+        "items/herb-legendary.png",
+        "items/herb-mythic.png"
+      ]
+    },
+    "mineral": {
+      "source": "items23.png",
+      "sourceRect": [
+        132,
+        259,
+        57,
+        58
+      ],
+      "variants": [
+        "items/mineral-common.png",
+        "items/mineral-uncommon.png",
+        "items/mineral-rare.png",
+        "items/mineral-epic.png",
+        "items/mineral-legendary.png",
+        "items/mineral-mythic.png"
+      ]
+    },
+    "crystal": {
+      "source": "items23.png",
+      "sourceRect": [
+        332,
+        140,
+        41,
+        41
+      ],
+      "variants": [
+        "items/crystal-common.png",
+        "items/crystal-uncommon.png",
+        "items/crystal-rare.png",
+        "items/crystal-epic.png",
+        "items/crystal-legendary.png",
+        "items/crystal-mythic.png"
+      ]
+    },
+    "fang": {
+      "source": "items30.png",
+      "sourceRect": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "variants": [
+        "items/fang-common.png",
+        "items/fang-uncommon.png",
+        "items/fang-rare.png",
+        "items/fang-epic.png",
+        "items/fang-legendary.png",
+        "items/fang-mythic.png"
+      ]
+    },
+    "shadow": {
+      "source": "items23.png",
+      "sourceRect": [
+        332,
+        140,
+        41,
+        41
+      ],
+      "variants": [
+        "items/shadow-common.png",
+        "items/shadow-uncommon.png",
+        "items/shadow-rare.png",
+        "items/shadow-epic.png",
+        "items/shadow-legendary.png",
+        "items/shadow-mythic.png"
+      ]
+    }
+  },
+  "zoneMaps": {
+    "aldea": {
+      "asset": "maps/map-0-5.png",
+      "cell": [
+        0,
+        5
+      ]
+    },
+    "frontera": {
+      "asset": "maps/map-1-0.png",
+      "cell": [
+        1,
+        0
+      ]
+    },
+    "montana": {
+      "asset": "maps/map-0-4.png",
+      "cell": [
+        0,
+        4
+      ]
+    },
+    "sombras": {
+      "asset": "maps/map-4-0.png",
+      "cell": [
+        4,
+        0
+      ]
+    },
+    "torre": {
+      "asset": "maps/map-1-2.png",
+      "cell": [
+        1,
+        2
+      ]
+    }
+  },
+  "sourceAssets": [
+    {
+      "file": "activables.png",
+      "category": "objetos del mundo y monedas",
+      "width": 915,
+      "height": 273,
+      "bytes": 326201,
+      "sha256": "87d228d264648e55000795998b2e46e13fe098d04c80d75e441120cbedd604ed"
+    },
+    {
+      "file": "activables2.png",
+      "category": "objetos del mundo y monedas",
+      "width": 915,
+      "height": 273,
+      "bytes": 293986,
+      "sha256": "c4dc3f21c4bcdfd9a4932f3b82ca08cff766136f2b521465057ccd8044ec3e18"
+    },
+    {
+      "file": "flags.png",
+      "category": "emblemas y banderas",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 127694,
+      "sha256": "ce352988c7fe63a5477c0a1a282d94f25e276aa214603205d29f2f58d7215140"
+    },
+    {
+      "file": "flags2.png",
+      "category": "emblemas y banderas",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 157182,
+      "sha256": "0108d46d7c0b0605feb6a6d866bed1513c9f486d6d207b2c4cbdc904deab1729"
+    },
+    {
+      "file": "flags3.png",
+      "category": "emblemas y banderas",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 629054,
+      "sha256": "e2fdcea9f971b97de923d2099ca063fb40716820f3bc3e21a83116acf8828013"
+    },
+    {
+      "file": "items.png",
+      "category": "atlas de objetos/equipo",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 1459005,
+      "sha256": "94b6f528b3b60e1af10bfb6b25d29da29a68e4770454d6dafe98a26f35946e59"
+    },
+    {
+      "file": "items10.png",
+      "category": "atlas de objetos/equipo",
+      "width": 990,
+      "height": 858,
+      "bytes": 1819720,
+      "sha256": "6eb23085ebe97498c5cd4ab96776f40f67f88c1659833fcbb0231198bc7a7f7f"
+    },
+    {
+      "file": "items11.png",
+      "category": "atlas de objetos/equipo",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 1968675,
+      "sha256": "4755544c0f8023b7244dc6df5c78d95a7c23a487469b06cdcc9b61c6434183f7"
+    },
+    {
+      "file": "items12.png",
+      "category": "atlas de objetos/equipo",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 2457980,
+      "sha256": "fa30f48c0b5d7a1aca725514d13067141636750953dbddd49c86ab4df9ace5d7"
+    },
+    {
+      "file": "items13.png",
+      "category": "atlas de objetos/equipo",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 1972431,
+      "sha256": "ba834f0c3d3a6eb188033d40885fc7ae85224d86284c1b90067fc2cec7c2f393"
+    },
+    {
+      "file": "items14.png",
+      "category": "atlas de objetos/equipo",
+      "width": 990,
+      "height": 858,
+      "bytes": 1736910,
+      "sha256": "099a9af213879474e1bce6618b3d728fb161487fdd67a420cccdc1bba9d1e975"
+    },
+    {
+      "file": "items15.png",
+      "category": "atlas de objetos/equipo",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 1973516,
+      "sha256": "d3cd328041417a3cdbfff4d32bb44d6629d72bfc67aff1768b4d58615e43ffec"
+    },
+    {
+      "file": "items16.png",
+      "category": "atlas de objetos/equipo",
+      "width": 990,
+      "height": 858,
+      "bytes": 1735579,
+      "sha256": "3eea5b0522c6102310e2575b889e9e9e32983fae48b9e827fd7183cae552f189"
+    },
+    {
+      "file": "items17.png",
+      "category": "atlas de objetos/equipo",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 1916177,
+      "sha256": "f1ee0b308af6e0e0434854c34b30196327bfeb48cb977ff97f1dfe1f62b96df6"
+    },
+    {
+      "file": "items18.png",
+      "category": "atlas de objetos/equipo",
+      "width": 990,
+      "height": 858,
+      "bytes": 1725500,
+      "sha256": "5ca80f6e503e6d6f33a3405a3a51c36142df8206baaa4bcde833be1d7374d2f2"
+    },
+    {
+      "file": "items19.png",
+      "category": "atlas de objetos/equipo",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 2290017,
+      "sha256": "79f453f1a23363bff04e84a434bdfa8495b6b8eda03afd8a537459f747ea48c1"
+    },
+    {
+      "file": "items2.png",
+      "category": "atlas de objetos/equipo",
+      "width": 990,
+      "height": 858,
+      "bytes": 1357495,
+      "sha256": "4d29ba997a7b4cba5a5dc6ee4355a644bd3ca3c6ff6494b2c137582aaed60f22"
+    },
+    {
+      "file": "items20.png",
+      "category": "atlas de objetos/equipo",
+      "width": 990,
+      "height": 858,
+      "bytes": 1565488,
+      "sha256": "056da84fd70c02c3b521ac854f5f9b252a3cdc32d86f0889344aba0e0c136b8a"
+    },
+    {
+      "file": "items21.png",
+      "category": "atlas de objetos/equipo",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 2347484,
+      "sha256": "7d7d8eebc04f0d7a42d72173e63fc55bba72febe51087034e620834f31a7b7d0"
+    },
+    {
+      "file": "items22.png",
+      "category": "atlas de objetos/equipo",
+      "width": 990,
+      "height": 858,
+      "bytes": 1775935,
+      "sha256": "14dc42e1eb92faf29d2c6b497921b53fab1b0179b9e99bf522e9024da6f8c552"
+    },
+    {
+      "file": "items23.png",
+      "category": "atlas de objetos/equipo",
+      "width": 990,
+      "height": 1050,
+      "bytes": 474148,
+      "sha256": "5b34a1e23b86b6302b982f5a4c2060956fa8bc3f51a869a9a8b71f50cff7fcad"
+    },
+    {
+      "file": "items3.png",
+      "category": "atlas de objetos/equipo",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 1933682,
+      "sha256": "db40bb873ecf84693cbc9a445515e9e9cc5de0080fd1579bacd17a2df9cb2922"
+    },
+    {
+      "file": "items30.png",
+      "category": "atlas de objetos/equipo",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 773062,
+      "sha256": "89c3d86e8d27d84068af20e1d0708b3be7b4ae64685d07ac291789d156623b02"
+    },
+    {
+      "file": "items4.png",
+      "category": "atlas de objetos/equipo",
+      "width": 990,
+      "height": 858,
+      "bytes": 1819720,
+      "sha256": "6eb23085ebe97498c5cd4ab96776f40f67f88c1659833fcbb0231198bc7a7f7f"
+    },
+    {
+      "file": "items5.png",
+      "category": "atlas de objetos/equipo",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 1666112,
+      "sha256": "6c9ae7ecee9e53a43f876f0b141a4141ef35ce403ee85a00730d354407605971"
+    },
+    {
+      "file": "items6.png",
+      "category": "atlas de objetos/equipo",
+      "width": 990,
+      "height": 858,
+      "bytes": 1565488,
+      "sha256": "056da84fd70c02c3b521ac854f5f9b252a3cdc32d86f0889344aba0e0c136b8a"
+    },
+    {
+      "file": "items7.png",
+      "category": "atlas de objetos/equipo",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 2119221,
+      "sha256": "b485eee13fb2e0c76589fd339bc58ecd9c7173b5715c4dc41a248ae9af71237b"
+    },
+    {
+      "file": "items8.png",
+      "category": "atlas de objetos/equipo",
+      "width": 990,
+      "height": 858,
+      "bytes": 1775935,
+      "sha256": "14dc42e1eb92faf29d2c6b497921b53fab1b0179b9e99bf522e9024da6f8c552"
+    },
+    {
+      "file": "items9.png",
+      "category": "atlas de objetos/equipo",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 2289647,
+      "sha256": "66a0c8a378126c111008c40a3feefdd881ae2de1a2b362bc80a7f738306bcc3b"
+    },
+    {
+      "file": "map_thumbnails.png",
+      "category": "atlas de mapas",
+      "width": 972,
+      "height": 972,
+      "bytes": 2457573,
+      "sha256": "086b5c942e4c55386c42e7af37ac6f7a7963625e723992c04270cae542a8df94"
+    },
+    {
+      "file": "map_thumbnails2.png",
+      "category": "atlas de mapas",
+      "width": 955,
+      "height": 648,
+      "bytes": 1091579,
+      "sha256": "fef8cc0eead3b132a3fbb0fee7e45187a4a33603ab26eb75430d876da8f166fd"
+    },
+    {
+      "file": "map_thumbnails3.png",
+      "category": "atlas de mapas",
+      "width": 972,
+      "height": 972,
+      "bytes": 1649553,
+      "sha256": "ac8e6e4ac018cfd03ebd5a41288b716a4a984bbaf2693220e7f1eb8c1ed24502"
+    },
+    {
+      "file": "skills.png",
+      "category": "atlas de habilidades",
+      "width": 924,
+      "height": 396,
+      "bytes": 777156,
+      "sha256": "c34f62bfbc81d0b010eac972626cc4df9361d7ff0fba09c5923b4bf5bebd9ef0"
+    },
+    {
+      "file": "skills2.png",
+      "category": "atlas de habilidades",
+      "width": 924,
+      "height": 396,
+      "bytes": 773974,
+      "sha256": "521138001373fe895e36eccc3be569815f90d7d3538601e36d0eb54fbb9aabfe"
+    },
+    {
+      "file": "ui_icons.png",
+      "category": "iconos de interfaz",
+      "width": 962,
+      "height": 900,
+      "bytes": 977899,
+      "sha256": "2449bd47959e13707535fd6c11901d4f9778b9b357188cd61337eb87c129f261"
+    },
+    {
+      "file": "ui_icons1.png",
+      "category": "iconos de interfaz",
+      "width": 962,
+      "height": 900,
+      "bytes": 822432,
+      "sha256": "63b5319ec6233c87319d06000ad38938d35e8347781283a565008293b143311d"
+    },
+    {
+      "file": "ui_icons1_linear.png",
+      "category": "iconos de interfaz",
+      "width": 962,
+      "height": 900,
+      "bytes": 822456,
+      "sha256": "298e625d6b90d6477b95d3ebc39fe05fbea7f196f3bf35f0169c165bc629e4d8"
+    },
+    {
+      "file": "ui_icons_linear.png",
+      "category": "iconos de interfaz",
+      "width": 1007,
+      "height": 839,
+      "bytes": 935194,
+      "sha256": "75450ff4048ce10e1f783aea5e1c16138dca22dfc30cfda568f322c1cafc6ab3"
+    }
+  ]
+}

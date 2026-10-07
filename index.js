@@ -17,6 +17,7 @@ const postgresPremiumStore = require('./lib/postgresPremiumStore');
 const { createTelegramBackupStore } = require('./lib/telegramBackupStore');
 const aiMedia = require('./lib/aiMedia');
 const warcraftGame = require('./lib/warcraft');
+const warcraftWeb = require('./lib/warcraftWeb');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
 
 // El acceso Owner es una lista blanca fija: ningún valor del panel o de Premium puede ampliarla.
@@ -762,6 +763,17 @@ function warcraftRoot() { botData.warcraft ||= { players: {}, accounts: {}, trad
 function warcraftSessionForPhone(phone) { const target = normalizeWarcraftPhone(phone); return Object.values(sessions || {}).find(session => [session.phoneNumber, session.requestedPhoneNumber, session.userId, session.sock?.user?.id].some(value => normalizeWarcraftPhone(value) === target) && session.sock && session.isConnected); }
 function warcraftAccountFromToken(token) { const root = warcraftRoot(); const session = root.webSessions[String(token || '')]; if (!session || session.expiresAt < Date.now()) return null; return root.accounts[session.username] || null; }
 function warcraftPublicLeaderboard(root = warcraftRoot()) { return Object.values(root.accounts || {}).map(account => { const player = warcraftGame.playerForAccount(root, account); if (!player) return null; warcraftGame.recalc(player); return { username: account.username, character: player.name, classKey: player.classKey, className: warcraftGame.CLASS_CONFIG[player.classKey]?.label || 'Aventurero', gs: Number(player.gs || 0), level: Number(player.level || 1), xp: Number(player.xp || 0), phone: normalizeWarcraftPhone(account.phone) }; }).filter(Boolean).sort((a, b) => b.gs - a.gs || b.level - a.level || b.xp - a.xp || a.username.localeCompare(b.username)).map((player, index) => ({ ...player, rank: index + 1 })); }
+function handleWarcraftWebAction(req, res, forcedAction = null) {
+    const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, ''));
+    if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' });
+    const root = warcraftRoot();
+    const input = { ...(req.body && typeof req.body === 'object' ? req.body : {}), ...(forcedAction ? { action: forcedAction } : {}) };
+    const result = warcraftWeb.execute({ botData, root, account, input });
+    if (result.changed) { saveBotData(); notifyWarcraftUpdate(); }
+    if (!result.ok) return res.status(result.status || 400).json({ ok: false, message: result.message });
+    res.json({ ok: true, message: result.message });
+}
+app.get('/api/warcraft/catalog', (req, res) => res.json({ ok: true, ...warcraftWeb.catalog() }));
 app.post('/api/warcraft/register/request-code', async (req, res) => {
     const phone = normalizeWarcraftPhone(req.body?.phone);
     const username = String(req.body?.username || '').trim().toLowerCase();
@@ -784,7 +796,7 @@ app.post('/api/warcraft/register/verify', (req, res) => {
     root.sessions[phone] = pending.username;
     const token = crypto.randomBytes(24).toString('hex'); root.webSessions[token] = { username: pending.username, expiresAt: Date.now() + 24 * 60 * 60 * 1000 };
     warcraftPendingCodes.delete(phone); saveBotData();
-    res.json({ ok: true, token, username: pending.username, message: `Cuenta registrada correctamente.\n\nUsuario: ${pending.username}\nContraseña: la que elegiste\n\nPara jugar, abre WhatsApp y envía /login usuario contraseña y luego /warcraft.` });
+    res.json({ ok: true, token, username: pending.username, message: `Cuenta registrada correctamente.\n\nUsuario: ${pending.username}\nContraseña: la que elegiste\n\nYa puedes abrir el panel Warcraft de la web y jugar con botones; WhatsApp sigue disponible con /login y /warcraft.` });
 });
 app.post('/api/warcraft/login', (req, res) => {
     const username = String(req.body?.username || '').trim().toLowerCase(); const root = warcraftRoot();
@@ -792,16 +804,33 @@ app.post('/api/warcraft/login', (req, res) => {
     if (!account) return res.status(401).json({ ok: false, message: 'Usuario no registrado o usuario incorrecto.' });
     if (!checkWarcraftPassword(req.body?.password, account.passwordHash)) return res.status(401).json({ ok: false, message: 'Contraseña incorrecta.' });
     const token = crypto.randomBytes(24).toString('hex'); root.webSessions[token] = { username: account.username, expiresAt: Date.now() + 24 * 60 * 60 * 1000 }; root.sessions[account.phone] = account.username; saveBotData();
-    res.json({ ok: true, token, username: account.username, phone: account.phone, message: 'Sesión iniciada. Consulta tu perfil en la web y juega por WhatsApp con /warcraft.' });
+    res.json({ ok: true, token, username: account.username, phone: account.phone, message: 'Sesión iniciada. Juega con botones en el panel Warcraft o con comandos por WhatsApp; ambos usan la misma partida.' });
 });
-app.post('/api/warcraft/character', (req, res) => res.status(410).json({ ok: false, message: 'El personaje se crea en WhatsApp con /nombredelpersonaje y /clase.' }));
-app.get('/api/warcraft/me', (req, res) => { const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' }); const root = warcraftRoot(); const player = warcraftGame.playerForAccount(root, account); const rank = player ? warcraftPublicLeaderboard(root).find(entry => entry.username === account.username)?.rank || null : null; const inventoryCounts = player ? warcraftGame.inventoryCounts(player) : {}; const inventoryDetails = Object.entries(inventoryCounts).map(([id, quantity]) => ({ id, quantity, name: warcraftGame.ITEMS[id]?.name || id, rarity: warcraftGame.ITEMS[id]?.rarity || 'common' })); const equipmentDetails = player ? Object.entries(player.equipment || {}).map(([slot, id]) => ({ slot, id, name: warcraftGame.ITEMS[id]?.name || id })) : []; res.json({ ok: true, account: { username: account.username, phone: account.phone }, player: warcraftWebPlayer(player), rank, inventoryDetails, equipmentDetails, combat: player ? root.combat[player.id] || null : null }); });
-app.get('/api/warcraft/shop', (req, res) => { const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, '')); if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' }); const root = warcraftRoot(); const player = warcraftGame.playerForAccount(root, account); if (!player) return res.status(400).json({ ok: false, message: 'Crea tu personaje primero.' }); res.json({ ok: true, items: warcraftGame.shopItems(player), level: player.level }); });
+app.post('/api/warcraft/character', (req, res) => handleWarcraftWebAction(req, res, 'create_character'));
+app.get('/api/warcraft/me', (req, res) => {
+    const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, ''));
+    if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' });
+    const root = warcraftRoot();
+    const state = warcraftWeb.playerState(root, account);
+    if (state.changed) saveBotData();
+    const rank = state.player ? warcraftPublicLeaderboard(root).find(entry => entry.username === account.username)?.rank || null : null;
+    const { changed, ...publicState } = state;
+    res.json({ ok: true, account: { username: account.username, phone: account.phone }, ...publicState, rank });
+});
+app.get('/api/warcraft/shop', (req, res) => {
+    const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, ''));
+    if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión.' });
+    const root = warcraftRoot();
+    const player = warcraftGame.playerForAccount(root, account);
+    if (!player) return res.status(400).json({ ok: false, message: 'Crea tu personaje primero.' });
+    const items = warcraftGame.shopItems(player).map(item => ({ ...item, image: warcraftWeb.itemImage(item) }));
+    res.json({ ok: true, items, level: player.level });
+});
 app.get('/api/warcraft/active-users', (req, res) => { const root = warcraftRoot(); const users = warcraftPublicLeaderboard(root).map(({ phone, ...publicPlayer }) => publicPlayer); res.json({ ok: true, totalRegistered: Object.keys(root.accounts || {}).length, totalCharacters: users.length, users }); });
-app.post('/api/warcraft/duel', (req, res) => res.status(410).json({ ok: false, message: 'Los duelos se juegan por WhatsApp con /duelo y /aceptarduelo.' }));
+app.post('/api/warcraft/duel', (req, res) => handleWarcraftWebAction(req, res, 'duel_challenge'));
 app.get('/api/warcraft/mmo/catalog', (req, res) => res.json({ ok: true, recipes: warcraftGame.RECIPES, sources: warcraftGame.MATERIAL_SOURCES }));
-app.post('/api/warcraft/mmo', (req, res) => res.status(410).json({ ok: false, message: 'Las funciones del mundo se controlan por WhatsApp. Usa /warcraft.' }));
-app.post('/api/warcraft/action', (req, res) => res.status(410).json({ ok: false, message: 'El juego se realiza por WhatsApp. Usa /warcraft para ver los comandos.' }));
+app.post('/api/warcraft/mmo', (req, res) => handleWarcraftWebAction(req, res));
+app.post('/api/warcraft/action', (req, res) => handleWarcraftWebAction(req, res));
 // El comercio rápido web se retiró; los regalos e intercambios Warcraft se coordinan por WhatsApp.
 const LEGACY_DATA_DIR = path.resolve(__dirname, 'data');
 const LEGACY_RUNTIME_DIR = path.resolve(__dirname, 'bot');
