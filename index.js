@@ -19,7 +19,8 @@ const aiMedia = require('./lib/aiMedia');
 const warcraftGame = require('./lib/warcraft');
 const warcraftWeb = require('./lib/warcraftWeb');
 const { renderJkBotPage } = require('./lib/jkbotPage');
-const { sendChannelReaction } = require('./lib/channelReactions');
+const { sendChannelReaction, parseChannelPostUrl, parseReactionEmoji } = require('./lib/channelReactions');
+const reactionLimits = require('./lib/reactionLimits');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
 
 // El acceso Owner es una lista blanca fija: ningún valor del panel o de Premium puede ampliarla.
@@ -840,16 +841,49 @@ app.post('/api/warcraft/duel', (req, res) => handleWarcraftWebAction(req, res, '
 app.get('/api/warcraft/mmo/catalog', (req, res) => res.json({ ok: true, recipes: warcraftGame.RECIPES, sources: warcraftGame.MATERIAL_SOURCES }));
 app.post('/api/warcraft/mmo', (req, res) => handleWarcraftWebAction(req, res));
 app.post('/api/warcraft/action', (req, res) => handleWarcraftWebAction(req, res));
+app.get('/api/reactions/status', (req, res) => {
+    const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, ''));
+    if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión en WoW para consultar tu cupo de reacciones.' });
+    return res.json({ ok: true, quota: reactionLimits.getReactionQuota(botData, account.username) });
+});
+app.post('/api/reactions/token', (req, res) => {
+    const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, ''));
+    if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión en WoW para activar un token de reacción.' });
+    try {
+        const result = reactionLimits.claimReactionToken(botData, account.username, req.body?.token);
+        saveBotData();
+        broadcastReactionTokenData();
+        return res.json({ ok: true, alreadyClaimed: result.alreadyClaimed, quota: result.quota, message: result.alreadyClaimed ? 'Ese token ya está activo en tu cuenta.' : 'Token activado: ahora puedes enviar hasta 10 reacciones al día.' });
+    } catch (error) {
+        return res.status(error.status || 400).json({ ok: false, message: error.message || 'No se pudo activar el token.' });
+    }
+});
 app.post('/api/reactions/channel', async (req, res) => {
     const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, ''));
     if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión en tu cuenta WoW para usar Auto Reacción.' });
     if (req.body?.confirmed !== true) return res.status(400).json({ ok: false, message: 'Confirma la reacción antes de enviarla.' });
+    try {
+        parseChannelPostUrl(req.body?.url);
+        parseReactionEmoji(req.body?.emoji);
+    } catch (error) {
+        return res.status(400).json({ ok: false, message: error.message });
+    }
     const session = warcraftSessionForPhone(account.phone);
     if (!session) return res.status(503).json({ ok: false, message: 'No hay una sesión de WhatsApp conectada para el número de esta cuenta.' });
+    let reservation;
+    try {
+        reservation = reactionLimits.reserveReactionUse(botData, account.username);
+    } catch (error) {
+        const status = error.status || 400;
+        return res.status(status).json({ ok: false, message: error.message, quota: error.quota });
+    }
+    saveBotData();
     try {
         const result = await sendChannelReaction(session.sock, req.body);
-        return res.json({ ok: true, message: `Reacción ${req.body.emoji} enviada${result.channelName ? ` al canal ${result.channelName}` : ''}.` });
+        return res.json({ ok: true, quota: reactionLimits.getReactionQuota(botData, account.username), message: `Reacción ${req.body.emoji} enviada${result.channelName ? ` al canal ${result.channelName}` : ''}.` });
     } catch (error) {
+        reactionLimits.rollbackReactionUse(botData, account.username, reservation);
+        saveBotData();
         const message = String(error?.message || 'No se pudo enviar la reacción.');
         const clientError = /enlace|link|emoji|publicación|post|canal/i.test(message);
         return res.status(clientError ? 400 : 502).json({ ok: false, message });
@@ -965,6 +999,7 @@ function normalizeBotDataState() {
     if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
     if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
     normalizePremiumTokenEntries(botData.premiumTokens);
+    reactionLimits.ensureReactionState(botData);
     if (!botData.subbots || typeof botData.subbots !== 'object' || Array.isArray(botData.subbots)) botData.subbots = {};
     if (!botData.registeredUsers || typeof botData.registeredUsers !== 'object' || Array.isArray(botData.registeredUsers)) botData.registeredUsers = {};
     if (!botData.adminOnlyGroups || typeof botData.adminOnlyGroups !== 'object') botData.adminOnlyGroups = {};
@@ -1032,6 +1067,13 @@ function broadcastPremiumData() {
     const snapshot = premiumSnapshot();
     for (const adminSocket of adminSockets) {
         if (adminSocket.connected && adminSocket.authenticated) adminSocket.emit('admin-premium-data', snapshot);
+    }
+}
+
+function broadcastReactionTokenData() {
+    const snapshot = reactionLimits.reactionTokenSnapshot(botData);
+    for (const adminSocket of adminSockets) {
+        if (adminSocket.connected && adminSocket.authenticated) adminSocket.emit('admin-reaction-tokens-data', snapshot);
     }
 }
 
@@ -2637,6 +2679,7 @@ io.on('connection', (socket) => {
             adminSockets.add(socket);
             socket.emit('admin-auth-success');
             socket.emit('admin-premium-data', premiumSnapshot());
+            socket.emit('admin-reaction-tokens-data', reactionLimits.reactionTokenSnapshot(botData));
             socket.emit('admin-bots-data', botsSnapshot());
             socket.emit('admin-users-data', registeredUsersSnapshot());
         } else {
@@ -2647,6 +2690,33 @@ io.on('connection', (socket) => {
             }
             socket.emit('admin-auth-fail');
         }
+    });
+
+    socket.on('admin-reaction-token-data', () => {
+        if (!socket.authenticated) return;
+        socket.emit('admin-reaction-tokens-data', reactionLimits.reactionTokenSnapshot(botData));
+    });
+
+    socket.on('admin-reaction-token-generate', () => {
+        if (!socket.authenticated) return;
+        const result = reactionLimits.createReactionToken(botData);
+        saveBotData({ backupNow: true });
+        socket.emit('admin-reaction-token-created', { token: result.token });
+        socket.emit('admin-reaction-token-status', { ok: true, message: 'Token de reacción creado. Entrégalo al jugador para habilitar hasta 10 reacciones al día.' });
+        broadcastReactionTokenData();
+    });
+
+    socket.on('admin-reaction-token-remove', ({ id } = {}) => {
+        if (!socket.authenticated) return;
+        const tokenId = String(id || '');
+        if (!tokenId || !botData.reactionTokens?.[tokenId]) {
+            socket.emit('admin-reaction-token-status', { ok: false, message: 'No se encontró ese token de reacción.' });
+            return;
+        }
+        delete botData.reactionTokens[tokenId];
+        saveBotData({ backupNow: true });
+        socket.emit('admin-reaction-token-status', { ok: true, message: 'Token eliminado; su cupo ampliado quedó desactivado.' });
+        broadcastReactionTokenData();
     });
 
     socket.on('admin-premium-add', ({ jid, days } = {}) => {

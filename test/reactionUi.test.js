@@ -11,7 +11,8 @@ const html = `<!doctype html><html><body>
 <a id="menuAutoReaction" href="#autoReaction">Auto reacción</a>
 <a id="menuPlayWow" href="#warcraft">Jugar WoW</a>
 <section id="autoReaction" hidden><button id="reactionExit">Volver</button><button id="reactionLogin" hidden>Iniciar sesión</button>
-<form id="channelReactionForm"><input id="channelPostUrl"><input id="channelReactionEmoji"><input id="reactionConfirm" type="checkbox"><button id="channelReactionSubmit">Enviar reacción</button><p id="channelReactionStatus" role="status"></p></form></section>
+<form id="channelReactionForm"><input id="channelPostUrl"><input id="channelReactionEmoji"><input id="reactionConfirm" type="checkbox"><button id="channelReactionSubmit">Enviar reacción</button><p id="reactionQuota"></p><p id="channelReactionStatus" role="status"></p></form>
+<form id="channelReactionTokenForm"><input id="channelReactionToken"><button id="channelReactionTokenSubmit">Activar</button><p id="channelReactionTokenStatus"></p></form></section>
 </body></html>`;
 const script = fs.readFileSync(path.join(__dirname, '..', 'public/reactions/reaction-ui.js'), 'utf8');
 
@@ -56,7 +57,7 @@ test('al confirmar usa el token de la cuenta y muestra respuesta del servidor', 
     window.localStorage.setItem('jk_warcraft_token', 'session-token');
     window.fetch = async (url, options) => {
       request = { url, options };
-      return { ok: true, status: 200, json: async () => ({ ok: true, message: 'Reacción enviada.' }) };
+      return { ok: true, status: 200, json: async () => ({ ok: true, message: 'Reacción enviada.', quota: { used: 1, limit: 10, remaining: 9, hasToken: true } }) };
     };
   }});
   const { window } = dom;
@@ -73,5 +74,29 @@ test('al confirmar usa el token de la cuenta y muestra respuesta del servidor', 
       url: 'https://whatsapp.com/channel/0029VbBVupfKbYMFuKLsIg2M/436', emoji: '🔥', confirmed: true
     });
     assert.equal(window.document.getElementById('channelReactionStatus').textContent, 'Reacción enviada.');
+    assert.match(window.document.getElementById('reactionQuota').textContent, /1\/10/);
+  } finally { window.close(); }
+});
+
+test('el formulario de reacciones canjea token con la sesión y muestra el nuevo cupo', async () => {
+  let request;
+  const dom = new JSDOM(html, { runScripts: 'dangerously', url: 'https://example.test/', virtualConsole: new VirtualConsole(), beforeParse(window) {
+    window.localStorage.setItem('jk_warcraft_token', 'session-token');
+    window.fetch = async (url, options) => {
+      request = { url, options };
+      return { ok: true, status: 200, json: async () => ({ ok: true, message: 'Token activado: 10 al día.', quota: { used: 0, limit: 10, remaining: 10, hasToken: true } }) };
+    };
+  }});
+  const { window } = dom;
+  try {
+    window.eval(script);
+    window.document.getElementById('channelReactionToken').value = 'JKREACTION-1234567890ABCDEF';
+    window.document.getElementById('channelReactionTokenForm').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(request.url, '/api/reactions/token');
+    assert.equal(request.options.headers.Authorization, 'Bearer session-token');
+    assert.deepEqual(JSON.parse(request.options.body), { token: 'JKREACTION-1234567890ABCDEF' });
+    assert.equal(window.document.getElementById('channelReactionToken').value, '');
+    assert.match(window.document.getElementById('reactionQuota').textContent, /0\/10/);
   } finally { window.close(); }
 });

@@ -16,9 +16,15 @@ test('la página JK Bot conserva el sitio actual y añade los módulos independi
   assert.match(page, /id="menuPlayWow"/);
   assert.match(page, /id="menuAutoReaction"/);
   assert.match(page, /fa-ellipsis-vertical/);
+  assert.match(page, /id="jkNotificationBell"/);
+  assert.match(page, /id="jkNotificationPanel"/);
+  assert.match(page, /id="jkNotificationToast"/);
+  assert.match(page, /src="\/public\/jkbot\/notifications\.js"/);
   assert.match(page, /id="wcRotateGame"/);
   assert.match(page, /id="autoReaction"/);
   assert.match(page, /id="channelReactionForm"/);
+  assert.match(page, /id="channelReactionTokenForm"/);
+  assert.match(page, /id="reactionQuota"/);
   assert.match(page, /id="wcProfileAbilities"/);
   assert.match(page, /id="wcGameMount"/);
   assert.match(page, /id="admin"/);

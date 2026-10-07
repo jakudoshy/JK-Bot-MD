@@ -101,6 +101,20 @@ test('la cuenta conserva el progreso independiente de cada personaje al cambiar 
   assert.equal(game.playerForAccount(reloadedRoot, reloadedAccount).level, 4);
 });
 
+test('las armas y pecheras escalan por nivel y usan nombres e iconos coherentes', () => {
+  const level1 = game.ITEMS.common_1_blade;
+  const level10 = game.ITEMS.common_10_blade;
+  const level11 = game.ITEMS.rare_11_blade;
+  assert.ok(level10.attack > level1.attack, `nivel 10 (${level10.attack}) debe superar nivel 1 (${level1.attack})`);
+  assert.ok(level11.attack > level10.attack, `nivel 11 (${level11.attack}) debe superar nivel 10 (${level10.attack})`);
+  assert.ok(game.ITEMS.common_10_leather.defense > game.ITEMS.common_1_leather.defense);
+  assert.match(game.ITEMS.common_10_leather.name, /^Pechera de cuero Común/);
+  assert.match(game.ITEMS.rare_11_robe.name, /^Vestidura Rara/);
+  assert.match(web.itemImage(game.ITEMS.rare_11_leather), /items\/armor-rare\.png$/);
+  assert.equal(media.itemRelativePath(game.ITEMS.rare_11_leather), 'items/armor-rare.png');
+  assert.match(web.itemImage(game.ITEMS.rare_11_robe), /items\/robe-rare\.png$/);
+});
+
 test('arco, daga y colmillo de lobo muestran sprites de su categoría y rareza', () => {
   const bow = { id: 'common_1_bow', name: 'Arco Común', slot: 'weapon', rarity: 'common' };
   assert.match(web.itemImage(bow), /items\/longbow-common\.png$/);
@@ -170,6 +184,18 @@ test('aceptación de reembolso web entre cuentas transfiere una vez y reconoce e
   const invalid = act(botData, root, stranger, 'refund_accept', { transactionId: txId });
   assert.equal(invalid.ok, false);
   assert.match(invalid.message, /reembolso activo válido/i);
+});
+
+test('el estado web expone el comercio pendiente solo al jugador destinatario', () => {
+  const { botData, root } = setup();
+  const sender = account(botData, root, 'ana', '5350002014', 'Ana');
+  const recipient = account(botData, root, 'ben', '5350002015', 'Ben');
+  const senderPlayer = game.playerForAccount(root, sender);
+  const recipientPlayer = game.playerForAccount(root, recipient);
+  root.trades.trade_1 = { id: 'trade_1', status: 'pending', participants: [senderPlayer.id, recipientPlayer.id], createdAt: new Date().toISOString() };
+  root.trades.trade_2 = { id: 'trade_2', status: 'active', participants: [senderPlayer.id, recipientPlayer.id] };
+  assert.deepEqual(web.playerState(root, recipient).trades, [{ id: 'trade_1', status: 'pending', incoming: true, fromName: 'Ana' }]);
+  assert.deepEqual(web.playerState(root, sender).trades, []);
 });
 
 test('misiones web mantienen el objetivo activo y el combate entrega automáticamente la recompensa', () => {
@@ -258,6 +284,44 @@ test('el cliente web renderiza sus pestañas y conserva la tienda al cambiar de 
     buy.click();
     await new Promise(resolve => setTimeout(resolve, 60));
     assert.ok(requests.some(url => url.endsWith('/action')), 'el botón envía una acción autenticada');
+  } finally {
+    window.close();
+  }
+});
+
+test('una actualización en tiempo real conserva teléfono, foco y selección del formulario de correo', async () => {
+  const { botData, root } = setup();
+  const user = account(botData, root, 'drafttest', '5350002042', 'Draft Tester', 'warrior');
+  const catalog = web.catalog();
+  const current = web.playerState(root, user);
+  const shop = game.shopItems(game.playerForAccount(root, user)).map(item => ({ ...item, image: web.itemImage(item) }));
+  const script = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.js'), 'utf8');
+  const dom = new JSDOM('<div id="wcCharacterSetup"><div id="wcClassGrid"></div><input id="wcCreateClass"><button id="wcCreateCharacterButton"></button><form id="wcCreateCharacterForm"><input id="wcCreateName"><div id="wcCreateStatus"></div></form></div><div id="wcGameMount"></div><div id="wcProfileStats"></div><div id="wcProfileEquipment"></div><ul id="wcProfileInventory"></ul>', { runScripts: 'dangerously', url: 'http://localhost/' });
+  const window = dom.window;
+  try {
+    window.localStorage.setItem('jk_warcraft_token', 'test-token');
+    window.fetch = async url => {
+      let data = { ok: true };
+      if (String(url).endsWith('/catalog')) data = { ok: true, ...catalog };
+      else if (String(url).endsWith('/me')) data = { ok: true, account: { username: user.username }, ...current, rank: 1 };
+      else if (String(url).endsWith('/shop')) data = { ok: true, items: shop };
+      return { ok: true, status: 200, json: async () => data };
+    };
+    window.eval(script);
+    await new Promise(resolve => setTimeout(resolve, 60));
+    window.document.querySelector('[data-tab="mas"]').click();
+    const input = window.document.querySelector('form[data-wc-form="mail_send"] input[name="target"]');
+    assert.ok(input, 'el correo presenta el campo del destinatario');
+    input.focus();
+    input.value = '5350009999';
+    input.setSelectionRange(3, 7);
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    await window.wcGameRefresh();
+    const restored = window.document.querySelector('form[data-wc-form="mail_send"] input[name="target"]');
+    assert.equal(restored.value, '5350009999');
+    assert.equal(window.document.activeElement, restored, 'el foco permanece en el campo');
+    assert.equal(restored.selectionStart, 3);
+    assert.equal(restored.selectionEnd, 7);
   } finally {
     window.close();
   }

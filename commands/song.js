@@ -12,61 +12,49 @@ const {
   isYouTubeUrl
 } = require('../lib/audioValidation');
 
-const API_OPTIONS = {
-  timeout: 25000,
-  headers: {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36',
-    Accept: 'application/json, text/plain, */*'
-  }
-};
-
-async function getEliteProTechDownloadByUrl(videoUrl) {
-  const url = `https://eliteprotech-apis.zone.id/ytdown?url=${encodeURIComponent(videoUrl)}&format=mp3`;
-  const res = await axios.get(url, API_OPTIONS);
-  if (res?.data?.success && res?.data?.downloadURL) return { download: res.data.downloadURL, title: res.data.title };
-  throw new Error('EliteProTech no devolvió una URL de audio.');
-}
-
-async function getYupraDownloadByUrl(videoUrl) {
-  const url = `https://api.yupra.my.id/api/downloader/ytmp3?url=${encodeURIComponent(videoUrl)}`;
-  const res = await axios.get(url, API_OPTIONS);
-  if (res?.data?.success && res?.data?.data?.download_url) return { download: res.data.data.download_url, title: res.data.data.title };
-  throw new Error('Yupra no devolvió una URL de audio.');
-}
-
-async function getOkatsuDownloadByUrl(videoUrl) {
-  const url = `https://okatsu-rolezapiiz.vercel.app/downloader/ytmp3?url=${encodeURIComponent(videoUrl)}`;
-  const res = await axios.get(url, API_OPTIONS);
-  if (res?.data?.dl) return { download: res.data.dl, title: res.data.title };
-  throw new Error('Okatsu no devolvió una URL de audio.');
-}
-
 function readMessageText(message) {
-  const content = message?.message?.ephemeralMessage?.message
-    || message?.message?.viewOnceMessage?.message
-    || message?.message?.viewOnceMessageV2?.message
-    || message?.message;
-  return String(content?.conversation || content?.extendedTextMessage?.text || content?.imageMessage?.caption || content?.videoMessage?.caption || '').trim();
+  let content = message?.message || {};
+  for (let depth = 0; depth < 5; depth++) {
+    const nested = content?.ephemeralMessage?.message
+      || content?.viewOnceMessage?.message
+      || content?.viewOnceMessageV2?.message
+      || content?.viewOnceMessageV2Extension?.message
+      || content?.documentWithCaptionMessage?.message
+      || content?.editedMessage?.message;
+    if (!nested) break;
+    content = nested;
+  }
+  const interactiveText = content?.buttonsResponseMessage?.selectedButtonId
+    || content?.templateButtonReplyMessage?.selectedId
+    || content?.listResponseMessage?.singleSelectReply?.selectedRowId;
+  return String(content?.conversation
+    || content?.extendedTextMessage?.text
+    || content?.imageMessage?.caption
+    || content?.videoMessage?.caption
+    || content?.documentMessage?.caption
+    || interactiveText
+    || '').trim();
+}
+
+function extractSongQuery(value) {
+  return String(value || '').replace(/^\s*\/(?:song|cancion)(?:@[a-z0-9._-]+)?(?=\s|$)\s*/i, '').trim();
 }
 
 function createProviders(videoUrl, fallbackTitle) {
   return [
-    { name: 'EliteProTech', resolve: () => getEliteProTechDownloadByUrl(videoUrl) },
-    { name: 'Yupra', resolve: () => getYupraDownloadByUrl(videoUrl) },
-    { name: 'Okatsu', resolve: () => getOkatsuDownloadByUrl(videoUrl) },
-    { name: 'Alya', resolve: async () => {
-      const res = await axios.get(`https://api.alyachan.pro/api/ytmp3?url=${encodeURIComponent(videoUrl)}&apikey=G7I6X7`, API_OPTIONS);
-      if (res?.data?.status && res?.data?.data?.url) return { download: res.data.data.url, title: res.data.data.title };
-      throw new Error('Alya no devolvió una URL de audio.');
-    } },
-    { name: 'Vreden', resolve: async () => {
-      const res = await axios.get(`https://api.vreden.my.id/api/ytmp3?url=${encodeURIComponent(videoUrl)}`, API_OPTIONS);
-      const result = res?.data?.result;
-      if (res?.data?.status && result?.download?.url) return { download: result.download.url, title: result.metadata?.title };
-      throw new Error('Vreden no devolvió una URL de audio.');
-    } },
-    { name: 'yt-dlp', resolve: async () => ({ download: await getDirectUrl(videoUrl, 'bestaudio[ext=m4a]/bestaudio/best'), title: fallbackTitle }) }
+    { name: 'CNV / yt-dlp', resolve: async () => ({ download: await getDirectUrl(videoUrl, 'bestaudio[ext=m4a]/bestaudio/best'), title: fallbackTitle }) }
   ];
+}
+
+function songErrorMessage(error) {
+  const details = [error?.message, ...(error?.causes || [])].join(' ');
+  if (/\b429\b|too many requests|rate.?limit/i.test(details)) {
+    return 'YouTube está limitando las descargas en este momento (HTTP 429). Espera un poco y vuelve a intentarlo; no es un problema de tu cuenta.';
+  }
+  if (error?.message === 'No encontré una fuente de audio válida.') {
+    return 'No pude obtener un audio reproducible ahora mismo. Prueba con otra canción o con un enlace público de YouTube.';
+  }
+  return 'No pude preparar o enviar ese audio. Inténtalo otra vez con un enlace público de YouTube.';
 }
 
 async function prepareAudio(videoUrl, fallbackTitle, providers = createProviders(videoUrl, fallbackTitle), httpClient = axios, convertAudio = toAudio) {
@@ -95,7 +83,7 @@ async function prepareAudio(videoUrl, fallbackTitle, providers = createProviders
 async function songCommand(sock, chatId, message) {
   try {
     const text = readMessageText(message);
-    const query = text.replace(/^\/(?:song|cancion)(?:\s+|$)/i, '').trim();
+    const query = extractSongQuery(text);
     if (!query) return sock.sendMessage(chatId, { text: 'Uso: /cancion nombre o enlace de YouTube.' }, { quoted: message });
 
     let video;
@@ -117,16 +105,16 @@ async function songCommand(sock, chatId, message) {
     }, { quoted: message });
   } catch (error) {
     console.error('[cancion] Error:', error.message, error.causes || '');
-    const text = error.message === 'No encontré una fuente de audio válida.'
-      ? 'No pude descargar un audio reproducible de esa búsqueda. Prueba con otra canción o con un enlace público de YouTube.'
-      : 'No pude preparar o enviar ese audio. Inténtalo otra vez con un enlace público de YouTube.';
+    const text = songErrorMessage(error);
     try { await sock.sendMessage(chatId, { text }, { quoted: message }); } catch {}
   }
 }
 
 songCommand.prepareAudio = prepareAudio;
 songCommand.readMessageText = readMessageText;
+songCommand.extractSongQuery = extractSongQuery;
 songCommand.createProviders = createProviders;
+songCommand.songErrorMessage = songErrorMessage;
 songCommand.downloadValidatedAudio = downloadValidatedAudio;
 songCommand.isYouTubeUrl = isYouTubeUrl;
 songCommand.safeFilename = safeFilename;

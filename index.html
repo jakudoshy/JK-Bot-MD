@@ -795,6 +795,16 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
         <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-shield-halved"></i> Panel protegido</span><strong class="admin-kpi-value">OK</strong></div>
       </div>
       <div class="admin-promo-card"><div><h4><i class="fas fa-bullhorn"></i> Promoción del canal</h4><p>Envía el aviso a todos los grupos donde los bots puedan escribir. Solo se ejecuta desde esta sesión ADMIN.</p></div><button id="adminPromoButton" class="btn" type="button"><i class="fas fa-paper-plane"></i> Enviar promoción</button></div>
+      <div class="admin-card admin-reaction-token-card">
+        <div class="admin-card-head"><div><h3>Token de reacción bot</h3><p>Activa hasta 10 reacciones diarias para una cuenta WoW.</p></div><span class="admin-section-tag">AUTO REACCIÓN</span></div>
+        <form id="reactionTokenAdminForm" class="premium-grid">
+          <div class="sample-note">Cada token se puede canjear una sola vez y queda vinculado a la primera cuenta que lo active.</div>
+          <button id="reactionTokenAdminGenerate" class="btn" type="submit"><i class="fas fa-key"></i> Generar token de reacción</button>
+          <div id="reactionTokenAdminResult" class="premium-token" title="Pulsa para copiar"></div>
+        </form>
+        <div id="reactionTokenAdminStatus" class="premium-status" aria-live="polite"></div>
+        <div id="reactionTokenAdminList" class="premium-list"><strong>Tokens de reacción</strong>Sin tokens generados.</div>
+      </div>
       <div class="admin-console-grid">
         <div class="admin-card">
           <div class="admin-card-head"><div><h3>Acceso Premium</h3><p>Usuarios y tokens de acceso</p></div><span class="admin-section-tag">CONTROL</span></div>
@@ -843,7 +853,7 @@ if ('serviceWorker' in navigator) {
 /* ---------------- Hacker boot + particles ---------------- */
 const jkBoot=document.getElementById('jkBoot'),jkBootLog=document.getElementById('jkBootLog'),jkBootBar=document.getElementById('jkBootBar'),jkBootStatus=document.getElementById('jkBootStatus');const jkBootLines=['> ɪɴɪᴄɪᴀɴᴅᴏ ѕɪѕᴛᴇᴍᴀ... OK','> ᴄᴀʀɢᴀɴᴅᴏ ᴍóᴅᴜʟᴏѕ... OK','> ᴄᴀʀɢᴀɴᴅᴏ ᴄóᴅɪɢᴏѕ ᴅᴇʟ ʙᴏᴛ... OK','> ᴘʀᴇᴘᴀʀᴀɴᴅᴏ ᴡʜᴀᴛѕᴀᴘᴘ... OK','> ᴄᴀʀɢᴀɴᴅᴏ ᴘᴀɴᴇʟ... OK','> ѕɪѕᴛᴇᴍᴀ ɪɴɪᴄɪᴀᴅᴏ... OK'];let jkBootIndex=0;function runJkBoot(){if(!jkBoot||jkBootIndex>=jkBootLines.length){if(jkBoot){jkBootBar.style.width='100%';jkBootStatus.textContent='ѕɪѕᴛᴇᴍᴀ ɪɴɪᴄɪᴀᴅᴏ';setTimeout(()=>jkBoot.classList.add('is-done'),850)}return}const line=document.createElement('div');line.className='ok';line.textContent=jkBootLines[jkBootIndex++];jkBootLog.appendChild(line);const pct=Math.round((jkBootIndex/jkBootLines.length)*100);jkBootBar.style.width=pct+'%';jkBootStatus.textContent=jkBootIndex<3?'ɪɴɪᴄɪᴀɴᴅᴏ...':jkBootIndex<jkBootLines.length?'ᴄᴀʀɢᴀɴᴅᴏ...':'ѕɪѕᴛᴇᴍᴀ ᴄᴀѕɪ ʟɪѕᴛᴏ...';setTimeout(runJkBoot,360)}runJkBoot();
 
-const matrixCanvas=document.createElement('canvas');matrixCanvas.className='jk-matrix-rain';document.body.appendChild(matrixCanvas);const matrixCtx=matrixCanvas.getContext('2d');let matrixDrops=[];function resizeJkMatrix(){matrixCanvas.width=innerWidth;matrixCanvas.height=innerHeight;matrixDrops=Array.from({length:Math.ceil(innerWidth/16)},()=>Math.random()*-30)}function drawJkMatrix(){matrixCtx.fillStyle='rgba(2,0,1,.12)';matrixCtx.fillRect(0,0,matrixCanvas.width,matrixCanvas.height);matrixCtx.fillStyle='rgba(255,18,56,.52)';matrixCtx.font='13px monospace';const glyphs='ᴊᴋʙᴏᴛ01<>[]{}';matrixDrops.forEach((y,i)=>{matrixCtx.fillText(glyphs[Math.floor(Math.random()*glyphs.length)],i*16,y*15);if(y*15>matrixCanvas.height&&Math.random()>.975)matrixDrops[i]=0;matrixDrops[i]+=.82})}resizeJkMatrix();addEventListener('resize',resizeJkMatrix);setInterval(drawJkMatrix,85);
+const matrixCanvas=document.createElement('canvas');matrixCanvas.className='jk-matrix-rain';document.body.appendChild(matrixCanvas);const matrixCtx=matrixCanvas.getContext('2d');let matrixDrops=[];function resizeJkMatrix(){matrixCanvas.width=innerWidth;matrixCanvas.height=innerHeight;matrixDrops=Array.from({length:Math.ceil(innerWidth/16)},()=>Math.random()*-30)}function drawJkMatrix(){if(!matrixCtx)return;matrixCtx.fillStyle='rgba(2,0,1,.12)';matrixCtx.fillRect(0,0,matrixCanvas.width,matrixCanvas.height);matrixCtx.fillStyle='rgba(255,18,56,.52)';matrixCtx.font='13px monospace';const glyphs='ᴊᴋʙᴏᴛ01<>[]{}';matrixDrops.forEach((y,i)=>{matrixCtx.fillText(glyphs[Math.floor(Math.random()*glyphs.length)],i*16,y*15);if(y*15>matrixCanvas.height&&Math.random()>.975)matrixDrops[i]=0;matrixDrops[i]+=.82})}resizeJkMatrix();addEventListener('resize',resizeJkMatrix);setInterval(drawJkMatrix,85);
 const pWrap = document.getElementById('particles');
 for(let i=0;i<40;i++){
   const p = document.createElement('div');
@@ -912,6 +922,11 @@ const premiumTokenResult = document.getElementById('premiumTokenResult');
 const premiumStatus = document.getElementById('premiumStatus');
 const premiumUsersList = document.getElementById('premiumUsersList');
 const premiumTokensList = document.getElementById('premiumTokensList');
+const reactionTokenAdminForm = document.getElementById('reactionTokenAdminForm');
+const reactionTokenAdminGenerate = document.getElementById('reactionTokenAdminGenerate');
+const reactionTokenAdminResult = document.getElementById('reactionTokenAdminResult');
+const reactionTokenAdminStatus = document.getElementById('reactionTokenAdminStatus');
+const reactionTokenAdminList = document.getElementById('reactionTokenAdminList');
 const publicBotsList = document.getElementById('publicBotsList');
 const publicBotsLive = document.getElementById('publicBotsLive');
 const adminActiveSessions = document.getElementById('adminActiveSessions');
@@ -1046,6 +1061,39 @@ premiumUsersList?.addEventListener('click',(event)=>{
 premiumTokensList?.addEventListener('click',(event)=>{
   const button=event.target.closest('[data-premium-token]');
   if(button && confirm('¿Eliminar este token?')) socket.emit('admin-premium-remove-token',{id:button.dataset.premiumToken});
+});
+function renderReactionTokenData(tokens=[]){
+  if(!reactionTokenAdminList)return;
+  reactionTokenAdminList.innerHTML='<strong>Tokens de reacción</strong>'+(tokens.length?tokens.map(token=>{
+    const value=token.value||token.preview||token.id;
+    const claimed=token.claimedBy?`Activado por ${escapeAdminHtml(token.claimedBy)}`:'Disponible para canjear';
+    const created=token.createdAt?` · creado ${new Date(token.createdAt).toLocaleDateString('es-ES')}`:'';
+    return `<div class="premium-list-row"><span><code>${escapeAdminHtml(value)}</code> · ${claimed}${escapeAdminHtml(created)}</span><button class="premium-remove" data-reaction-token-remove="${escapeAdminHtml(token.id)}" type="button">Eliminar</button></div>`;
+  }).join(''):'Sin tokens generados.');
+}
+reactionTokenAdminForm?.addEventListener('submit',event=>{
+  event.preventDefault();
+  if(reactionTokenAdminGenerate)reactionTokenAdminGenerate.disabled=true;
+  if(reactionTokenAdminResult){reactionTokenAdminResult.textContent='';reactionTokenAdminResult.classList.remove('show');}
+  if(reactionTokenAdminStatus)reactionTokenAdminStatus.textContent='Generando token…';
+  socket.emit('admin-reaction-token-generate');
+});
+socket.on('admin-reaction-token-created',(result={})=>{
+  if(reactionTokenAdminResult){reactionTokenAdminResult.textContent=result.token||'';reactionTokenAdminResult.classList.toggle('show',Boolean(result.token));}
+  if(reactionTokenAdminGenerate)reactionTokenAdminGenerate.disabled=false;
+});
+socket.on('admin-reaction-token-status',(result={})=>{
+  if(reactionTokenAdminStatus){reactionTokenAdminStatus.textContent=result.message||'';reactionTokenAdminStatus.style.color=result.ok?'var(--green)':'var(--danger)';}
+  if(reactionTokenAdminGenerate)reactionTokenAdminGenerate.disabled=false;
+});
+socket.on('admin-reaction-tokens-data',renderReactionTokenData);
+reactionTokenAdminResult?.addEventListener('click',()=>{
+  if(!reactionTokenAdminResult.textContent)return;
+  navigator.clipboard?.writeText(reactionTokenAdminResult.textContent).then(()=>showToast('Token de reacción copiado'));
+});
+reactionTokenAdminList?.addEventListener('click',event=>{
+  const button=event.target.closest('[data-reaction-token-remove]');
+  if(button&&confirm('¿Eliminar este token y desactivar su cupo de 10 reacciones diarias?'))socket.emit('admin-reaction-token-remove',{id:button.dataset.reactionTokenRemove});
 });
 function copyCode(){
   const code = pairingCode.innerText;

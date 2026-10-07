@@ -4,3 +4,29 @@ body.jkbot-app .jkbot-sr-only{position:absolute;width:1px;height:1px;padding:0;m
 body.jkbot-app #menuDrawer #menuAutoReaction{color:#63f5d1;border-left:2px solid rgba(99,245,209,.48)}
 body.jkbot-app #menuDrawer #menuAutoReaction:hover,body.jkbot-app #menuDrawer #menuAutoReaction:focus-visible{background:rgba(99,245,209,.09);color:#b8fff0}
 body.jkbot-app #autoReaction{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+
+/* Campana y centro de notificaciones del portal JK Bot */
+body.jkbot-app #jkNotificationBell{position:relative;display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid rgba(255,49,91,.38);border-radius:13px;background:rgba(18,7,13,.9);color:#ffd4dd;font-size:1rem;cursor:pointer}
+body.jkbot-app #jkNotificationBell:hover,body.jkbot-app #jkNotificationBell:focus-visible{border-color:#ff315b;outline:2px solid rgba(255,49,91,.25);outline-offset:2px}
+body.jkbot-app #jkNotificationBell.has-unread{animation:jkbot-bell-pulse 1.6s ease-in-out infinite;border-color:#ff315b;color:#ff315b;box-shadow:0 0 0 3px rgba(255,49,91,.12),0 0 18px rgba(255,49,91,.3)}
+#jkNotificationBadge{position:absolute;top:-5px;right:-5px;display:grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border:2px solid #130a0f;border-radius:999px;background:#ff315b;color:#fff;font:700 .68rem/1 system-ui}
+#jkNotificationBadge[hidden],#jkNotificationPanel[hidden],#jkNotificationToast[hidden]{display:none!important}
+#jkNotificationPanel{position:fixed;z-index:1400;top:76px;right:clamp(10px,3vw,30px);width:min(390px,calc(100vw - 20px));max-height:min(68vh,590px);overflow:auto;border:1px solid rgba(255,49,91,.35);border-radius:18px;background:linear-gradient(150deg,#171018,#090b10);color:#f5edf1;box-shadow:0 20px 70px rgba(0,0,0,.55)}
+.jkbot-notification-heading{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.09);background:#171018}
+.jkbot-notification-heading h2{margin:0;font-size:1rem}
+#jkNotificationMarkRead{border:0;background:transparent;color:#ff8ba2;font:600 .78rem system-ui;cursor:pointer}
+#jkNotificationList{display:grid;gap:8px;margin:0;padding:10px;list-style:none}
+.jkbot-notification-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.025)}
+.jkbot-notification-item.unread{border-color:rgba(255,49,91,.32);background:rgba(255,49,91,.07)}
+.jkbot-notification-item strong{font-size:.88rem}
+.jkbot-notification-item p{margin:4px 0;color:#d0c5cb;font-size:.8rem;line-height:1.4}
+.jkbot-notification-item small{color:#948992;font-size:.68rem}
+.jkbot-notification-actions{display:flex;align-items:center;gap:5px;flex:0 0 auto}
+.jkbot-notification-actions button{min-height:32px;padding:5px 8px;border:1px solid rgba(255,49,91,.28);border-radius:8px;background:rgba(255,49,91,.08);color:#ffd4dd;font:600 .75rem system-ui;cursor:pointer}
+.jkbot-notification-empty{padding:24px 14px;color:#bdb3ba;text-align:center;font-size:.85rem}
+#jkNotificationToast{position:fixed;z-index:1450;right:16px;bottom:16px;width:min(420px,calc(100vw - 32px));padding:14px 16px;border:1px solid rgba(255,49,91,.58);border-radius:14px;background:#180d13;color:#fff0f3;box-shadow:0 12px 42px rgba(0,0,0,.5);opacity:0;transform:translateY(10px);pointer-events:none;font:600 .88rem/1.45 system-ui}
+#jkNotificationToast.show{animation:jkbot-toast-in .24s ease forwards}
+@keyframes jkbot-bell-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+@keyframes jkbot-toast-in{to{opacity:1;transform:translateY(0)}}
+@media(max-width:540px){#jkNotificationPanel{top:68px;right:8px;max-height:70vh}.jkbot-notification-item{align-items:flex-start}}
+@media(prefers-reduced-motion:reduce){body.jkbot-app #jkNotificationBell.has-unread{animation:none}#jkNotificationToast.show{animation:none;opacity:1;transform:none}}

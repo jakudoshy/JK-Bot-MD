@@ -5,7 +5,7 @@
   const setup = document.getElementById('wcCharacterSetup');
   if (!mount || !setup) return;
 
-  const state = { catalog: null, me: null, shop: [], tab: 'resumen', shopFilter: 'all', classKey: '', notice: '', noticeError: false, pendingPurchase: null, players: [], playersLoadedAt: 0, awaitingCharacterSelection: false };
+  const state = { catalog: null, me: null, shop: [], tab: 'resumen', shopFilter: 'all', classKey: '', notice: '', noticeError: false, pendingPurchase: null, players: [], playersLoadedAt: 0, awaitingCharacterSelection: false, formDrafts: new Map() };
   const token = () => localStorage.getItem(TOKEN_KEY);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const el = id => document.getElementById(id);
@@ -131,13 +131,54 @@
     const cards = characters.map(character => `<article class="wc-character-card"><div class="wc-character-portrait">${img(character.classImage, `${character.className} · ${character.name}`)}</div><div class="wc-character-info"><h3>${esc(character.name)}${character.selected ? ' <span class="wc-character-active">Activo</span>' : ''}</h3><p>${esc(character.className)} · Nivel ${num(character.level)} · ${esc(character.zoneName || labelForZone(character.zone))}</p><p class="wc-character-health">${num(character.hp)} / ${num(character.maxHp)} vida <span>GS ${num(character.gs)}</span></p><button class="wc-game-btn gold" type="button" data-select-character="${esc(character.id)}"><i class="fas fa-play"></i> Jugar con este personaje</button></div></article>`).join('');
     mount.innerHTML = `<section class="wc-character-picker"><div class="wc-character-picker-heading"><div><span class="wc-game-kicker">Cuenta ${esc(state.me?.account?.username || '')}</span><h3>Elige tu personaje</h3><p>Selecciona con cuál continuar. Cada uno conserva su propio nivel, equipo, misiones y progreso.</p></div><button class="wc-game-btn" type="button" data-wc-local="create-character"><i class="fas fa-user-plus"></i> Crear otro personaje</button></div>${state.notice ? `<div class="wc-game-notice ${state.noticeError ? 'error' : ''}" role="status">${esc(state.notice)}</div>` : ''}${cards ? `<div class="wc-character-list">${cards}</div>` : '<div class="wc-game-empty">Todavía no tienes personajes. Crea uno para comenzar.</div>'}</section>`;
   }
+  function snapshotUiPosition() {
+    const active = document.activeElement;
+    const form = active?.closest?.('form[data-wc-form]');
+    let focus = null;
+    if (form && mount.contains(active) && active.name) {
+      focus = { form: form.dataset.wcForm, name: active.name, type: active.type, start: active.selectionStart, end: active.selectionEnd };
+    }
+    return { tabScrollLeft: mount.querySelector('.wc-game-tabs')?.scrollLeft || 0, focus };
+  }
+  function formDraftKey(name) { return `${state.me?.account?.username || ''}:${name}`; }
+  function saveFormDraft(form) {
+    if (!form?.dataset?.wcForm) return;
+    const fields = [...form.elements].filter(field => field.name);
+    state.formDrafts.set(formDraftKey(form.dataset.wcForm), fields.map((field, index) => ({ name: field.name, index: fields.slice(0, index).filter(x => x.name === field.name).length, type: field.type, value: field.value, checked: Boolean(field.checked) })));
+  }
+  function restoreUiPosition(snapshot) {
+    for (const form of mount.querySelectorAll('form[data-wc-form]')) {
+      const draft = state.formDrafts.get(formDraftKey(form.dataset.wcForm));
+      if (!draft) continue;
+      for (const entry of draft) {
+        const field = [...form.elements].filter(control => control.name === entry.name)[entry.index];
+        if (!field) continue;
+        if (field.type === 'checkbox' || field.type === 'radio') field.checked = entry.checked;
+        else field.value = entry.value;
+      }
+    }
+    const tabs = mount.querySelector('.wc-game-tabs');
+    if (tabs) tabs.scrollLeft = snapshot.tabScrollLeft;
+    if (snapshot.focus) {
+      const form = [...mount.querySelectorAll('form[data-wc-form]')].find(candidate => candidate.dataset.wcForm === snapshot.focus.form);
+      const field = form && [...form.elements].find(candidate => candidate.name === snapshot.focus.name && candidate.type === snapshot.focus.type);
+      if (field) {
+        field.focus({ preventScroll: true });
+        if (Number.isInteger(snapshot.focus.start) && Number.isInteger(snapshot.focus.end)) {
+          try { field.setSelectionRange(snapshot.focus.start, snapshot.focus.end); } catch {}
+        }
+      }
+    }
+  }
   function render() {
     const p = state.me?.player;
     if (!p || !token()) return;
+    const uiPosition = snapshotUiPosition();
     const tabs = [['resumen', 'Resumen', 'compass'], ['misiones', 'Misiones', 'scroll'], ['combate', 'Combate', 'dragon'], ['tienda', 'Tienda', 'store'], ['inventario', 'Inventario', 'bag-shopping'], ['mapa', 'Mapa', 'map'], ['oficios', 'Oficios', 'hammer'], ['mazmorras', 'Mazmorras', 'dungeon'], ['jugadores', 'Jugadores', 'users'], ['mas', 'Más funciones', 'ellipsis']];
     const bar = (current, max, kind = '') => `<div class="wc-game-bar ${kind}"><span style="width:${pct(current, max)}%"></span></div>`;
     const hero = `<header class="wc-game-hero">${img(p.classImage, classLabel(p.classKey), 'wc-game-portrait')}<div><h3 class="wc-game-title">${esc(p.name)} · Nivel ${esc(p.level)}</h3><p class="wc-game-subtitle">${esc(classLabel(p.classKey))} · ${esc(labelForZone(p.zone))} · GS ${esc(p.gs)}</p>${bar(p.hp, p.maxHp, 'hp')}<div class="wc-game-statline"><span>Vida</span><strong>${num(p.hp)} / ${num(p.maxHp)}</strong></div>${bar(p.xp, p.xpForNext || 100, 'xp')}<div class="wc-game-statline"><span>Experiencia</span><strong>${num(p.xp)} / ${num(p.xpForNext || 100)}</strong></div></div><div class="wc-game-vitals"><span class="wc-game-chip">${img('/assets/warcraft/generated/ui/gold.png', 'Oro')}<strong>${num(p.gold)}</strong> oro</span><span class="wc-game-chip"><i class="fas fa-khanda"></i> Ataque <strong>${num(p.attack)}</strong></span><span class="wc-game-chip"><i class="fas fa-shield-halved"></i> Defensa <strong>${num(p.defense)}</strong></span><button class="wc-game-btn wc-manage-characters" type="button" data-wc-local="characters"><i class="fas fa-users"></i> Personajes</button></div></header>`;
     mount.innerHTML = `<section class="wc-game-shell">${hero}<nav class="wc-game-tabs" aria-label="Secciones del juego">${tabs.map(([id, label, icon]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-tab="${id}"><i class="fas fa-${icon}"></i> ${label}</button>`).join('')}</nav><div class="wc-game-body"><div class="wc-game-notice ${state.noticeError ? 'error' : ''}" role="status">${esc(state.notice)}</div>${renderTab()}</div></section>${state.pendingPurchase ? renderPurchaseOverlay() : ''}`;
+    restoreUiPosition(uiPosition);
   }
   function renderTab() {
     switch (state.tab) {
@@ -252,9 +293,12 @@
     return `<div class="wc-game-overlay" role="dialog" aria-modal="true" aria-labelledby="wcBuyTitle"><div class="wc-game-dialog"><h3 id="wcBuyTitle">Confirmar compra</h3><p>Vas a comprar este objeto por ${num(item.price)} de oro. La compra solo se completa al confirmar.</p>${itemCard(item)}<p class="wc-game-footnote">Después de comprar, el objeto aparecerá en tu mochila compartida con WhatsApp.</p><div class="wc-game-actions"><button class="wc-game-btn gold" data-wc-action="shop_confirm">Confirmar compra</button><button class="wc-game-btn secondary" data-wc-action="shop_cancel">Cancelar</button></div></div></div>`;
   }
   async function action(name, params = {}) {
-    const { response, data } = await api('/api/warcraft/action', { method: 'POST', body: JSON.stringify({ action: name, ...params }) });
+    let response; let data;
+    try { ({ response, data } = await api('/api/warcraft/action', { method: 'POST', body: JSON.stringify({ action: name, ...params }) })); }
+    catch { setNotice('No se pudo conectar. Tus datos escritos se conservaron; vuelve a intentarlo.', true); render(); return { ok: false }; }
     setNotice(data.message || (data.ok ? 'Acción completada.' : 'No se pudo completar la acción.'), !response.ok || !data.ok);
     if (data.ok) {
+      state.formDrafts.delete(formDraftKey(name));
       if (name === 'shop_prepare') state.pendingPurchase = params.itemId;
       if (name === 'shop_confirm' || name === 'shop_cancel') state.pendingPurchase = null;
       if (name === 'shop_cancel') { render(); return; }
@@ -263,6 +307,9 @@
     return data;
   }
   function values(form) { return Object.fromEntries(new FormData(form).entries()); }
+  const rememberFormInput = event => saveFormDraft(event.target.closest?.('form[data-wc-form]'));
+  mount.addEventListener('input', rememberFormInput);
+  mount.addEventListener('change', rememberFormInput);
   mount.addEventListener('click', async event => {
     const localAction = event.target.closest('[data-wc-local]');
     if (localAction) {
@@ -310,6 +357,7 @@
     const form = event.target.closest('[data-wc-form]');
     if (!form) return;
     event.preventDefault();
+    saveFormDraft(form);
     const data = values(form);
     const kind = form.dataset.wcForm;
     if (kind === 'party_join') await action('party_join', data);
@@ -368,7 +416,7 @@
   const enterGameMode = async event => {
     event?.preventDefault?.();
     document.body.classList.add('wc-game-mode');
-    const rotation = document.body.classList.contains('jkbot-app') ? rotateGameLandscape() : Promise.resolve();
+    const rotation = rotateGameLandscape();
     el('warcraft')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     const profile = el('wcProfilePanel');
     if (profile) profile.style.display = 'block';
@@ -402,22 +450,21 @@
   el('wcExitGameMode')?.addEventListener('click', leaveGameMode);
   el('wcRotateGame')?.addEventListener('click', () => { rotateGameLandscape(); });
   el('wcContinuePortrait')?.addEventListener('click', () => {
-    if (document.body.classList.contains('jkbot-app')) rotateGameLandscape();
-    else document.body.classList.add('wc-portrait-override');
+    rotateGameLandscape();
   });
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && document.body.classList.contains('wc-game-mode')) leaveGameMode();
   });
   window.addEventListener('wc-profile-refresh', () => refresh());
   window.addEventListener('orientationchange', () => {
-    if (document.body.classList.contains('jkbot-app') && document.body.classList.contains('wc-game-mode') && !nativeLandscapeLock) {
+    if (document.body.classList.contains('wc-game-mode') && !nativeLandscapeLock) {
       if (isPortraitViewport()) document.body.classList.add('wc-css-landscape');
       else document.body.classList.remove('wc-css-landscape');
     }
     refresh();
   });
   window.addEventListener('resize', () => {
-    if (document.body.classList.contains('jkbot-app') && document.body.classList.contains('wc-game-mode') && !nativeLandscapeLock) {
+    if (document.body.classList.contains('wc-game-mode') && !nativeLandscapeLock) {
       if (isPortraitViewport()) document.body.classList.add('wc-css-landscape');
       else document.body.classList.remove('wc-css-landscape');
     }

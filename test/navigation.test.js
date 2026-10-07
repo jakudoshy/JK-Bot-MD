@@ -178,6 +178,8 @@ test('Jugar WoW carga el juego horizontal dentro de la página, sin pantalla com
     virtualConsole,
     beforeParse(window) {
       window.localStorage.setItem('jk_warcraft_token', 'game-session');
+      Object.defineProperty(window, 'innerWidth', { value: 390, configurable: true });
+      Object.defineProperty(window, 'innerHeight', { value: 844, configurable: true });
       window.fetch = async url => {
         const target = String(url);
         if (target.endsWith('/catalog')) return { ok: true, status: 200, json: async () => ({ ok: true, ...catalog }) };
@@ -215,11 +217,11 @@ test('Jugar WoW carga el juego horizontal dentro de la página, sin pantalla com
     assert.equal(window.document.getElementById('menuDrawer').getAttribute('aria-hidden'), 'true');
     assert.ok(window.document.querySelector('.wc-game-shell'), 'Jugar no deja la pantalla en negro: muestra el juego');
     assert.equal(fullscreenRequests, 0, 'no solicita pantalla completa');
-    assert.equal(orientationLocks, 0, 'no depende del bloqueo de orientación');
+    assert.equal(orientationLocks, 1, 'la página raíz solicita el giro al tocar Jugar');
     window.document.getElementById('wcExitGameMode').click();
     assert.equal(window.document.documentElement.classList.contains('wc-game-mode'), false);
     assert.equal(window.document.body.classList.contains('wc-game-mode'), false);
-    assert.equal(orientationUnlocks, 0);
+    assert.equal(orientationUnlocks, 1, 'al salir libera el giro nativo');
   } finally {
     window.close();
   }
@@ -288,6 +290,20 @@ test('en /jkbot el giro se intenta al tocar, usa fallback sin fullscreen y conse
     await new Promise(resolve => setTimeout(resolve, 10));
     assert.equal(orientationLocks, 2, 'el botón Girar pantalla vuelve a intentarlo');
     assert.equal(fullscreenRequests, 0, 'no utiliza pantalla completa');
+    window.document.querySelector('[data-tab="mas"]').click();
+    const mailTarget = window.document.querySelector('form[data-wc-form="mail_send"] input[name="target"]');
+    mailTarget.focus();
+    mailTarget.value = '535000123456';
+    mailTarget.setSelectionRange(mailTarget.value.length, mailTarget.value.length);
+    mailTarget.dispatchEvent(new window.Event('input', { bubbles: true }));
+    const tabRail = window.document.querySelector('.wc-game-tabs');
+    tabRail.scrollLeft = 183;
+    window.dispatchEvent(new window.Event('wc-profile-refresh'));
+    await new Promise(resolve => setTimeout(resolve, 80));
+    const restoredTarget = window.document.querySelector('form[data-wc-form="mail_send"] input[name="target"]');
+    assert.equal(restoredTarget.value, '535000123456', 'el refresco en vivo conserva el número escrito');
+    assert.equal(window.document.activeElement, restoredTarget, 'el refresco conserva el foco en el campo');
+    assert.equal(window.document.querySelector('.wc-game-tabs').scrollLeft, 183, 'la navegación horizontal no retrocede al inicio');
     window.document.getElementById('wcExitGameMode').click();
     assert.equal(window.document.body.classList.contains('wc-game-mode'), false);
     assert.equal(window.document.body.classList.contains('wc-css-landscape'), false);

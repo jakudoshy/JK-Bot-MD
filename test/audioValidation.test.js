@@ -54,3 +54,17 @@ test('el comando /cancion sin búsqueda responde con instrucciones sin llamar pr
   await song(sock, 'chat@s.whatsapp.net', { message: { conversation: '/cancion' } });
   assert.match(sent[0], /Uso: \/cancion nombre o enlace de YouTube/i);
 });
+
+test('extrae la consulta de comandos dirigidos al bot y conserva texto anidado de WhatsApp', () => {
+  const song = require('../commands/song');
+  assert.equal(song.extractSongQuery('/cancion@JK_BOT Mi canción'), 'Mi canción');
+  assert.equal(song.extractSongQuery('/song@5350898613 https://youtu.be/abcdefghijk'), 'https://youtu.be/abcdefghijk');
+  assert.equal(song.readMessageText({ message: { ephemeralMessage: { message: { extendedTextMessage: { text: '/cancion@JK_BOT Mi canción' } } } } }), '/cancion@JK_BOT Mi canción');
+  assert.equal(song.readMessageText({ message: { listResponseMessage: { singleSelectReply: { selectedRowId: '/cancion@JK_BOT Mi canción' } } } }), '/cancion@JK_BOT Mi canción');
+});
+
+test('informa el límite HTTP 429 del proveedor sin ocultarlo como error genérico', () => {
+  const song = require('../commands/song');
+  assert.match(song.songErrorMessage({ message: 'No encontré una fuente de audio válida.', causes: ['CNV: timeout', 'yt-dlp: HTTP Error 429: Too Many Requests'] }), /YouTube está limitando.*429/i);
+  assert.match(song.songErrorMessage(new Error('fallo temporal')), /No pude preparar o enviar/i);
+});

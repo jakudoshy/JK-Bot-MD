@@ -237,7 +237,7 @@ test('la tienda respeta el tramo siguiente y asigna rarezas traducibles', () => 
   const rareCatalog = game.shopItems(rarePlayer);
   assert.ok(rareCatalog.length > 0);
   assert.ok(rareCatalog.every(item => item.level >= 11 && item.level <= 20 && item.rarity === 'rare'));
-  assert.match(game.formatItem('rare_20_robe'), /Raro[\s\S]*nivel 20[\s\S]*armadura[\s\S]*intelecto[\s\S]*aguante/i);
+  assert.match(game.formatItem('rare_20_robe'), /Rara[\s\S]*nivel 20[\s\S]*armadura[\s\S]*intelecto[\s\S]*aguante/i);
   assert.equal(game.buy(player, catalog[0].id).error, undefined);
 });
 
