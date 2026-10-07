@@ -1,7 +1,26 @@
 const game = require('../lib/warcraft');
 const crypto = require('crypto');
 const transfers = require('../lib/warcraftTransfers');
-function phoneCandidates(msg, chatId) { const keys = [msg?.key?.participant, msg?.key?.participantAlt, msg?.key?.senderPn, msg?.key?.participantPn, msg?.key?.remoteJid, msg?.key?.remoteJidAlt, chatId]; return [...new Set(keys.map(game.normalizePhone).filter(value => /^\d{7,16}$/.test(value)))]; }
+function phoneCandidates(msg, chatId) {
+  const keys = [msg?.key?.participant, msg?.key?.participantAlt, msg?.key?.senderPn, msg?.key?.participantPn, msg?.key?.remoteJid, msg?.key?.remoteJidAlt, chatId];
+  return [...new Set(keys.map(game.normalizePhone).filter(value => /^\d{7,16}$/.test(value)))];
+}
+function selectPlayerId(root, phones, chatId) {
+  const registered = Object.values(root.accounts || {}).map(account => game.normalizePhone(account?.phone)).find(phone => phone && phones.includes(phone));
+  return registered || phones.find(phone => root.sessions[phone]) || phones.find(phone => root.players[phone]) || phones[0] || game.normalizePhone(chatId);
+}
+function duelHealthText(root, duel) {
+  return duel.players.map(id => { const player = root.players[id]; return `${player?.name || id}: ${Math.max(0, Number(duel.hp?.[id] ?? player?.maxHp ?? 0))}/${player?.maxHp || 0} vida`; }).join('\n');
+}
+function shopCategoryText(player, slot, pageValue = '1') {
+  const label = slot === 'weapon' ? 'Armas' : 'Armaduras';
+  const catalog = game.shopItems(player).filter(item => item.slot === slot);
+  if (!catalog.length) return `No hay ${label.toLowerCase()} disponibles para tu nivel (${player.level}).`;
+  const pageSize = 8; const pageCount = Math.max(1, Math.ceil(catalog.length / pageSize));
+  const parsedPage = Number.parseInt(String(pageValue || '1'), 10); const page = Number.isFinite(parsedPage) ? Math.min(pageCount, Math.max(1, parsedPage)) : 1;
+  const visible = catalog.slice((page - 1) * pageSize, page * pageSize);
+  return `${label} · nivel ${player.level} · página ${page}/${pageCount}\n\n${visible.map(item => `${game.formatItem(item)}\nID: ${item.id} · Precio: ${item.price} oro\nComprar: /comprar ${item.id}`).join('\n\n')}\n\n${page < pageCount ? `Siguiente página: /${slot === 'weapon' ? 'armas' : 'armaduras'} ${page + 1}` : 'Fin del catálogo para tu nivel.'}`;
+}
 function reply(sock, chatId, msg, text) { return sock.sendMessage(chatId, { text }, { quoted: msg }); }
 function menu(category = '') {
   const groups = {
@@ -103,7 +122,7 @@ El juego se juega por WhatsApp; la página se mantiene como cuenta y consulta de
     const request = command === '-reembolso' ? { type: 'none' } : transfers.parseAsset(q, { allowNone: true });
     if (request.error) return reply(sock, chatId, msg, `❌ ${request.error}`);
     const submitted = transfers.submitRequest(root, p.id, request);
-    if (submitted.error) return reply(sock, chatId, msg, `❌ ${submitted.error}`);
+    if (submitted.error) { if (submitted.changed) saveBotData(); return reply(sock, chatId, msg, submitted.error); }
     const tx = submitted.transaction;
     const requested = tx.request.type === 'none' ? 'nada; es un regalo que requiere aceptación' : transfers.describeAsset(tx.request);
     const itemCode = asset => asset?.type === 'item' ? ` (código: ${asset.itemId})` : '';
@@ -118,12 +137,14 @@ El juego se juega por WhatsApp; la página se mantiene como cuenta y consulta de
     return reply(sock, chatId, msg, `✅ *Reembolso listo.* Se envió a ${tx.toName} por privado. No se transferirá nada hasta que escriba /accept rem. ID: ${tx.id}.`);
   }
   if (command === 'aceptarreembolso') {
-    const tx = q.trim() ? root.reimbursements[q.trim().toUpperCase()] : Object.values(root.reimbursements).find(t => t.status === 'pending' && t.toPhone === p.id);
-    if (!tx) return reply(sock, chatId, msg, '❌ No tienes una solicitud de reembolso pendiente.');
+    const requestedId = q.trim().toUpperCase();
+    const tx = requestedId ? root.reimbursements[requestedId] : Object.values(root.reimbursements).find(item => item.status === 'pending' && item.toPhone === p.id) || Object.values(root.reimbursements).filter(item => item.status === 'completed' && item.toPhone === p.id && Date.now() - Date.parse(item.completedAt || 0) <= 10 * 60 * 1000).sort((a, b) => Date.parse(b.completedAt) - Date.parse(a.completedAt))[0];
+    if (!tx) return reply(sock, chatId, msg, 'No hay un reembolso pendiente dirigido a tu cuenta. No se movió oro ni objetos.');
     const result = transfers.accept(root, tx.id, p.id);
-    if (result.error) return reply(sock, chatId, msg, `❌ ${result.error}`);
+    if (result.error) { if (result.changed) saveBotData(); return reply(sock, chatId, msg, result.error); }
+    if (result.alreadyCompleted) return reply(sock, chatId, msg, `Este reembolso ya estaba completado (${tx.id}). No se volvió a transferir nada.\nRevisa /inventario y /estadopersonaje.`);
     saveBotData();
-    const summary = `✅ *Reembolso completado*\n${tx.fromName} entregó ${transfers.describeAsset(tx.offer)} y recibió ${transfers.describeAsset(tx.request)}.`;
+    const summary = `Reembolso completado · ${tx.id}\n${tx.fromName} entregó ${transfers.describeAsset(tx.offer)} y recibió ${transfers.describeAsset(tx.request)}.`;
     try { await sock.sendMessage(`${tx.fromPhone}@s.whatsapp.net`, { text: summary }); } catch {}
     return reply(sock, chatId, msg, `${summary}\nTu inventario y oro ya están actualizados.`);
   }
@@ -131,7 +152,8 @@ El juego se juega por WhatsApp; la página se mantiene como cuenta y consulta de
     const tx = q.trim() ? root.reimbursements[q.trim().toUpperCase()] : Object.values(root.reimbursements).find(t => t.status === 'pending' && [t.fromPhone, t.toPhone].includes(p.id));
     if (!tx) return reply(sock, chatId, msg, '❌ No tienes una solicitud de reembolso pendiente.');
     const result = transfers.cancel(root, tx.id, p.id);
-    if (result.error) return reply(sock, chatId, msg, `❌ ${result.error}`);
+    if (result.error) return reply(sock, chatId, msg, result.error);
+    if (result.alreadyCancelled) return reply(sock, chatId, msg, `La solicitud ${tx.id} ya estaba cancelada. No se movieron recursos.`);
     saveBotData();
     const other = p.id === tx.fromPhone ? tx.toPhone : tx.fromPhone;
     try { await sock.sendMessage(`${other}@s.whatsapp.net`, { text: `❌ ${p.name} canceló la solicitud de reembolso ${tx.id}. No se transfirió oro ni objetos.` }); } catch {}
@@ -139,10 +161,10 @@ El juego se juega por WhatsApp; la página se mantiene como cuenta y consulta de
   }
 
   if (command === 'pjnombre') { if (p) return reply(sock, chatId, msg, 'Ya tienes un personaje.'); const name = q.trim(); if (name.length < 3) return reply(sock, chatId, msg, 'Uso: /nombredelpersonaje Nombre'); root.pending ||= {}; root.pending[id] = { name }; saveBotData(); return reply(sock, chatId, msg, 'Nombre guardado. Ahora elige tu clase con /clase y una de las clases disponibles en /tutorial.'); }
-  if (command === 'clase') { if (p) return reply(sock, chatId, msg, 'Ya tienes un personaje.'); const pending = root.pending?.[id]; if (!pending) return reply(sock, chatId, msg, 'Primero usa /nombredelpersonaje Nombre.'); const result = game.createPlayer(botData, jid, pending.name, q.trim().toLowerCase()); if (result.error) return reply(sock, chatId, msg, result.error); delete root.pending[id]; saveBotData(); return reply(sock, chatId, msg, `Has comenzado tu aventura.\n\n${game.formatStatus(result.player)}`); }
+  if (command === 'clase') { if (p) return reply(sock, chatId, msg, 'Ya tienes un personaje.'); const pending = root.pending?.[id]; if (!pending) return reply(sock, chatId, msg, 'Primero usa /nombredelpersonaje Nombre.'); const result = game.createPlayer(botData, jid, pending.name, q.trim().toLowerCase()); if (result.error) return reply(sock, chatId, msg, result.error); delete root.pending[id]; saveBotData(); return reply(sock, chatId, msg, `Personaje creado.\nClase: ${game.CLASS_CONFIG[result.player.classKey].label} · función: ${game.roleForPlayer(result.player)}\n\n${game.formatStatus(result.player)}`); }
   if (!p) return reply(sock, chatId, msg, 'No tienes personaje. Usa /nombredelpersonaje Nombre y luego /clase con una clase disponible.');
   if (['statusw','estadow','personajew','estadopersonaje','fichapersonaje','estado'].includes(command)) return reply(sock, chatId, msg, game.formatStatus(p));
-  if (command === 'inventariow' || command === 'inventario') return reply(sock, chatId, msg, `Inventario\n\n${game.listItems(p).map(x => `${x.index}. ${game.formatItem(x.id)} [${x.id}]`).join('\n\n') || 'Vacío'}\n\nArma equipada: ${game.formatItem(p.equipment.weapon)}\nArmadura equipada: ${game.formatItem(p.equipment.armor)}\nOro: ${p.gold}`);
+  if (command === 'inventariow' || command === 'inventario') return reply(sock, chatId, msg, `Inventario · ${p.name}\nOro: ${p.gold}\n\n${game.listItems(p).map(item => `${item.index}. ${game.formatItem(item.id)} [${item.id}]`).join('\n\n') || 'Vacío'}\n\nArma: ${game.formatItem(p.equipment.weapon)}\nArmadura: ${game.formatItem(p.equipment.armor)}`);
   if (command === 'equiparw' || command === 'equipar') { const r = game.equip(p, q.trim()); if (r.error) return reply(sock, chatId, msg, `❌ ${r.error}`); saveBotData(); return reply(sock, chatId, msg, `✅ Equipaste ${r.item.name}.\n\n${game.formatStatus(p)}`); }
   if (['usarw','pocionw','usar'].includes(command)) { const r = game.useItem(p, q.trim() || 'health_potion'); if (r.error) return reply(sock, chatId, msg, `❌ ${r.error}`); saveBotData(); return reply(sock, chatId, msg, `🧪 Usaste ${r.item.name} y recuperaste ${r.healed} de vida.\n${game.formatStatus(p)}`); }
   if (command === 'enemigosw' || command === 'enemigos') { const dungeon = game.dungeonState(root, p); if (!dungeon.error) return reply(sock, chatId, msg, `Enemigos de ${dungeon.dungeon.name} · en orden\n\n${dungeon.run.enemies.map((enemy, index) => `${index + 1}. ${enemy.name} · ${enemy.roomName} · ${enemy.status === 'defeated' ? 'derrotado' : enemy.hp === enemy.maxHp ? `${enemy.hp} vida` : `${enemy.hp}/${enemy.maxHp} vida`}`).join('\n')}\n\nActual: ${dungeon.enemy?.name || 'mazmorra completada'}`); const enemies = game.getEnemiesForPlayer(p); const zone = game.ZONES[p.zone] || game.ZONES.aldea; return reply(sock, chatId, msg, `Enemigos disponibles · ${zone.name}\n\n${enemies.map(e => `${e.id} · ${e.name} · nivel ${e.level} · vida ${e.hp} · ataque ${e.attack}${e.missionTarget ? ' · objetivo de misión activo' : ''}`).join('\n') || 'No hay enemigos disponibles para tu nivel en esta zona.'}\n\n${p.activeQuest?.enemyId ? `Objetivo de misión: /buscar ${p.activeQuest.enemyId}` : 'Usa /buscar id_del_enemigo para iniciar un combate.'}`); }
@@ -153,13 +175,20 @@ El juego se juega por WhatsApp; la página se mantiene como cuenta y consulta de
   if (command === 'curar' || command === 'curarw') { const r = game.dungeonHeal(root, p, q.trim() || 'banda'); if (r.error) return reply(sock, chatId, msg, r.error); saveBotData(); return reply(sock, chatId, msg, dungeonActionText(r, p, root)); }
   if (command === 'especializacion' || command === 'especializacionw') { const r = game.chooseDruidSpecialization(p, q.trim()); if (r.error) return reply(sock, chatId, msg, r.error); saveBotData(); return reply(sock, chatId, msg, `Especialización elegida: ${r.config.label}.\nHabilidades: ${Object.keys(game.skillsForPlayer(p)).join(', ')}\n${game.formatStatus(p)}`); }
   if (command === 'huirw' || command === 'huir') { if (!root.combat[p.id] || root.combat[p.id].status !== 'active') return reply(sock, chatId, msg, 'No estás en combate.'); root.combat[p.id].status = 'fled'; saveBotData(); return reply(sock, chatId, msg, '🏃 Has huido del combate.'); }
-  if (command === 'misionesw' || command === 'misiones') { const active = p.activeQuest; const campaign = game.campaignProgress(p); if (active) { const quest = game.QUESTS.find(item => item.id === active.id); return reply(sock, chatId, msg, `Misión en progreso\n\n${quest?.name || active.name}\n${quest?.description || ''}\nProgreso: ${active.progress}/${active.goal}\nCampaña del nivel: ${campaign.completed}/${campaign.total} misiones completadas\nRecompensa automática: ${active.rewardXp} XP y ${active.rewardGold} oro${active.rewardItems?.length ? `\nObjeto: ${active.rewardItems.map(item => game.formatItem(item)).join('\n')}` : ''}${active.enemyId ? `\nObjetivo añadido a /enemigos: ${active.enemyId}\nUsa /buscar ${active.enemyId}` : `\nObjetivo: /mazmorra ${active.dungeonId}`}\n\nPara abandonar: /cancelarmision`); } const board = game.getQuestBoard(p); return reply(sock, chatId, msg, `Misiones del nivel ${p.level} · ${campaign.completed}/${campaign.total} completadas\nCompleta las tres misiones de este nivel para desbloquear el siguiente.\nPulsa /misiones para elegir una del menú o usa el ID.\n\n${board.map(qs => `${qs.name} [${qs.id}]\n${qs.description}\nRecompensa automática: ${qs.xp} XP y ${qs.gold} oro${qs.rewardItems?.length ? `\nObjeto: ${qs.rewardItems.map(item => game.formatItem(item)).join('\n')}` : ''}\n/aceptarmision ${qs.id}`).join('\n\n') || 'No hay misiones disponibles para este nivel.'}`); }
-  if (command === 'aceptarmision' || command === 'aceptarmisionw') { const r = game.acceptQuest(p, q.trim()); if (r.error) return reply(sock, chatId, msg, r.error); const quest = r.template; saveBotData(); return reply(sock, chatId, msg, `Misión aceptada: ${quest.name}.\n${quest.description}\nAl completar recibirás automáticamente ${r.quest.rewardXp} XP y ${r.quest.rewardGold} oro.${r.quest.rewardItems?.length ? `\nRecompensa especial: ${r.quest.rewardItems.map(item => game.formatItem(item)).join('\n')}` : ''}${quest.enemyId ? `\nEl objetivo ya aparece en /enemigos. Usa /buscar ${quest.enemyId}.` : `\nCompleta el objetivo con /mazmorra ${quest.dungeonId}.`}\nUsa /misiones para consultar el progreso.`); }
+  if (command === 'misionesw' || command === 'misiones') { const active = p.activeQuest; const campaign = game.campaignProgress(p); if (active) { const quest = game.QUESTS.find(item => item.id === active.id); return reply(sock, chatId, msg, `Misión en progreso\n\n${quest?.name || active.name}\nTipo: ${active.mainQuest ? 'misión principal' : 'misión secundaria'}\n${quest?.description || active.description || ''}\nProgreso: ${active.progress}/${active.goal}\nCampaña del nivel: ${campaign.completed}/${campaign.total} misiones completadas\nRecompensa automática: ${active.rewardXp} XP y ${active.rewardGold} oro${active.rewardItems?.length ? `\nObjeto: ${active.rewardItems.map(item => game.formatItem(item)).join('\n')}` : ''}${active.enemyId ? `\nObjetivo añadido a /enemigos: ${active.enemyId}\nUsa /buscar ${active.enemyId}` : `\nObjetivo: /mazmorra ${active.dungeonId}`}\n\nPara abandonar: /cancelarmision`); } const board = game.getQuestBoard(p); saveBotData(); return reply(sock, chatId, msg, `Misiones del nivel ${p.level} · ${campaign.completed}/${campaign.total} completadas\nCompleta las tres misiones de este nivel para desbloquear el siguiente.\nPulsa /misiones para elegir una del menú o usa el ID.\n\n${board.map(qs => `${qs.mainQuest ? '[Misión principal] ' : qs.repeatable ? '[Secundaria aleatoria] ' : '[Misión secundaria] '}${qs.name} [${qs.id}]\n${qs.description}\nRecompensa automática: ${qs.xp} XP y ${qs.gold} oro${qs.rewardItems?.length ? `\nObjeto: ${qs.rewardItems.map(item => game.formatItem(item)).join('\n')}` : ''}\n/aceptarmision ${qs.id}`).join('\n\n') || 'No hay misiones disponibles para este nivel.'}`); }
+  if (command === 'aceptarmision' || command === 'aceptarmisionw') { const r = game.acceptQuest(p, q.trim()); if (r.error) return reply(sock, chatId, msg, r.error); const quest = r.template; saveBotData(); return reply(sock, chatId, msg, `Misión aceptada: ${quest.name} · ${quest.mainQuest ? 'principal' : 'secundaria'}.\n${quest.description}\nAl completar recibirás automáticamente ${r.quest.rewardXp} XP y ${r.quest.rewardGold} oro.${r.quest.rewardItems?.length ? `\nRecompensa especial: ${r.quest.rewardItems.map(item => game.formatItem(item)).join('\n')}` : ''}${quest.enemyId ? `\nEl objetivo ya aparece en /enemigos. Usa /buscar ${quest.enemyId}.` : `\nCompleta el objetivo con /mazmorra ${quest.dungeonId}.`}\nUsa /misiones para consultar el progreso.`); }
   if (command === 'cancelarmision' || command === 'cancelarmisionw') { const r = game.cancelQuest(p); if (r.error) return reply(sock, chatId, msg, r.error); saveBotData(); return reply(sock, chatId, msg, `Misión cancelada: ${r.quest.name}. El objetivo ya no aparecerá como misión activa en /enemigos.`); }
   if (command === 'mazmorrasw' || command === 'mazmorras') return reply(sock, chatId, msg, `Mazmorras\n\n${game.DUNGEONS.map(d => `${d.id} · ${d.name} · nivel ${d.level}\nEnemigos en orden: ${d.rooms.flatMap(room => room.enemies).map(enemyId => `${game.DUNGEON_ENEMIES[enemyId]?.name || game.ENEMIES[enemyId]?.name || enemyId}`).join(' → ')}`).join('\n\n')}\n\nEl líder inicia con /mazmorra crypt|forge|night. Usa /mazmorra estado para ver el turno.`);
   if (command === 'mazmorraw' || command === 'mazmorra') { const requested = q.trim().toLowerCase(); if (requested === 'estado' || requested === 'status') { const state = game.dungeonState(root, p); if (state.error) return reply(sock, chatId, msg, state.error); const enemy = state.enemy; return reply(sock, chatId, msg, `${state.dungeon.name} · Ronda ${state.run.round}\nEnemigo actual: ${enemy?.name || '—'} ${enemy ? `${enemy.hp}/${enemy.maxHp} vida` : ''}\nOrden: ${state.members.map((member, index) => `${index + 1}. ${member.name} ${member.hp}/${member.maxHp}${member.active ? ' (turno)' : ''}`).join('\n')}`); } const r = game.startDungeonRun(root, p, requested); if (r.error) return reply(sock, chatId, msg, r.error); saveBotData(); const sequence = r.run.enemies.map((enemy, index) => `${index + 1}. ${enemy.name} · ${enemy.roomName}`).join('\n'); return reply(sock, chatId, msg, `Mazmorra iniciada: ${r.dungeon.name}.\nGrupo: ${r.members.map(member => `${member.name} (${game.roleForPlayer(member)})`).join(', ')}\n\nEnemigos en orden:\n${sequence}\n\nPrimer turno: ${r.members[0].name}. Usa /atacar, /habilidad, /agro o /curar banda. Consulta /mazmorra estado.`); }
-  if (command === 'tiendaw' || command === 'tienda') return reply(sock, chatId, msg, `Tienda · nivel ${p.level}\n\n${game.shopItems(p).map(x => `${game.formatItem(x)}\nID: ${x.id} · Precio: ${x.price} oro`).join('\n\n')}\n\nRareza por nivel: 1–10 común, 11–20 raro, 21–30 épico, 31–50 legendario, 51–80 mítico. La fuerza de equipo aumenta el ataque desde el nivel 30.\nUsa /comprar id.`);
-  if (command === 'comprarw' || command === 'comprar') { const idItem = q.trim(); const item = game.ITEMS[idItem]; if (!item) return reply(sock, chatId, msg, '❌ Objeto inexistente. Usa /tienda para ver los IDs.'); if (p.level < item.level || p.gold < item.price) return reply(sock, chatId, msg, `❌ No puedes comprarlo: requiere nivel ${item.level} y cuesta ${item.price} oro.`); root.pendingPurchases[id] = { itemId: idItem, expiresAt: Date.now() + 120000 }; saveBotData(); return reply(sock, chatId, msg, `🛒 Vas a comprar *${item.name}* por ${item.price} oro.\nOro actual: ${p.gold}.\n\n✅ Escribe /ConfirmarCompra para comprar.\n❌ Escribe /CancelarCompra para cancelar.`); }
+  if (command === 'tiendaw' || command === 'tienda') {
+    const category = q.trim().toLowerCase();
+    if (/^(?:arma|armas|weapon|weapons)$/.test(category)) return reply(sock, chatId, msg, shopCategoryText(p, 'weapon'));
+    if (/^(?:armadura|armaduras|armor|armors)$/.test(category)) return reply(sock, chatId, msg, shopCategoryText(p, 'armor'));
+    return reply(sock, chatId, msg, `Tienda de equipo · nivel ${p.level}\n\n/armas · catálogo de armas\n/armaduras · catálogo de armaduras\n/tienda armas|armaduras · acceso directo\n\nCada objeto muestra rareza, nivel, ataque, armadura, fuerza, agilidad, intelecto, aguante y precio.`);
+  }
+  if (command === 'armasw') return reply(sock, chatId, msg, shopCategoryText(p, 'weapon', q.trim() || '1'));
+  if (command === 'armadurasw') return reply(sock, chatId, msg, shopCategoryText(p, 'armor', q.trim() || '1'));
+  if (command === 'comprarw' || command === 'comprar') { const idItem = q.trim(); const item = game.ITEMS[idItem]; if (!item) return reply(sock, chatId, msg, '❌ Objeto inexistente. Usa /tienda para ver los IDs.'); if (item.questReward) return reply(sock, chatId, msg, 'Ese equipo solo se obtiene al completar una misión principal.'); if (item.classKey && item.classKey !== p.classKey) return reply(sock, chatId, msg, `Ese equipo es exclusivo de ${game.CLASS_CONFIG[item.classKey]?.label || item.classKey}.`); if (p.level < item.level || p.gold < item.price) return reply(sock, chatId, msg, `❌ No puedes comprarlo: requiere nivel ${item.level} y cuesta ${item.price} oro.`); root.pendingPurchases[id] = { itemId: idItem, expiresAt: Date.now() + 120000 }; saveBotData(); return reply(sock, chatId, msg, `🛒 Vas a comprar *${item.name}* por ${item.price} oro.\nOro actual: ${p.gold}.\n\n✅ Escribe /ConfirmarCompra para comprar.\n❌ Escribe /CancelarCompra para cancelar.`); }
   if (command === 'confirmarcompra') { const pending = root.pendingPurchases[id]; if (!pending || pending.expiresAt < Date.now()) return reply(sock, chatId, msg, 'No tienes una compra pendiente.'); const r = game.buy(p, pending.itemId); delete root.pendingPurchases[id]; if (r.error) return reply(sock, chatId, msg, `❌ ${r.error}`); saveBotData(); return reply(sock, chatId, msg, `✅ Compra completada: ${r.item.name}.\n${game.formatStatus(p)}`); }
   if (command === 'cancelarcompra') { delete root.pendingPurchases[id]; saveBotData(); return reply(sock, chatId, msg, '❌ Compra cancelada. No se descontó oro.'); }
   if (command === 'talentosw' || command === 'talentos') { const r = game.spendTalent(p, q.trim()); if (r.error) return reply(sock, chatId, msg, `❌ ${r.error}\n🎯 Puntos disponibles: ${p.talentPoints || 0}.`); saveBotData(); return reply(sock, chatId, msg, `✅ Talento mejorado: ${r.talent === 'attack' ? 'ataque' : r.talent === 'defense' ? 'defensa' : 'vitalidad'} +${r.increase}. Puntos restantes: ${r.remaining}.\n${game.formatStatus(p)}`); }
@@ -184,11 +213,61 @@ El juego se juega por WhatsApp; la página se mantiene como cuenta y consulta de
   if (command === 'encantamientosw') return reply(sock, chatId, msg, `Encantamientos\n\n${Object.entries(game.ENCHANTMENTS).map(([id,e]) => `• ${id} · ${e.name} · ${e.slot === 'weapon' ? 'arma' : 'armadura'} · +${e.attack || 0} ataque · +${e.defense || 0} defensa · +${e.hp || 0} vida · materiales: ${Object.entries(e.materials).map(([m,n]) => `${m} x${n}`).join(', ')}`).join('\n')}\n\nUsa /encantar filo arma o /encantar fortaleza armadura.`);
   if (command === 'encantarw') { const [enchantId, slotInput] = q.trim().split(/\s+/); const slot = /^(armadura|armor)$/i.test(slotInput || '') ? 'armor' : 'weapon'; const r = game.enchant(p, enchantId, slot); if (r.error) return reply(sock, chatId, msg, `❌ ${r.error}`); saveBotData(); return reply(sock, chatId, msg, `✨ Encantamiento aplicado: ${r.enchantment.name}.\n${game.formatStatus(p)}`); }
   if (command === 'guildw') { const [action, ...rest] = q.trim().split(/\s+/); const r = game.guild(botData, action || 'info', p, rest.join(' ')); if (r.error) return reply(sock, chatId, msg, `❌ ${r.error}`); saveBotData(); return reply(sock, chatId, msg, r.guild ? `🏰 Guild: ${r.guild.name}\n🆔 ID: ${r.guild.id}` : 'No perteneces a ninguna guild.'); }
-  if (command === 'duelo' || command === 'desafiar') { const target = String(q || '').match(/\d{7,16}/)?.[0]; if (!target) return reply(sock, chatId, msg, 'Uso: /duelo número_del_jugador'); const r = game.createDuel(root, p, target); if (r.error) return reply(sock, chatId, msg, `❌ ${r.error}`); saveBotData(); await sock.sendMessage(`${target}@s.whatsapp.net`, { text: `⚔️ ${p.name} te ha desafiado a un duelo. Usa /aceptarduelo para aceptar o /rendirse para terminar el duelo.` }); return reply(sock, chatId, msg, '⚔️ Desafío enviado.'); }
-  if (command === 'aceptarduel' || command === 'aceptarduelo') { const r = game.acceptDuel(root, p); if (r.error) return reply(sock, chatId, msg, `❌ ${r.error}`); saveBotData(); const other = r.duel.players.find(x => x !== p.id); await sock.sendMessage(`${other}@s.whatsapp.net`, { text: '⚔️ Duelo iniciado. Es tu turno: usa /atacarduelo o /habilidadduelo nombre.' }); return reply(sock, chatId, msg, '⚔️ Duelo aceptado. El retador empieza.'); }
-  if (command === 'atacarduel' || command === 'dueloatacar') { const r = game.duelAttack(root, p, 'auto'); if (r.error) return reply(sock, chatId, msg, `❌ ${r.error}`); saveBotData(); const other = r.duel.players.find(x => x !== p.id); if (r.victory) { await sock.sendMessage(`${other}@s.whatsapp.net`, { text: `🏳️ Has perdido el duelo contra ${p.name}.` }); return reply(sock, chatId, msg, `🏆 Ganaste el duelo. Daño: ${r.damage}.`); } await sock.sendMessage(`${other}@s.whatsapp.net`, { text: `⚔️ ${p.name} te infligió ${r.damage} de daño. Es tu turno.` }); return reply(sock, chatId, msg, `⚔️ Infligiste ${r.damage} de daño. Esperando el turno del rival.`); }
-  if (command === 'habilidadduel') { const r = game.duelAttack(root, p, q.trim().toLowerCase()); if (r.error) return reply(sock, chatId, msg, `❌ ${r.error}`); saveBotData(); return reply(sock, chatId, msg, r.victory ? `🏆 Ganaste el duelo con ${r.damage} de daño.` : `⚔️ Habilidad usada: ${r.damage} de daño. Turno del rival.`); }
-  if (command === 'rendirse') { const duel = Object.values(root.duels || {}).find(d => d.status === 'active' && d.players.includes(p.id)); if (!duel) return reply(sock, chatId, msg, 'No estás en un duelo.'); duel.status = 'forfeit'; duel.winner = duel.players.find(x => x !== p.id); saveBotData(); return reply(sock, chatId, msg, '🏳️ Te has rendido.'); }
+  if (command === 'duelo' || command === 'desafiar') {
+    const target = String(q || '').match(/\d{7,16}/)?.[0];
+    if (!target) return reply(sock, chatId, msg, 'Uso: /duelo número_del_jugador');
+    const result = game.createDuel(root, p, target);
+    if (result.error) return reply(sock, chatId, msg, result.error);
+    saveBotData();
+    try {
+      await sock.sendMessage(`${target}@s.whatsapp.net`, { text: `Desafío de duelo: ${p.name} te reta. Escribe /aceptarduelo para aceptar.\n\nVida inicial:\n${duelHealthText(root, result.duel)}` });
+    } catch {
+      result.duel.status = 'cancelled';
+      delete root.duelRequests[target];
+      saveBotData();
+      return reply(sock, chatId, msg, 'No se pudo entregar el desafío al número indicado. No quedó un duelo pendiente.');
+    }
+    return reply(sock, chatId, msg, `Desafío enviado a ${root.players[target].name}.\nVida inicial:\n${duelHealthText(root, result.duel)}`);
+  }
+  if (command === 'aceptarduel' || command === 'aceptarduelo') {
+    const result = game.acceptDuel(root, p);
+    if (result.error) return reply(sock, chatId, msg, result.error);
+    if (result.waitingForOpponent) return reply(sock, chatId, msg, `Tu desafío sigue pendiente; el rival todavía no lo ha aceptado.\n${duelHealthText(root, result.duel)}`);
+    if (result.alreadyFinished) return reply(sock, chatId, msg, `Ese duelo ya terminó.\n${duelHealthText(root, result.duel)}\nGanador: ${root.players[result.duel.winner]?.name || '—'}.`);
+    saveBotData();
+    const other = result.duel.players.find(playerId => playerId !== p.id);
+    const state = `${result.alreadyActive ? 'El duelo ya está activo.' : 'Duelo aceptado.'}\n${duelHealthText(root, result.duel)}\nTurno de ${root.players[result.duel.turn]?.name || 'retador'}: /atacarduelo o /habilidadduelo nombre.`;
+    if (!result.alreadyActive) try { await sock.sendMessage(`${other}@s.whatsapp.net`, { text: state }); } catch {}
+    return reply(sock, chatId, msg, state);
+  }
+  if (command === 'atacarduel' || command === 'dueloatacar' || command === 'atacarduelo') {
+    const result = game.duelAttack(root, p, 'auto');
+    if (result.error) return reply(sock, chatId, msg, result.error);
+    if (result.alreadyFinished) return reply(sock, chatId, msg, `Ese duelo ya terminó.\n${duelHealthText(root, result.duel)}\nGanador: ${root.players[result.duel.winner]?.name || '—'}.`);
+    saveBotData();
+    const next = result.duel.players.find(playerId => playerId !== p.id);
+    const state = `${result.duel.log.at(-1)}\n\n${duelHealthText(root, result.duel)}\n${result.victory ? `Ganó ${p.name}.` : `Turno de ${root.players[result.duel.turn]?.name || 'rival'}.`}`;
+    try { await sock.sendMessage(`${next}@s.whatsapp.net`, { text: state }); } catch {}
+    return reply(sock, chatId, msg, state);
+  }
+  if (command === 'habilidadduel' || command === 'habilidadduelo') {
+    const result = game.duelAttack(root, p, q.trim().toLowerCase());
+    if (result.error) return reply(sock, chatId, msg, result.error);
+    if (result.alreadyFinished) return reply(sock, chatId, msg, `Ese duelo ya terminó.\n${duelHealthText(root, result.duel)}\nGanador: ${root.players[result.duel.winner]?.name || '—'}.`);
+    saveBotData();
+    const next = result.duel.players.find(playerId => playerId !== p.id);
+    const state = `${result.duel.log.at(-1)}\n\n${duelHealthText(root, result.duel)}\n${result.victory ? `Ganó ${p.name}.` : `Turno de ${root.players[result.duel.turn]?.name || 'rival'}.`}`;
+    try { await sock.sendMessage(`${next}@s.whatsapp.net`, { text: state }); } catch {}
+    return reply(sock, chatId, msg, state);
+  }
+  if (command === 'rendirse') {
+    const duel = Object.values(root.duels || {}).find(item => item.status === 'active' && item.players.includes(p.id));
+    if (!duel) { const ended = game.recentFinishedDuel(root, p.id); return ended ? reply(sock, chatId, msg, `Ese duelo ya terminó.\n${duelHealthText(root, ended)}\nGanador: ${root.players[ended.winner]?.name || '—'}.`) : reply(sock, chatId, msg, 'No hay un duelo activo para este personaje.'); }
+    duel.status = 'forfeit'; duel.winner = duel.players.find(playerId => playerId !== p.id); duel.finishedAt = new Date().toISOString(); saveBotData();
+    const winner = root.players[duel.winner];
+    try { await sock.sendMessage(`${duel.winner}@s.whatsapp.net`, { text: `${p.name} se rindió. Ganaste el duelo.` }); } catch {}
+    return reply(sock, chatId, msg, `Te rendiste. Ganó ${winner?.name || 'el rival'}.`);
+  }
   if (command === 'comerciar' || command === 'trade') { const target = String(q || '').match(/\d{7,16}/)?.[0]; if (!target || target === id) return reply(sock, chatId, msg, 'Uso: /comerciar número_del_otro_jugador'); const tradeId = crypto.randomBytes(4).toString('hex').toUpperCase(); root.trades[tradeId] = { id: tradeId, status: 'pending', participants: [id, target], offers: {}, accepted: {}, createdAt: new Date().toISOString(), expiresAt: Date.now() + 15 * 60 * 1000 }; root.tradeRequests[target] = tradeId; saveBotData(); await sock.sendMessage(`${target}@s.whatsapp.net`, { text: `🤝 @${id} quiere comerciar contigo.\n\n✅ /AceptC para abrir el comercio\n❌ /CancelC para cancelar`, mentions: [`${id}@s.whatsapp.net`] }); return reply(sock, chatId, msg, `📨 Comercio 1/2: esperando que el otro jugador acepte.`); }
   if (command === 'aceptc' || command === 'cancelc') { const tradeId = root.tradeRequests[id] || Object.keys(root.trades).find(k => root.trades[k].participants?.includes(id) && ['pending','active'].includes(root.trades[k].status)); const t = tradeId && root.trades[tradeId]; if (!t || t.expiresAt < Date.now()) return reply(sock, chatId, msg, 'No tienes un comercio pendiente.'); if (command === 'cancelc') { t.status = 'cancelled'; saveBotData(); for (const other of t.participants.filter(x => x !== id)) await sock.sendMessage(`${other}@s.whatsapp.net`, { text: '❌ Comercio Cancelado.' }); return reply(sock, chatId, msg, '❌ Comercio Cancelado.'); } if (t.status === 'pending') { t.status = 'active'; t.accepted = {}; delete root.tradeRequests[id]; saveBotData(); const other = t.participants.find(x => x !== id); await sock.sendMessage(`${other}@s.whatsapp.net`, { text: '✅ 2/2: comercio abierto. Ambos pueden ofrecer oro/objetos y aceptar.' }); return reply(sock, chatId, msg, '✅ 2/2: comercio abierto. Usa /dar y después /AceptC.'); } t.accepted[id] = true; if (t.accepted[t.participants.find(x => x !== id)]) { const r = settleTrade(root, t); if (r.error) return reply(sock, chatId, msg, `❌ ${r.error}`); saveBotData(); return reply(sock, chatId, msg, '✅ Comercio completado con éxito.'); } saveBotData(); return reply(sock, chatId, msg, '⏳ Tu oferta está bloqueada. Esperando la aceptación del otro jugador.'); }
   return reply(sock, chatId, msg, '❌ Comando Warcraft no reconocido. Usa /warcraft o /tutorial.');

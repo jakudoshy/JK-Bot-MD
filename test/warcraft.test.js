@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const game = require('../lib/warcraft');
-const { canonicalCommand, spanishCommand } = require('../lib/spanishCommands');
+const { canonicalCommand, spanishCommand, parseCommandText } = require('../lib/spanishCommands');
 
 function playerAtLevel(level = 1) {
   const data = { warcraft: { players: {}, accounts: {}, trades: {}, guilds: {}, sessions: {}, combat: {}, duels: {}, duelRequests: {}, pendingPurchases: {}, parties: {}, auctions: {}, mail: {}, battlegrounds: {}, world: {} } };
@@ -97,8 +97,10 @@ test('completar las tres misiones de nivel uno entrega recompensas y abre el niv
     assert.equal(player.activeQuest, null);
   }
   assert.equal(player.level, 2);
-  assert.equal(game.getQuestBoard(player).length, 3);
-  assert.ok(game.getQuestBoard(player).every(quest => quest.minLevel === 2));
+  const levelTwoBoard = game.getQuestBoard(player);
+  assert.equal(levelTwoBoard.filter(quest => quest.campaign).length, 3);
+  assert.equal(levelTwoBoard.filter(quest => quest.repeatable).length, 3);
+  assert.ok(levelTwoBoard.every(quest => quest.minLevel === 2));
 });
 
 test('no se puede saltar la campaña del nivel y la XP acumulada se libera al completarla', () => {
@@ -206,13 +208,16 @@ test('la tienda respeta el tramo siguiente y asigna rarezas traducibles', () => 
   const { player } = playerAtLevel(10);
   const catalog = game.shopItems(player);
   assert.ok(catalog.length > 0);
-  assert.ok(catalog.every(item => item.level <= 20));
+  assert.ok(catalog.every(item => item.level >= 1 && item.level <= 10));
   assert.equal(game.rarityForLevel(10), 'common');
   assert.equal(game.rarityForLevel(11), 'rare');
   assert.equal(game.rarityForLevel(20), 'rare');
   assert.equal(game.rarityForLevel(21), 'epic');
-  assert.ok(catalog.some(item => item.rarity === 'rare'));
-  assert.equal(catalog.some(item => item.rarity === 'epic'), false);
+  assert.ok(catalog.every(item => item.rarity === 'common'));
+  const { player: rarePlayer } = playerAtLevel(11);
+  const rareCatalog = game.shopItems(rarePlayer);
+  assert.ok(rareCatalog.length > 0);
+  assert.ok(rareCatalog.every(item => item.level >= 11 && item.level <= 20 && item.rarity === 'rare'));
   assert.match(game.formatItem('rare_20_robe'), /Raro[\s\S]*nivel 20[\s\S]*armadura[\s\S]*intelecto[\s\S]*aguante/i);
   assert.equal(game.buy(player, catalog[0].id).error, undefined);
 });
@@ -363,7 +368,10 @@ test('el reembolso no mueve nada hasta aceptar y luego intercambia ambos lados u
   assert.equal(bob.gold, before.bobGold + 30);
   assert.equal(alice.inventory.filter(x => x === 'health_potion').length, before.alicePotions + 1);
   assert.equal(bob.inventory.filter(x => x === 'health_potion').length, before.bobPotions - 1);
-  assert.equal(transfers.accept(root, draft.transaction.id, bob.id).error !== undefined, true);
+  const duplicateAcceptance = transfers.accept(root, draft.transaction.id, bob.id);
+  assert.equal(duplicateAcceptance.alreadyCompleted, true);
+  assert.equal(alice.gold, before.aliceGold - 30);
+  assert.equal(bob.gold, before.bobGold + 30);
 });
 
 test('una propuesta no aceptada por el destinatario y una contraprestación inexistente conservan saldos', () => {
@@ -405,8 +413,135 @@ test('los comandos de chat /dar y /darporreembolso completan el flujo usando el 
   assert.ok(request);
   const beforeAcceptance = alice.gold;
   await handler(sock, `${bob.id}@s.whatsapp.net`, msgFor(bob.id), 'aceptarreembolso', '', data, () => {});
+  const completedGold = [alice.gold, bob.gold];
+  await handler(sock, `${bob.id}@s.whatsapp.net`, msgFor(bob.id), 'aceptarreembolso', '', data, () => {});
   assert.equal(request.status, 'completed');
+  assert.deepEqual([alice.gold, bob.gold], completedGold);
+  assert.ok(sent.some(m => /ya estaba completado/i.test(m.text || '')));
   assert.equal(alice.gold, beforeAcceptance - 20);
   assert.ok(alice.inventory.includes('health_potion'));
   assert.ok(sent.some(m => m.to === `${bob.id}@s.whatsapp.net` && /Solicitud de reembolso/.test(m.text)));
+});
+
+
+test('la campaña bloquea la misión principal hasta completar las dos secundarias', () => {
+  const { player } = playerAtLevel(1);
+  const locked = game.acceptQuest(player, 'nivel_1_campeon');
+  assert.match(locked.error, /completa primero las misiones secundarias/i);
+  assert.equal(game.getQuestBoard(player).filter(q => q.campaign).length, 3);
+  assert.equal(game.getQuestBoard(player).find(q => q.mainQuest).questType, 'main');
+});
+
+test('la misión principal entrega equipo de la clase cada cinco niveles, no en cada misión', () => {
+  const { data, player } = playerAtLevel(5);
+  const root = game.ensureRoot(data);
+  player.quests ||= {};
+  player.quests.nivel_4_campeon = { completed: true, status: 'completed' };
+  player.quests.nivel_5_rastros = { completed: true, status: 'completed' };
+  player.quests.nivel_5_patrulla = { completed: true, status: 'completed' };
+  const accepted = game.acceptQuest(player, 'nivel_5_campeon');
+  assert.equal(accepted.error, undefined);
+  assert.deepEqual(player.activeQuest.rewardItems, ['main_warrior_5']);
+  assert.equal(game.ITEMS.main_warrior_5.level, 5);
+  assert.equal(game.ITEMS.main_warrior_5.slot, 'armor');
+  assert.equal(game.ITEMS.main_warrior_5.classKey, 'warrior');
+  assert.match(game.formatItem('main_warrior_5'), /exclusivo de Guerrero[\s\S]*fuerza/i);
+  player.attack = 100000;
+  game.startCombat(root, player, 'elite_5');
+  const result = game.combatAttack(root, player);
+  assert.equal(result.quest.completed, true);
+  assert.ok(player.inventory.includes('main_warrior_5'));
+  assert.equal(player.equipment.armor, 'main_warrior_5');
+  const laterMain = game.QUESTS.find(q => q.id === 'nivel_6_campeon');
+  assert.deepEqual(game.questRewards(laterMain, 6, player).rewardItems, []);
+  const mage = playerAtLevel(5).player;
+  mage.classKey = 'mago';
+  assert.match(game.equip(mage, 'main_warrior_5').error, /pertenece a la clase Guerrero/i);
+});
+
+test('los encargos secundarios aleatorios tienen NPC con habilidades, hacen daño, persisten y se reponen', () => {
+  const { data, player } = playerAtLevel(2);
+  const root = game.ensureRoot(data);
+  player.repeatableMissionsUnlocked = true;
+  const board = game.getQuestBoard(player);
+  const side = board.filter(q => q.repeatable);
+  assert.equal(side.length, 3);
+  assert.equal(new Set(side.map(q => q.id)).size, 3);
+  const quest = side[0];
+  const accepted = game.acceptQuest(player, quest.id);
+  assert.equal(accepted.error, undefined);
+  const target = game.getEnemiesForPlayer(player).find(enemy => enemy.id === quest.enemyId);
+  assert.equal(target.missionTarget, true);
+  assert.ok(target.attacks.length >= 2);
+  const started = game.startCombat(root, player, quest.enemyId);
+  assert.equal(started.error, undefined);
+  player.attack = 1;
+  const hpBefore = player.hp;
+  const turn = game.combatAttack(root, player);
+  assert.ok(turn.incoming > 0);
+  assert.ok(player.hp < hpBefore);
+  assert.match(turn.log.join('\n'), /usa .+ y te inflige \d+ de daño/i);
+  const restored = JSON.parse(JSON.stringify(data));
+  const savedPlayer = game.ensureRoot(restored).players[player.id];
+  assert.ok(savedPlayer.generatedMissionEnemies[quest.enemyId]);
+  assert.ok(game.getEnemiesForPlayer(savedPlayer).some(enemy => enemy.id === quest.enemyId && enemy.missionTarget));
+  const originalIds = new Set(side.map(item => item.id));
+  player.attack = 100000;
+  while (player.activeQuest) {
+    player.hp = player.maxHp;
+    const current = root.combat[player.id];
+    if (!current || current.status !== 'active') game.startCombat(root, player, player.activeQuest.enemyId);
+    game.combatAttack(root, player);
+  }
+  const refreshed = game.getQuestBoard(player).filter(q => q.repeatable);
+  assert.equal(refreshed.length, 3);
+  assert.ok(refreshed.some(item => !originalIds.has(item.id)));
+  assert.ok(player.questHistory.some(item => item.id === quest.id && item.status === 'completed'));
+});
+
+test('la tienda limita el equipo al tramo y la fuerza de las armas escala con el nivel y la rareza', () => {
+  const { player } = playerAtLevel(10);
+  const common = game.shopItems(player);
+  assert.ok(common.every(item => item.level >= 1 && item.level <= 10 && item.rarity === 'common'));
+  assert.equal(common.some(item => item.questReward), false);
+  player.level = 11;
+  const rare = game.shopItems(player);
+  assert.ok(rare.every(item => item.level >= 11 && item.level <= 20 && item.rarity === 'rare'));
+  player.level = 21;
+  assert.ok(game.shopItems(player).every(item => item.level >= 21 && item.level <= 30 && item.rarity === 'epic'));
+  const weaponIds = ['common_10_blade', 'rare_11_blade', 'epic_21_blade', 'legendary_31_blade', 'mythic_51_blade', 'mythic_80_blade'];
+  const damage = weaponIds.map(id => game.ITEMS[id].attack);
+  assert.deepEqual(damage, [...damage].sort((a, b) => a - b));
+  const bow = game.formatItem('rare_11_bow');
+  assert.match(bow, /ataque \+\d+[\s\S]*agilidad \+\d+/i);
+  assert.doesNotMatch(bow, /fuerza|intelecto \+0/i);
+});
+
+test('un duelo entre dos cuentas conserva vidas y aceptar otra vez no devuelve falso error', () => {
+  const data = {};
+  const alice = game.createPlayer(data, '5350000101@s.whatsapp.net', 'Alice', 'warrior').player;
+  const bob = game.createPlayer(data, '5350000102@s.whatsapp.net', 'Bob', 'mage').player;
+  const root = game.ensureRoot(data);
+  const invitation = game.createDuel(root, alice, bob.id);
+  assert.equal(invitation.error, undefined);
+  const accepted = game.acceptDuel(root, bob);
+  assert.equal(accepted.error, undefined);
+  assert.equal(accepted.duel.status, 'active');
+  assert.equal(accepted.duel.hp[alice.id], alice.maxHp);
+  assert.equal(accepted.duel.hp[bob.id], bob.maxHp);
+  const acceptedAgain = game.acceptDuel(root, bob);
+  assert.equal(acceptedAgain.error, undefined);
+  assert.equal(acceptedAgain.alreadyActive, true);
+  alice.attack = 100000;
+  const hit = game.duelAttack(root, alice);
+  assert.equal(hit.victory, true);
+  assert.equal(hit.duel.status, 'completed');
+  assert.equal(hit.duel.winner, alice.id);
+});
+
+
+test('el parser enruta /accept rem y /cancel rem a las respuestas de reembolso', () => {
+  assert.equal(parseCommandText('/accept rem').commandName, 'aceptarreembolso');
+  assert.equal(parseCommandText('/cancel rem').commandName, 'cancelarreembolso');
+  assert.equal(parseCommandText('/accept rem TX123').q, 'TX123');
 });
