@@ -64,69 +64,64 @@ test('talentos se aplican y recalculan antes de gastar el punto', () => {
   assert.equal(game.spendTalent(player, 'ataque').error.includes('punto'), true);
 });
 
-test('las misiones se desbloquean por nivel y las recompensas escalan', () => {
+test('el tablón muestra una sola misión principal por nivel y sus recompensas escalan', () => {
   const { player } = playerAtLevel(1);
-  assert.deepEqual(game.getQuestBoard(player).map(quest => quest.id), ['nivel_1_rastros', 'nivel_1_patrulla', 'nivel_1_campeon']);
+  const levelOneBoard = game.getQuestBoard(player);
+  assert.equal(levelOneBoard.length, 1);
+  assert.equal(levelOneBoard[0].id, 'nivel_1_campeon');
+  assert.equal(levelOneBoard[0].mainQuest, true);
   player.level = 25;
   game.recalc(player);
   const at25 = game.getQuestBoard(player);
-  assert.equal(at25.length, 3);
-  assert.ok(at25.every(quest => /Gran mago/.test(quest.description)));
-  assert.ok(at25.some(quest => quest.enemyId === 'mission_25'));
+  assert.equal(at25.length, 1);
+  assert.ok(at25[0].mainQuest);
+  assert.match(at25[0].description, /Gran mago/);
+  assert.equal(at25[0].enemyId, 'elite_25');
   const at50 = game.questRewards(at25[0], 50);
   assert.ok(at50.xp > at25[0].xp && at50.gold > at25[0].gold);
 });
 
-test('completar las tres misiones de nivel uno entrega recompensas y abre el nivel dos', () => {
+test('completar la principal da recompensa, pero ganar experiencia no depende de misiones', () => {
   const { data, player } = playerAtLevel(1);
   const root = game.ensureRoot(data);
+  const quest = game.getQuestBoard(player)[0];
+  assert.ok(quest?.mainQuest);
   player.attack = 100000;
-  for (let missionIndex = 0; missionIndex < 3; missionIndex++) {
-    const quest = game.getQuestBoard(player)[0];
-    assert.ok(quest, `debe existir la misión ${missionIndex + 1}`);
-    const accepted = game.acceptQuest(player, quest.id);
-    assert.equal(accepted.error, undefined);
-    let lastResult;
-    for (let kill = 0; kill < accepted.quest.goal; kill++) {
-      assert.equal(game.startCombat(root, player, accepted.quest.enemyId).error, undefined);
-      player.attack = 100000;
-      lastResult = game.combatAttack(root, player, 'auto');
-      assert.equal(lastResult.victory, true);
-    }
-    assert.equal(lastResult.quest.completed, true);
-    assert.equal(player.activeQuest, null);
+  const accepted = game.acceptQuest(player, quest.id);
+  assert.equal(accepted.error, undefined);
+  let lastResult;
+  for (let kill = 0; kill < accepted.quest.goal; kill++) {
+    assert.equal(game.startCombat(root, player, accepted.quest.enemyId).error, undefined);
+    player.attack = 100000;
+    lastResult = game.combatAttack(root, player, 'auto');
+    assert.equal(lastResult.victory, true);
   }
-  assert.equal(player.level, 2);
-  const levelTwoBoard = game.getQuestBoard(player);
-  assert.equal(levelTwoBoard.filter(quest => quest.campaign).length, 3);
-  assert.equal(levelTwoBoard.filter(quest => quest.repeatable).length, 3);
-  assert.ok(levelTwoBoard.every(quest => quest.minLevel === 2));
+  assert.equal(lastResult.quest.completed, true);
+  assert.equal(player.activeQuest, null);
+  const levelBeforeGrinding = player.level;
+  game.grantXp(player, game.xpForLevel(player.level) - player.xp);
+  assert.ok(player.level > levelBeforeGrinding, 'sube por XP aunque queden misiones sin completar');
+  assert.equal(player.pendingLevelXp, 0);
+  const nextBoard = game.getQuestBoard(player);
+  assert.equal(nextBoard.length, 1);
+  assert.ok(nextBoard[0].mainQuest);
+  assert.equal(nextBoard[0].minLevel, player.level);
 });
 
-test('no se puede saltar la campaña del nivel y la XP acumulada se libera al completarla', () => {
-  const { data, player } = playerAtLevel(1);
-  const root = game.ensureRoot(data);
+test('la experiencia permite subir y aceptar la misión principal sin secundarias completadas', () => {
+  const { player } = playerAtLevel(1);
   const events = game.grantXp(player, 5000);
-  assert.deepEqual(events, []);
-  assert.equal(player.level, 1);
-  assert.equal(player.xp, game.xpForLevel(1) - 1);
-  assert.ok(player.pendingLevelXp > 0);
-  assert.match(game.formatStatus(player), /Misiones del nivel: 0\/3/);
-
-  player.attack = 100000;
-  for (let missionIndex = 0; missionIndex < 3; missionIndex++) {
-    const quest = game.getQuestBoard(player)[0];
-    const accepted = game.acceptQuest(player, quest.id);
-    for (let kill = 0; kill < accepted.quest.goal; kill++) {
-      game.startCombat(root, player, accepted.quest.enemyId);
-      player.attack = 100000;
-      game.combatAttack(root, player, 'auto');
-    }
-  }
-  assert.equal(player.level, 2);
-  assert.equal(player.xp, game.xpForLevel(2) - 1);
-  assert.ok(player.pendingLevelXp > 0);
+  assert.ok(events.length > 0);
+  assert.ok(player.level > 1);
+  assert.equal(player.pendingLevelXp, 0);
   assert.equal(game.campaignProgress(player).completed, 0);
+  const board = game.getQuestBoard(player);
+  assert.equal(board.length, 1);
+  assert.ok(board[0].mainQuest);
+  const accepted = game.acceptQuest(player, board[0].id);
+  assert.equal(accepted.error, undefined);
+  assert.equal(player.activeQuest.mainQuest, true);
+  assert.doesNotMatch(game.formatStatus(player), /Completa.*desbloquear el siguiente nivel/i);
 });
 
 test('aceptar la misión del Gran mago fija el objetivo en enemigos y paga al completarla', () => {
@@ -424,12 +419,17 @@ test('los comandos de chat /dar y /darporreembolso completan el flujo usando el 
 });
 
 
-test('la campaña bloquea la misión principal hasta completar las dos secundarias', () => {
+test('la misión principal permanece accesible aunque no se hayan hecho las secundarias', () => {
   const { player } = playerAtLevel(1);
-  const locked = game.acceptQuest(player, 'nivel_1_campeon');
-  assert.match(locked.error, /completa primero las misiones secundarias/i);
-  assert.equal(game.getQuestBoard(player).filter(q => q.campaign).length, 3);
-  assert.equal(game.getQuestBoard(player).find(q => q.mainQuest).questType, 'main');
+  const secondary = game.QUESTS.filter(q => q.campaign && q.minLevel === 1 && !q.mainQuest);
+  assert.ok(secondary.length > 0);
+  assert.ok(secondary.every(q => !player.quests?.[q.id]?.completed));
+  const board = game.getQuestBoard(player);
+  assert.equal(board.length, 1);
+  assert.equal(board[0].questType, 'main');
+  const accepted = game.acceptQuest(player, board[0].id);
+  assert.equal(accepted.error, undefined);
+  assert.equal(player.activeQuest.id, board[0].id);
 });
 
 test('la misión principal entrega equipo de la clase cada cinco niveles, no en cada misión', () => {
@@ -459,12 +459,25 @@ test('la misión principal entrega equipo de la clase cada cinco niveles, no en 
   assert.match(game.equip(mage, 'main_warrior_5').error, /pertenece a la clase Guerrero/i);
 });
 
+test('los encargos opcionales no requieren completar secundarias para desbloquearse', () => {
+  const { player } = playerAtLevel(2);
+  const firstMain = game.QUESTS.find(q => q.mainQuest && q.minLevel === 1);
+  player.quests[firstMain.id] = { completed: true, status: 'completed' };
+  const unfinishedSecondary = game.QUESTS.filter(q => q.campaign && q.minLevel === 1 && !q.mainQuest).some(q => !player.quests[q.id]?.completed);
+  assert.equal(unfinishedSecondary, true);
+  const optional = game.ensureRepeatableMissionBoard(player).missions;
+  assert.equal(optional.length, 3);
+  assert.equal(player.repeatableMissionsUnlocked, true);
+  assert.equal(game.getQuestBoard(player).length, 1, 'el tablón principal sigue mostrando solo la principal actual');
+});
+
 test('los encargos secundarios aleatorios tienen NPC con habilidades, hacen daño, persisten y se reponen', () => {
   const { data, player } = playerAtLevel(2);
   const root = game.ensureRoot(data);
   player.repeatableMissionsUnlocked = true;
   const board = game.getQuestBoard(player);
-  const side = board.filter(q => q.repeatable);
+  assert.equal(board.length, 1, 'el tablón principal no mezcla encargos opcionales');
+  const side = game.ensureRepeatableMissionBoard(player).missions;
   assert.equal(side.length, 3);
   assert.equal(new Set(side.map(q => q.id)).size, 3);
   const quest = side[0];
@@ -493,7 +506,7 @@ test('los encargos secundarios aleatorios tienen NPC con habilidades, hacen dañ
     if (!current || current.status !== 'active') game.startCombat(root, player, player.activeQuest.enemyId);
     game.combatAttack(root, player);
   }
-  const refreshed = game.getQuestBoard(player).filter(q => q.repeatable);
+  const refreshed = game.ensureRepeatableMissionBoard(player).missions;
   assert.equal(refreshed.length, 3);
   assert.ok(refreshed.some(item => !originalIds.has(item.id)));
   assert.ok(player.questHistory.some(item => item.id === quest.id && item.status === 'completed'));

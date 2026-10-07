@@ -1124,7 +1124,7 @@ document.getElementById('year').innerText = new Date().getFullYear();
 const wcTokenKey='jk_warcraft_token'; const wcToken=()=>localStorage.getItem(wcTokenKey); const wcHeaders=()=>({'Content-Type':'application/json', ...(wcToken()?{Authorization:`Bearer ${wcToken()}`}:{})}); const el=id=>document.getElementById(id);
 const wcJson=async(url,options={})=>{const r=await fetch(url,{...options,headers:{...wcHeaders(),...(options.headers||{})}}); let d={}; try{d=await r.json();}catch{} return {r,d};}; let wcMe=null; let wcSelectedClass=null;
 function escapeWc(value){return String(value??'').replace(/[&<>"']/g,ch=>ch==='&'?'&amp;':ch==='<'?'&lt;':ch==='>'?'&gt;':ch==='"'?'&quot;':'&#39;');}
-function setWcAuth(username){const logged=Boolean(wcToken());for(const id of ['wcLoginForm','wcRegisterForm'])if(el(id))el(id).style.display=logged?'none':'';document.querySelectorAll('.wc-auth-link').forEach(a=>a.style.display=logged?'none':'');if(el('wcAccountButton'))el('wcAccountButton').style.display=logged?'inline-flex':'none';if(el('menuAuthLinks'))el('menuAuthLinks').style.display=logged?'none':'';if(el('menuProfileLink'))el('menuProfileLink').style.display=logged?'block':'none';if(!logged&&el('wcAccountDropdown')){el('wcAccountDropdown').style.display='none';el('wcAccountButton')?.setAttribute('aria-expanded','false');}if(logged){const label=username||'Cuenta WoW';if(el('wcAccountAvatar'))el('wcAccountAvatar').textContent=label.slice(0,1).toUpperCase();if(el('wcProfileAvatar'))el('wcProfileAvatar').textContent=label.slice(0,1).toUpperCase();if(el('wcAccountMenuName'))el('wcAccountMenuName').textContent=label;}}
+function setWcAuth(username){const logged=Boolean(wcToken());document.body.classList.toggle('wc-account-authenticated',logged);for(const id of ['wcLoginForm','wcRegisterForm'])if(el(id))el(id).style.display=logged?'none':'';document.querySelectorAll('.wc-auth-link').forEach(a=>a.style.display=logged?'none':'');if(el('wcAccountButton'))el('wcAccountButton').style.display=logged?'inline-flex':'none';if(el('menuAuthLinks'))el('menuAuthLinks').style.display=logged?'none':'';if(el('menuProfileLink'))el('menuProfileLink').style.display=logged?'block':'none';if(!logged&&el('wcAccountDropdown')){el('wcAccountDropdown').style.display='none';el('wcAccountButton')?.setAttribute('aria-expanded','false');}if(logged){const label=username||'Cuenta WoW';if(el('wcAccountAvatar'))el('wcAccountAvatar').textContent=label.slice(0,1).toUpperCase();if(el('wcProfileAvatar'))el('wcProfileAvatar').textContent=label.slice(0,1).toUpperCase();if(el('wcAccountMenuName'))el('wcAccountMenuName').textContent=label;}}
 
 async function loadWcLobby(){const {d}=await wcJson('/api/warcraft/active-users');if(!d.ok)return;const users=d.users||[];el('wcLobbyStats').textContent=`Cuentas registradas: ${d.totalRegistered||0} · Personajes en ranking: ${d.totalCharacters??users.length}`;el('wcRanking').innerHTML=users.length?users.map(u=>`${u.rank===1?'👑':u.rank===2?'🥈':u.rank===3?'🥉':'▫️'} <strong>#${u.rank} ${escapeWc(u.username)}</strong> · ${escapeWc(u.character)} · ${escapeWc(u.className)} · GS ${u.gs} · Nv ${u.level}`).join('<br>'):'Todavía no hay personajes en el ranking. Crea tu personaje desde la web o WhatsApp y aparecerá aquí.';}
 function showWcPlayer(p,username,payload={}) {
@@ -1133,25 +1133,23 @@ function showWcPlayer(p,username,payload={}) {
   const logged=Boolean(wcToken());
   if(el('wcProfilePanel'))el('wcProfilePanel').style.display=logged?'block':'none';
   if(!logged)return;
+  if(el('wcProfileTitle'))el('wcProfileTitle').textContent=`Cuenta · ${username||''}`;
+  if(el('wcProfileSubtitle'))el('wcProfileSubtitle').textContent=p?'Sesión activa · progreso compartido con WhatsApp':'Sesión activa · todavía no hay personaje. Crea o elige personaje al entrar a Jugar WoW';
   if(!p){
     if(el('wcCharacterSetup'))el('wcCharacterSetup').style.display='block';
-    el('wcProfileTitle').textContent=`Cuenta · ${username||''}`;
-    el('wcProfileSubtitle').textContent='Sesión iniciada; todavía no hay personaje de Warcraft.';
-    el('wcProfileStats').innerHTML='<div class="wc-profile-stat"><small>Estado</small><strong>Sin personaje</strong></div>';
-    el('wcProfileEquipment').textContent='Todavía no hay equipo.';
-    el('wcProfileInventory').innerHTML='';
+    if(el('wcProfileStats'))el('wcProfileStats').innerHTML='<div class="wc-profile-stat"><small>Cuenta</small><strong>Autenticada</strong></div>';
+    if(el('wcProfileEquipment'))el('wcProfileEquipment').textContent='';
+    if(el('wcProfileInventory'))el('wcProfileInventory').innerHTML='';
     window.dispatchEvent(new CustomEvent('wc-profile-refresh'));
     return;
   }
   if(el('wcCharacterSetup'))el('wcCharacterSetup').style.display='none';
-  el('wcProfileTitle').textContent=p.name;
-  el('wcProfileSubtitle').textContent=`${username||''} · ${({warrior:'Guerrero',paladin:'Paladín',hunter:'Cazador',picaro:'Pícaro',priest:'Sacerdote',shaman:'Chamán',mago:'Mago',warlock:'Brujo',monk:'Monje',druida:'Druida',deathknight:'Caballero de la muerte',demonhunter:'Cazador de demonios',evoker:'Evocador'})[p.classKey]||p.classKey} · ${p.zone||'aldea'}`;
-  const stats=[['Puesto',payload.rank?`#${payload.rank}`:'—'],['Nivel',`${p.level}/80`],['Clase',({warrior:'Guerrero',paladin:'Paladín',hunter:'Cazador',picaro:'Pícaro',priest:'Sacerdote',shaman:'Chamán',mago:'Mago',warlock:'Brujo',monk:'Monje',druida:'Druida',deathknight:'Caballero de la muerte',demonhunter:'Cazador de demonios',evoker:'Evocador'})[p.classKey]||p.classKey],['GS',p.gs],['Vida',`${p.hp}/${p.maxHp}`],['Experiencia',p.xp],['Oro',Number(p.gold||0).toLocaleString('es-ES')],['Ataque',p.attack],['Defensa',p.defense]];
-  el('wcProfileStats').innerHTML=stats.map(([label,value])=>`<div class="wc-profile-stat"><small>${escapeWc(label)}</small><strong>${escapeWc(value)}</strong></div>`).join('');
+  const stats=[['Puesto',payload.rank?`#${payload.rank}`:'—'],['Nivel',`${p.level}/80`],['Clase',p.classKey],['GS',p.gs],['Vida',`${p.hp}/${p.maxHp}`],['Experiencia',p.xp],['Oro',Number(p.gold||0).toLocaleString('es-ES')],['Ataque',p.attack],['Defensa',p.defense]];
+  if(el('wcProfileStats'))el('wcProfileStats').innerHTML=stats.map(([label,value])=>`<div class="wc-profile-stat"><small>${escapeWc(label)}</small><strong>${escapeWc(value)}</strong></div>`).join('');
   const equipment=payload.equipmentDetails||[];
-  el('wcProfileEquipment').innerHTML=equipment.length?equipment.map(item=>`<div><strong>${escapeWc(item.slot==='weapon'?'Arma':'Armadura')}:</strong> ${escapeWc(item.name)}</div>`).join(''):'Todavía no hay equipo.';
+  if(el('wcProfileEquipment'))el('wcProfileEquipment').innerHTML=equipment.length?equipment.map(item=>`<div><strong>${escapeWc(item.slot==='weapon'?'Arma':'Armadura')}:</strong> ${escapeWc(item.name)}</div>`).join(''):'Todavía no hay equipo.';
   const items=payload.inventoryDetails||[];
-  el('wcProfileInventory').innerHTML=items.length?items.map(item=>`<li>${escapeWc(item.name)} <strong>× ${Number(item.quantity||1)}</strong></li>`).join(''):'<li>Inventario vacío</li>';
+  if(el('wcProfileInventory'))el('wcProfileInventory').innerHTML=items.length?items.map(item=>`<li>${escapeWc(item.name)} <strong>× ${Number(item.quantity||1)}</strong></li>`).join(''):'<li>Inventario vacío</li>';
   window.dispatchEvent(new CustomEvent('wc-profile-refresh'));
 }
 async function loadWcMe(){const {d}=await wcJson('/api/warcraft/me');if(!d.ok){if(d.message){localStorage.removeItem(wcTokenKey);wcMe=null;setWcAuth('');for(const id of ['wcProfilePanel','wcCharacterSetup'])if(el(id))el(id).style.display='none';}return;}showWcPlayer(d.player,d.account?.username,d);loadWcLobby();}

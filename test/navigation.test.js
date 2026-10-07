@@ -3,6 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { JSDOM, VirtualConsole } = require('jsdom');
+const game = require('../lib/warcraft');
+const web = require('../lib/warcraftWeb');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
@@ -138,10 +140,20 @@ test('la navegación alterna entre acceso público y cuenta sin solapar menús',
   }
 });
 
-test('Jugar WoW abre la pantalla exclusiva del juego y permite volver al sitio', async () => {
+test('Jugar WoW carga el juego autenticado a pantalla completa y permite volver al sitio', async () => {
   let fullscreenRequests = 0;
   let orientationLocks = 0;
   let orientationUnlocks = 0;
+  const botData = {};
+  game.ensureRoot(botData);
+  const root = botData.warcraft;
+  const account = { username: 'playtest', phone: '5350002099', createdAt: new Date().toISOString() };
+  root.accounts[account.username] = account;
+  const created = web.execute({ botData, root, account, input: { action: 'create_character', params: { name: 'Alba', classKey: 'warrior' } } });
+  assert.equal(created.ok, true, created.message);
+  const catalog = web.catalog();
+  const player = game.playerForAccount(root, account);
+  const shop = game.shopItems(player).map(item => ({ ...item, image: web.itemImage(item) }));
   const virtualConsole = new VirtualConsole();
   virtualConsole.on('jsdomError', () => {});
   const dom = new JSDOM(html, {
@@ -149,7 +161,18 @@ test('Jugar WoW abre la pantalla exclusiva del juego y permite volver al sitio',
     url: 'http://localhost/',
     virtualConsole,
     beforeParse(window) {
-      window.fetch = async () => ({ ok: true, json: async () => ({ ok: false }) });
+      window.localStorage.setItem('jk_warcraft_token', 'game-session');
+      window.fetch = async url => {
+        const target = String(url);
+        if (target.endsWith('/catalog')) return { ok: true, status: 200, json: async () => ({ ok: true, ...catalog }) };
+        if (target.endsWith('/me')) {
+          await new Promise(resolve => setTimeout(resolve, 12));
+          return { ok: true, status: 200, json: async () => ({ ok: true, account: { username: account.username }, ...web.playerState(root, account), rank: 1 }) };
+        }
+        if (target.endsWith('/shop')) return { ok: true, status: 200, json: async () => ({ ok: true, items: shop }) };
+        if (target.endsWith('/active-users')) return { ok: true, status: 200, json: async () => ({ ok: true, users: [], totalRegistered: 1, totalCharacters: 1 }) };
+        return { ok: true, status: 200, json: async () => ({ ok: true, message: 'ok' }) };
+      };
       window.io = () => ({ on() {}, emit() {} });
       window.confirm = () => true;
       window.IntersectionObserver = class { observe() {} disconnect() {} };
@@ -166,19 +189,51 @@ test('Jugar WoW abre la pantalla exclusiva del juego y permite volver al sitio',
     window.document.documentElement.requestFullscreen = () => { fullscreenRequests++; return Promise.resolve(); };
     const gameScript = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.js'), 'utf8');
     window.eval(gameScript);
-    await new Promise(resolve => setTimeout(resolve, 30));
+    await new Promise(resolve => setTimeout(resolve, 80));
+    assert.ok(window.document.querySelector('.wc-game-shell'), 'la partida ya cargó en el panel');
     window.document.getElementById('menuToggle').click();
     window.document.getElementById('menuPlayWow').click();
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise(resolve => setTimeout(resolve, 100));
     assert.ok(window.document.documentElement.classList.contains('wc-game-mode'));
     assert.ok(window.document.body.classList.contains('wc-game-mode'));
     assert.equal(window.document.getElementById('menuDrawer').getAttribute('aria-hidden'), 'true');
+    assert.ok(window.document.querySelector('.wc-game-shell'), 'Jugar no deja la pantalla en negro: muestra el juego');
     assert.equal(fullscreenRequests, 1);
     assert.equal(orientationLocks, 1);
     window.document.getElementById('wcExitGameMode').click();
     assert.equal(window.document.documentElement.classList.contains('wc-game-mode'), false);
     assert.equal(window.document.body.classList.contains('wc-game-mode'), false);
     assert.equal(orientationUnlocks, 1);
+  } finally {
+    window.close();
+  }
+});
+
+test('sin sesión, Jugar WoW pide iniciar sesión y no abre un panel negro', async () => {
+  const virtualConsole = new VirtualConsole();
+  virtualConsole.on('jsdomError', () => {});
+  const dom = new JSDOM(html, {
+    runScripts: 'dangerously',
+    url: 'http://localhost/',
+    virtualConsole,
+    beforeParse(window) {
+      window.fetch = async () => ({ ok: false, status: 401, json: async () => ({ ok: false }) });
+      window.io = () => ({ on() {}, emit() {} });
+      window.confirm = () => true;
+      window.IntersectionObserver = class { observe() {} disconnect() {} };
+      window.HTMLElement.prototype.scrollIntoView = function () {};
+      window.HTMLCanvasElement.prototype.getContext = () => null;
+    }
+  });
+  const window = dom.window;
+  try {
+    const gameScript = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.js'), 'utf8');
+    window.eval(gameScript);
+    await new Promise(resolve => setTimeout(resolve, 15));
+    window.document.getElementById('menuPlayWow').click();
+    assert.equal(window.document.body.classList.contains('wc-game-mode'), false);
+    assert.match(window.document.getElementById('wcLoginStatus').textContent, /Inicia sesión o crea tu cuenta/i);
+    assert.equal(window.document.getElementById('wcLoginForm').style.display, '');
   } finally {
     window.close();
   }

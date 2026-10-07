@@ -303,3 +303,40 @@ test('tras autenticar aparece la lista y se puede seleccionar un personaje con b
     window.close();
   }
 });
+
+test('en vertical se ve solo la cuenta y Jugar WoW abre el selector sin pantalla negra', async () => {
+  const { botData, root } = setup();
+  const user = account(botData, root, 'vertical', '5350002042', 'Cuenta', 'warrior');
+  act(botData, root, user, 'create_character', { name: 'Luz', classKey: 'hunter' });
+  const catalog = web.catalog();
+  const current = web.playerState(root, user);
+  const script = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.js'), 'utf8');
+  const dom = new JSDOM('<button id="menuPlayWow"></button><button id="wcExitGameMode"></button><button id="wcContinuePortrait"></button><form id="wcLoginForm"></form><div id="wcLoginStatus"></div><button id="wcVerifyBtn"></button><div id="wcProfilePanel"><div id="wcProfileStats"></div><div id="wcProfileEquipment"></div><ul id="wcProfileInventory"></ul><div id="wcGameMount"></div></div><div id="wcCharacterSetup"><div id="wcClassGrid"></div><input id="wcCreateClass"><button id="wcCreateCharacterButton"></button></div>', { runScripts: 'dangerously', url: 'http://localhost/' });
+  const window = dom.window;
+  try {
+    window.matchMedia = query => ({ matches: query.includes('orientation: portrait') });
+    window.fetch = async url => {
+      let data = { ok: true };
+      if (String(url).endsWith('/catalog')) data = { ok: true, ...catalog };
+      else if (String(url).endsWith('/me')) data = { ok: true, account: { username: user.username }, ...current, rank: 1 };
+      else if (String(url).endsWith('/shop')) data = { ok: true, items: [] };
+      return { ok: true, status: 200, json: async () => data };
+    };
+    window.eval(script);
+    await new Promise(resolve => setTimeout(resolve, 30));
+    window.document.getElementById('wcLoginForm').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+    window.localStorage.setItem('jk_warcraft_token', 'vertical-token');
+    window.dispatchEvent(new window.Event('wc-profile-refresh'));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.ok(window.document.querySelector('.wc-account-ready'), 'la portada vertical informa que la cuenta está lista');
+    assert.equal(window.document.querySelector('.wc-character-picker'), null, 'no aparece el jugador ni su retrato en vertical');
+    assert.equal(window.document.querySelector('.wc-game-shell'), null, 'no se muestra el juego antes de pulsar Jugar');
+    window.document.getElementById('menuPlayWow').click();
+    await new Promise(resolve => setTimeout(resolve, 60));
+    assert.ok(window.document.body.classList.contains('wc-game-mode'));
+    assert.ok(window.document.querySelector('.wc-character-picker'), 'Jugar carga el selector de personaje');
+    assert.ok(window.document.querySelector('.wc-character-portrait img'), 'el retrato se muestra dentro del juego');
+  } finally {
+    window.close();
+  }
+});

@@ -50,14 +50,28 @@
       await loadCatalog();
       const { response, data } = await api('/api/warcraft/me');
       if (!response.ok || !data.ok) {
-        if (response.status === 401) { setNotice('La sesión caducó. Inicia sesión otra vez.', true); mount.innerHTML = ''; }
-        else setNotice(data.message || 'No se pudo cargar el personaje.', true);
-        if (state.notice) render();
+        if (response.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          window.setWcAuth?.('');
+          state.me = null;
+          setNotice('La sesión caducó. Inicia sesión otra vez.', true);
+          mount.innerHTML = '';
+          if (document.body.classList.contains('wc-game-mode')) leaveGameMode();
+          document.getElementById('wcLoginStatus')?.replaceChildren(document.createTextNode(state.notice));
+        } else {
+          setNotice(data.message || 'No se pudo cargar el personaje.', true);
+          if (state.me?.player) render();
+        }
         return;
       }
       state.me = data;
       if (!keepNotice) setNotice('');
-      if (state.awaitingCharacterSelection) { renderCharacterPicker(); return; }
+      if (state.awaitingCharacterSelection) {
+        const portraitAccountView = window.matchMedia?.('(max-width: 720px) and (orientation: portrait)').matches === true;
+        if (document.body.classList.contains('wc-game-mode') || !portraitAccountView) renderCharacterPicker();
+        else renderAccountLanding();
+        return;
+      }
       if (!data.player) { renderClassSetup(); mount.innerHTML = ''; return; }
       setup.style.display = 'none';
       if (!state.shop.length || state.tab === 'tienda') {
@@ -90,6 +104,10 @@
     if (el('wcClassGrid')) el('wcClassGrid').innerHTML = classes.map(c => `<button class="wc-class-choice ${state.classKey === c.id ? 'selected' : ''}" type="button" data-class-choice="${esc(c.id)}">${img(c.image, c.label)}<strong>${esc(c.label)}</strong><small>${esc(c.role || 'Aventurero')}</small></button>`).join('');
     if (el('wcCreateClass')) el('wcCreateClass').value = state.classKey;
     if (el('wcCreateCharacterButton')) el('wcCreateCharacterButton').disabled = !state.classKey;
+  }
+  function renderAccountLanding() {
+    const username = state.me?.account?.username || 'tu cuenta';
+    mount.innerHTML = `<section class="wc-account-ready"><span class="wc-game-kicker">CUENTA WOW</span><h3>Cuenta autenticada</h3><p>${esc(username)}. Pulsa <strong>Jugar WoW</strong> para elegir personaje y entrar al juego.</p></section>`;
   }
   function renderCharacterPicker() {
     setup.style.display = 'none';
@@ -124,8 +142,7 @@
     const zone = state.catalog.zones.find(z => z.id === p.zone) || state.catalog.zones[0];
     const active = p.activeQuest;
     const classConfig = state.catalog.classes.find(c => c.id === p.classKey) || {};
-    const quests = state.me.quests || [];
-    return `<div class="wc-game-grid"><article class="wc-game-card"><h4>Tu héroe</h4><p>${esc(classConfig.description || classConfig.role || 'Aventurero')} · ${esc(classConfig.role || '')}</p><div class="wc-game-statline"><span>Fuerza</span><strong>${num(p.attributes?.strength)}</strong></div><div class="wc-game-statline"><span>Agilidad</span><strong>${num(p.attributes?.agility)}</strong></div><div class="wc-game-statline"><span>Intelecto</span><strong>${num(p.attributes?.intellect)}</strong></div><div class="wc-game-statline"><span>Talentos disponibles</span><strong>${num(p.talentPoints)}</strong></div><div class="wc-game-actions"><button class="wc-game-btn" data-tab="misiones"><i class="fas fa-scroll"></i> Ver misiones</button><button class="wc-game-btn" data-tab="inventario"><i class="fas fa-bag-shopping"></i> Abrir inventario</button></div></article><article class="wc-game-card"><h4>Ubicación actual</h4>${img(zone?.image, zone?.name || 'Mapa', 'wc-game-map-thumb')}<p><strong>${esc(zone?.name || labelForZone(p.zone))}</strong> · Requisito nivel ${num(zone?.level || 1)}</p><p class="muted">${esc(zone?.gathering?.join(' · ') || 'Explora, reúne materiales y busca enemigos.')}</p><div class="wc-game-actions"><button class="wc-game-btn" data-tab="mapa"><i class="fas fa-map"></i> Abrir mapa</button></div></article><article class="wc-game-card wide"><h4>Actividad del personaje</h4>${active ? `<p><strong>Misión activa:</strong> ${esc(active.name || active.id)} · ${num(active.progress || 0)}/${num(active.goal || 1)}</p>` : `<p>No tienes una misión activa. Acepta una misión principal o secundaria del nivel ${num(p.level)}.</p>`}<p>${state.me.combat?.enemy ? `Combate activo contra ${esc(state.me.combat.enemy.name)}.` : 'No tienes combate activo.'} ${state.me.party ? `Grupo ${esc(state.me.party.id)} · ${state.me.party.members.length} integrantes.` : ''}</p><div class="wc-game-actions"><button class="wc-game-btn gold" data-tab="combate"><i class="fas fa-dragon"></i> Ir al combate</button><button class="wc-game-btn" data-tab="tienda"><i class="fas fa-store"></i> Visitar tienda</button><button class="wc-game-btn" data-wc-action="daily"><i class="fas fa-calendar-day"></i> Reclamar recompensa diaria</button></div><p class="muted">Hay ${num(quests.length)} misiones disponibles para tu nivel. Las mismas acciones funcionan en WhatsApp y en esta web.</p></article></div>`;
+    return `<div class="wc-game-grid"><article class="wc-game-card"><h4>Tu héroe</h4><p>${esc(classConfig.description || classConfig.role || 'Aventurero')} · ${esc(classConfig.role || '')}</p><div class="wc-game-statline"><span>Fuerza</span><strong>${num(p.attributes?.strength)}</strong></div><div class="wc-game-statline"><span>Agilidad</span><strong>${num(p.attributes?.agility)}</strong></div><div class="wc-game-statline"><span>Intelecto</span><strong>${num(p.attributes?.intellect)}</strong></div><div class="wc-game-statline"><span>Talentos disponibles</span><strong>${num(p.talentPoints)}</strong></div><div class="wc-game-actions"><button class="wc-game-btn" data-tab="misiones"><i class="fas fa-scroll"></i> Ver misiones</button><button class="wc-game-btn" data-tab="inventario"><i class="fas fa-bag-shopping"></i> Abrir inventario</button></div></article><article class="wc-game-card"><h4>Ubicación actual</h4>${img(zone?.image, zone?.name || 'Mapa', 'wc-game-map-thumb')}<p><strong>${esc(zone?.name || labelForZone(p.zone))}</strong> · Requisito nivel ${num(zone?.level || 1)}</p><p class="muted">${esc(zone?.gathering?.join(' · ') || 'Explora, reúne materiales y busca enemigos.')}</p><div class="wc-game-actions"><button class="wc-game-btn" data-tab="mapa"><i class="fas fa-map"></i> Abrir mapa</button></div></article><article class="wc-game-card wide"><h4>Actividad del personaje</h4>${active ? `<p><strong>Misión activa:</strong> ${esc(active.name || active.id)} · ${num(active.progress || 0)}/${num(active.goal || 1)}</p>` : `<p>No tienes una misión activa. Acepta la misión principal del nivel ${num(p.level)}. Las secundarias son opcionales.</p>`}<p>${state.me.combat?.enemy ? `Combate activo contra ${esc(state.me.combat.enemy.name)}.` : 'No tienes combate activo.'} ${state.me.party ? `Grupo ${esc(state.me.party.id)} · ${state.me.party.members.length} integrantes.` : ''}</p><div class="wc-game-actions"><button class="wc-game-btn gold" data-tab="combate"><i class="fas fa-dragon"></i> Ir al combate</button><button class="wc-game-btn" data-tab="tienda"><i class="fas fa-store"></i> Visitar tienda</button><button class="wc-game-btn" data-wc-action="daily"><i class="fas fa-calendar-day"></i> Reclamar recompensa diaria</button></div><p class="muted">La experiencia de combate permite subir de nivel sin completar misiones secundarias. El progreso se comparte con WhatsApp.</p></article></div>`;
   }
   function renderQuests() {
     const quests = state.me.quests || [];
@@ -135,8 +152,8 @@
       const main = q.mainQuest || q.questType === 'main' || q.campaign === 'main';
       const rewardItems = (q.rewardItems || []).map(id => itemInfo(id)).filter(Boolean);
       return `<article class="wc-game-card"><h4>${main ? '<i class="fas fa-crown"></i> Misión principal' : '<i class="fas fa-feather-pointed"></i> Misión secundaria'}</h4><p><strong>${esc(q.name)}</strong></p><p>${esc(q.description)}</p><div class="wc-game-statline"><span>Objetivo</span><strong>${num(q.goal || 1)} · ${esc(q.enemyName || enemyLabel(q.enemyId))}</strong></div><div class="wc-game-statline"><span>Recompensas</span><strong>${num(q.xp)} XP · ${num(q.gold)} oro</strong></div>${rewardItems.length ? `<div class="wc-item-stats">${rewardItems.map(i => `<span class="wc-game-chip">${img(i.image, i.name)}${esc(i.name)}</span>`).join('')}</div>` : ''}<div class="wc-game-actions"><button class="wc-game-btn gold" type="button" data-wc-action="quest_accept" data-id="${esc(q.id)}" ${active ? 'disabled' : ''}><i class="fas fa-check"></i> Aceptar misión</button></div></article>`;
-    }).join('') : '<div class="wc-game-empty">No hay misiones disponibles ahora. Completa tu cadena principal para desbloquear nuevos encargos.</div>';
-    return `<div class="wc-game-grid">${activeBox}<article class="wc-game-card wide"><h4>Cadena principal y encargos</h4><p>Completa las misiones principales en orden para desbloquear el siguiente nivel. Las secundarias se renuevan con enemigos de tu tramo.</p></article>${board}</div>`;
+    }).join('') : '<div class="wc-game-empty">La misión principal de este nivel ya está completada. Sigue ganando experiencia: las misiones no bloquean el siguiente nivel.</div>';
+    return `<div class="wc-game-grid">${activeBox}<article class="wc-game-card wide"><h4>Misión principal</h4><p>La misión principal está disponible sin completar secundarias. Gana experiencia en combate para subir de nivel; las misiones secundarias son opcionales.</p></article>${board}</div>`;
   }
   function renderCombat() {
     const combat = state.me.combat;
@@ -232,6 +249,7 @@
     const localAction = event.target.closest('[data-wc-local]');
     if (localAction) {
       if (localAction.dataset.wcLocal === 'characters') { state.awaitingCharacterSelection = true; await refresh(); return; }
+      if (localAction.dataset.wcLocal === 'retry-game') { await enterGameMode(); return; }
       if (localAction.dataset.wcLocal === 'create-character') {
         state.awaitingCharacterSelection = false;
         mount.innerHTML = '';
@@ -310,15 +328,31 @@
       if (result?.catch) result.catch(() => {});
     } catch {}
   };
-  const enterGameMode = () => {
+  const enterGameMode = async () => {
+    if (!token()) {
+      const status = el('wcLoginStatus');
+      if (status) status.textContent = 'Inicia sesión o crea tu cuenta de WoW antes de jugar.';
+      const login = el('wcLoginForm');
+      login?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      login?.classList.add('wc-auth-attention');
+      window.setTimeout(() => login?.classList.remove('wc-auth-attention'), 1800);
+      return;
+    }
     document.documentElement.classList.add('wc-game-mode');
     document.body.classList.add('wc-game-mode');
     document.body.classList.remove('wc-portrait-override');
+    const profile = el('wcProfilePanel');
+    if (profile) profile.style.display = 'block';
+    mount.innerHTML = '<div class="wc-game-loading" role="status"><span class="wc-game-spinner"></span><h3>Entrando a Warcraft</h3><p>Cargando tu cuenta, personaje y mundo…</p></div>';
     try {
       const fullscreen = document.documentElement.requestFullscreen?.();
       if (fullscreen?.then) fullscreen.then(lockLandscape).catch(lockLandscape);
       else lockLandscape();
     } catch { lockLandscape(); }
+    await refresh({ keepNotice: false });
+    if (!state.me && token()) {
+      mount.innerHTML = `<div class="wc-game-load-error" role="alert"><h3>No se pudo cargar el juego</h3><p>${esc(state.notice || 'Revisa tu conexión e inténtalo de nuevo.')}</p><button class="wc-game-btn" type="button" data-wc-local="retry-game">Reintentar</button></div>`;
+    }
   };
   const leaveGameMode = () => {
     document.documentElement.classList.remove('wc-game-mode');
@@ -339,6 +373,7 @@
     if (event.key === 'Escape' && document.body.classList.contains('wc-game-mode')) leaveGameMode();
   });
   window.addEventListener('wc-profile-refresh', () => refresh());
+  window.addEventListener('orientationchange', () => refresh());
   window.wcGameRefresh = refresh;
   refresh();
 })();
