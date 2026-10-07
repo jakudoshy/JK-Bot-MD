@@ -97,8 +97,16 @@
     setText('wcProfileTitle', state.me.account?.username || 'Cuenta WoW');
     setText('wcProfileSubtitle', `Sesión activa · ${p.name || 'Personaje'} · ${classLabel(p.classKey)} · ${labelForZone(p.zone)}`);
     if (el('wcProfileStats')) {
-      const rows = [['Puesto', state.me.rank ? `#${state.me.rank}` : '—'], ['Nivel', `${p.level}/80`], ['Clase', classLabel(p.classKey)], ['GS', p.gs], ['Vida', `${p.hp}/${p.maxHp}`], ['Experiencia', p.xp], ['Oro', num(p.gold)], ['Ataque', p.attack], ['Defensa', p.defense]];
+      const rows = [['Puesto', state.me.rank ? `#${state.me.rank}` : '—'], ['Nivel', `${p.level}/80`], ['Clase', classLabel(p.classKey)], ['GS', p.gs], ['Vida', `${p.hp}/${p.maxHp}`], ['Oro', num(p.gold)], ['Talentos disponibles', num(p.talentPoints)], ['Talentos usados', num(p.talentPointsSpent)], ['Experiencia', p.xp], ['Ataque', p.attack], ['Defensa', p.defense]];
       el('wcProfileStats').innerHTML = rows.map(([label, value]) => `<div class="wc-profile-stat"><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`).join('');
+    }
+    if (el('wcProfileAbilities')) {
+      const abilities = state.me.skillProgression || [];
+      const talents = p.talents || {};
+      const learned = abilities.filter(skill => skill.unlocked).map(skill => skill.name);
+      const next = abilities.filter(skill => !skill.unlocked).sort((a, b) => a.level - b.level)[0];
+      const allocated = `Ataque ${Math.floor(Number(talents.attack || 0) / 2)} · Defensa ${Math.floor(Number(talents.defense || 0) / 2)} · Vida ${num(talents.vitality)}`;
+      el('wcProfileAbilities').innerHTML = `<strong>Talentos asignados:</strong> ${allocated}<br><strong>Poderes aprendidos:</strong> ${learned.length ? learned.map(esc).join(' · ') : 'Sin poderes todavía'}${next ? `<br><strong>Siguiente poder:</strong> ${esc(next.name)} · Nivel ${num(next.level)}` : ''}`;
     }
     if (el('wcProfileEquipment')) el('wcProfileEquipment').innerHTML = (state.me.equipmentDetails || []).length ? state.me.equipmentDetails.map(item => `<div><strong>${esc(item.slot === 'weapon' ? 'Arma' : 'Armadura')}:</strong> ${esc(item.name)}</div>`).join('') : 'Todavía no hay equipo.';
     if (el('wcProfileInventory')) el('wcProfileInventory').innerHTML = (state.me.inventoryDetails || []).length ? state.me.inventoryDetails.map(item => `<li>${esc(item.name)} <strong>× ${Number(item.quantity || 1)}</strong></li>`).join('') : '<li>Inventario vacío</li>';
@@ -235,7 +243,9 @@
     const achievements = Object.entries(state.catalog.achievements || {});
     const unlocked = state.me.achievements || {};
     const mail = state.me.mail || [];
-    return `<div class="wc-game-grid"><article class="wc-game-card"><h4>Talentos</h4><p>Puntos disponibles: ${num(p.talentPoints)}</p><div class="wc-game-actions">${[['attack','Ataque'],['defense','Defensa'],['vitality','Vitalidad']].map(([id,label]) => `<button class="wc-game-btn" data-wc-action="talent" data-talent="${id}" ${!p.talentPoints ? 'disabled' : ''}>Mejorar ${label}</button>`).join('')}</div>${p.classKey === 'druida' ? `<h4 style="margin-top:16px">Especialización de druida</h4><div class="wc-game-actions">${[['feral','Feral'],['guardian','Guardián'],['restoration','Restauración']].map(([id,label]) => `<button class="wc-game-btn" data-wc-action="specialization" data-specialization="${id}">${label}</button>`).join('')}</div>` : ''}</article><article class="wc-game-card"><h4>Recompensa diaria</h4><p>Reclama oro y experiencia una vez al día.</p><button class="wc-game-btn gold" data-wc-action="daily">Reclamar</button></article><article class="wc-game-card wide"><h4>Monturas</h4><div class="wc-game-item-grid">${mounts.map(([id,m]) => `<article class="wc-game-item"><div class="wc-item-art"><i class="fas fa-horse"></i></div><div><h4 class="wc-item-name">${esc(m.name)}</h4><p>Nivel ${num(m.level)} · ${num(m.price)} oro</p><button class="wc-game-btn" data-wc-action="mount_buy" data-id="${esc(id)}">Comprar montura</button></div></article>`).join('')}</div></article><article class="wc-game-card wide"><h4>Hermandad</h4>${guildId ? `<p>Formas parte de <strong>${esc(state.me.guild?.name || 'la hermandad')}</strong> · ID ${esc(guildId)}.</p><button class="wc-game-btn danger" data-wc-action="guild_leave">Salir</button>` : `<form class="wc-game-form" data-wc-form="guild_create"><div><label>Crear hermandad</label><input class="wc-game-input" name="name" maxlength="30" required placeholder="Nombre de la hermandad"></div><button class="wc-game-btn gold" type="submit">Crear</button></form><form class="wc-game-form" data-wc-form="guild_join" style="margin-top:10px"><div><label>ID de hermandad</label><input class="wc-game-input" name="guildId" required></div><button class="wc-game-btn" type="submit">Unirme</button></form>`}</article><article class="wc-game-card wide"><h4>Encantamientos</h4><div class="wc-game-item-grid">${enchants.map(([id,e]) => `<article class="wc-game-item"><div class="wc-item-art"><i class="fas fa-wand-sparkles"></i></div><div><h4 class="wc-item-name">${esc(e.name)}</h4><p>${e.attack ? `Ataque +${num(e.attack)}` : ''} ${e.defense ? `Defensa +${num(e.defense)}` : ''} ${e.hp ? `Vida +${num(e.hp)}` : ''}</p><button class="wc-game-btn" data-wc-action="enchant" data-id="${esc(id)}" data-slot="${esc(e.slot)}">Aplicar</button></div></article>`).join('')}</div></article><article class="wc-game-card wide"><h4>Correo y logros</h4><p>Mensajes pendientes: ${num(mail.filter(m => !m.claimed).length)} · Logros desbloqueados: ${num(Object.keys(unlocked).length)}</p><div class="wc-game-actions"><button class="wc-game-btn" data-wc-action="mail_claim">Reclamar correo</button></div><div class="wc-game-item-grid" style="margin-top:12px">${achievements.map(([id,a]) => `<article class="wc-game-item"><div class="wc-item-art"><i class="fas fa-award"></i></div><div><h4 class="wc-item-name">${esc(a[0])}</h4><p>${esc(a[1])} · Recompensa ${num(a[2])} oro</p><span class="wc-rarity-label">${unlocked[id] ? 'Desbloqueado' : 'Pendiente'}</span></div></article>`).join('')}</div></article><article class="wc-game-card wide"><h4>Enviar correo</h4><form class="wc-game-form" data-wc-form="mail_send"><div><label>Usuario/nombre/teléfono del destinatario</label><input class="wc-game-input" name="target" required></div><div><label>Objeto</label><select class="wc-game-select" name="itemId">${(state.me.inventoryDetails || []).map(i => `<option value="${esc(i.id)}">${esc(i.name)}</option>`).join('')}</select></div><div><label>Oro adjunto</label><input class="wc-game-input" name="gold" type="number" min="0" value="0"></div><button class="wc-game-btn" type="submit">Enviar correo</button></form></article></div>`;
+    const powers = state.me.skillProgression || [];
+    const powerList = powers.map(skill => `<li class="${skill.unlocked ? 'wc-power-unlocked' : 'wc-power-locked'}"><strong>${esc(skill.name)}</strong> · ${skill.unlocked ? 'Aprendido' : `Se desbloquea en nivel ${num(skill.level)}`}<small>${esc(skill.description || '')}</small></li>`).join('');
+    return `<div class="wc-game-grid"><article class="wc-game-card"><h4>Talentos y poderes</h4><p>Puntos disponibles: ${num(p.talentPoints)} · Gastados: ${num(p.talentPointsSpent)}</p><div class="wc-game-actions">${[['attack','Ataque'],['defense','Defensa'],['vitality','Vitalidad']].map(([id,label]) => `<button class="wc-game-btn" data-wc-action="talent" data-talent="${id}" ${!p.talentPoints ? 'disabled' : ''}>Mejorar ${label}</button>`).join('')}</div><h4 style="margin-top:16px">Progresión de poderes</h4><ul class="wc-power-list">${powerList || '<li>Elige una clase para ver sus poderes.</li>'}</ul>${p.classKey === 'druida' ? `<h4 style="margin-top:16px">Especialización de druida</h4><div class="wc-game-actions">${[['feral','Feral'],['guardian','Guardián'],['restoration','Restauración']].map(([id,label]) => `<button class="wc-game-btn" data-wc-action="specialization" data-specialization="${id}">${label}</button>`).join('')}</div>` : ''}</article><article class="wc-game-card"><h4>Recompensa diaria</h4><p>Reclama oro y experiencia una vez al día.</p><button class="wc-game-btn gold" data-wc-action="daily">Reclamar</button></article><article class="wc-game-card wide"><h4>Monturas</h4><div class="wc-game-item-grid">${mounts.map(([id,m]) => `<article class="wc-game-item"><div class="wc-item-art"><i class="fas fa-horse"></i></div><div><h4 class="wc-item-name">${esc(m.name)}</h4><p>Nivel ${num(m.level)} · ${num(m.price)} oro</p><button class="wc-game-btn" data-wc-action="mount_buy" data-id="${esc(id)}">Comprar montura</button></div></article>`).join('')}</div></article><article class="wc-game-card wide"><h4>Hermandad</h4>${guildId ? `<p>Formas parte de <strong>${esc(state.me.guild?.name || 'la hermandad')}</strong> · ID ${esc(guildId)}.</p><button class="wc-game-btn danger" data-wc-action="guild_leave">Salir</button>` : `<form class="wc-game-form" data-wc-form="guild_create"><div><label>Crear hermandad</label><input class="wc-game-input" name="name" maxlength="30" required placeholder="Nombre de la hermandad"></div><button class="wc-game-btn gold" type="submit">Crear</button></form><form class="wc-game-form" data-wc-form="guild_join" style="margin-top:10px"><div><label>ID de hermandad</label><input class="wc-game-input" name="guildId" required></div><button class="wc-game-btn" type="submit">Unirme</button></form>`}</article><article class="wc-game-card wide"><h4>Encantamientos</h4><div class="wc-game-item-grid">${enchants.map(([id,e]) => `<article class="wc-game-item"><div class="wc-item-art"><i class="fas fa-wand-sparkles"></i></div><div><h4 class="wc-item-name">${esc(e.name)}</h4><p>${e.attack ? `Ataque +${num(e.attack)}` : ''} ${e.defense ? `Defensa +${num(e.defense)}` : ''} ${e.hp ? `Vida +${num(e.hp)}` : ''}</p><button class="wc-game-btn" data-wc-action="enchant" data-id="${esc(id)}" data-slot="${esc(e.slot)}">Aplicar</button></div></article>`).join('')}</div></article><article class="wc-game-card wide"><h4>Correo y logros</h4><p>Mensajes pendientes: ${num(mail.filter(m => !m.claimed).length)} · Logros desbloqueados: ${num(Object.keys(unlocked).length)}</p><div class="wc-game-actions"><button class="wc-game-btn" data-wc-action="mail_claim">Reclamar correo</button></div><div class="wc-game-item-grid" style="margin-top:12px">${achievements.map(([id,a]) => `<article class="wc-game-item"><div class="wc-item-art"><i class="fas fa-award"></i></div><div><h4 class="wc-item-name">${esc(a[0])}</h4><p>${esc(a[1])} · Recompensa ${num(a[2])} oro</p><span class="wc-rarity-label">${unlocked[id] ? 'Desbloqueado' : 'Pendiente'}</span></div></article>`).join('')}</div></article><article class="wc-game-card wide"><h4>Enviar correo</h4><form class="wc-game-form" data-wc-form="mail_send"><div><label>Usuario/nombre/teléfono del destinatario</label><input class="wc-game-input" name="target" required></div><div><label>Objeto</label><select class="wc-game-select" name="itemId">${(state.me.inventoryDetails || []).map(i => `<option value="${esc(i.id)}">${esc(i.name)}</option>`).join('')}</select></div><div><label>Oro adjunto</label><input class="wc-game-input" name="gold" type="number" min="0" value="0"></div><button class="wc-game-btn" type="submit">Enviar correo</button></form></article></div>`;
   }
   function renderPurchaseOverlay() {
     const item = state.shop.find(i => i.id === state.pendingPurchase) || itemInfo(state.pendingPurchase);
@@ -330,10 +340,35 @@
   });
   el('wcLoginForm')?.addEventListener('submit', () => { state.awaitingCharacterSelection = true; }, true);
   el('wcVerifyBtn')?.addEventListener('click', () => { state.awaitingCharacterSelection = true; }, true);
+  let nativeLandscapeLock = false;
+  const isPortraitViewport = () => {
+    try { if (typeof window.matchMedia === 'function') return window.matchMedia('(orientation: portrait)').matches; } catch {}
+    return Number(window.innerHeight || 0) > Number(window.innerWidth || 0);
+  };
+  const rotateGameLandscape = async () => {
+    const orientation = window.screen?.orientation;
+    if (!isPortraitViewport()) { document.body.classList.remove('wc-css-landscape'); return true; }
+    if (typeof orientation?.lock === 'function') {
+      try {
+        await orientation.lock('landscape');
+        nativeLandscapeLock = true;
+        document.body.classList.remove('wc-css-landscape');
+        return true;
+      } catch {}
+    }
+    nativeLandscapeLock = false;
+    document.body.classList.add('wc-css-landscape');
+    return false;
+  };
+  const restoreGameOrientation = () => {
+    if (nativeLandscapeLock) { try { window.screen?.orientation?.unlock?.(); } catch {} }
+    nativeLandscapeLock = false;
+    document.body.classList.remove('wc-css-landscape');
+  };
   const enterGameMode = async event => {
     event?.preventDefault?.();
     document.body.classList.add('wc-game-mode');
-    document.body.classList.remove('wc-portrait-override');
+    const rotation = document.body.classList.contains('jkbot-app') ? rotateGameLandscape() : Promise.resolve();
     el('warcraft')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     const profile = el('wcProfilePanel');
     if (profile) profile.style.display = 'block';
@@ -343,16 +378,19 @@
       if (status) status.textContent = state.notice;
       setup.style.display = 'none';
       renderLoginNeeded(state.notice);
+      await rotation;
       return;
     }
     mount.innerHTML = '<div class="wc-game-loading" role="status"><span class="wc-game-spinner"></span><h3>Entrando a Warcraft</h3><p>Cargando tu cuenta, personaje y mundo…</p></div>';
     await refresh({ keepNotice: false });
+    await rotation;
     if (!state.me && token()) {
       if (profile) profile.style.display = 'block';
       mount.innerHTML = `<div class="wc-game-load-error" role="alert"><h3>No se pudo cargar el juego</h3><p>${esc(state.notice || 'Revisa tu conexión e inténtalo de nuevo.')}</p><button class="wc-game-btn" type="button" data-wc-local="retry-game">Reintentar</button></div>`;
     }
   };
   const leaveGameMode = () => {
+    restoreGameOrientation();
     document.body.classList.remove('wc-game-mode', 'wc-portrait-override');
   };
   document.addEventListener('click', event => {
@@ -362,12 +400,28 @@
     enterGameMode(event);
   }, true);
   el('wcExitGameMode')?.addEventListener('click', leaveGameMode);
-  el('wcContinuePortrait')?.addEventListener('click', () => document.body.classList.add('wc-portrait-override'));
+  el('wcRotateGame')?.addEventListener('click', () => { rotateGameLandscape(); });
+  el('wcContinuePortrait')?.addEventListener('click', () => {
+    if (document.body.classList.contains('jkbot-app')) rotateGameLandscape();
+    else document.body.classList.add('wc-portrait-override');
+  });
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && document.body.classList.contains('wc-game-mode')) leaveGameMode();
   });
   window.addEventListener('wc-profile-refresh', () => refresh());
-  window.addEventListener('orientationchange', () => refresh());
+  window.addEventListener('orientationchange', () => {
+    if (document.body.classList.contains('jkbot-app') && document.body.classList.contains('wc-game-mode') && !nativeLandscapeLock) {
+      if (isPortraitViewport()) document.body.classList.add('wc-css-landscape');
+      else document.body.classList.remove('wc-css-landscape');
+    }
+    refresh();
+  });
+  window.addEventListener('resize', () => {
+    if (document.body.classList.contains('jkbot-app') && document.body.classList.contains('wc-game-mode') && !nativeLandscapeLock) {
+      if (isPortraitViewport()) document.body.classList.add('wc-css-landscape');
+      else document.body.classList.remove('wc-css-landscape');
+    }
+  });
   window.wcGameRefresh = refresh;
   refresh();
 })();

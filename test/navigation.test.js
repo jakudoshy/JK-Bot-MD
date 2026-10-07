@@ -5,8 +5,10 @@ const path = require('node:path');
 const { JSDOM, VirtualConsole } = require('jsdom');
 const game = require('../lib/warcraft');
 const web = require('../lib/warcraftWeb');
+const { renderJkBotPage } = require('../lib/jkbotPage');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+const jkbotHtml = renderJkBotPage(html);
 
 test('la página incluye acceso WoW y tutoriales de cada sección', () => {
   const dom = new JSDOM(html);
@@ -37,6 +39,16 @@ test('las rutas de juego web usan el adaptador Warcraft autenticado', () => {
   assert.match(server, /app\.post\('\/api\/warcraft\/mmo'.*?handleWarcraftWebAction\(req, res\)/s);
   assert.match(server, /app\.post\('\/api\/warcraft\/action'.*?handleWarcraftWebAction\(req, res\)/s);
   assert.doesNotMatch(server, /app\.post\('\/api\/warcraft\/(?:duel|mmo|action)'.*?status\(410\)/s);
+});
+
+test('la nueva ruta /jkbot añade módulos sin sustituir la ruta principal y protege Auto Reacción', () => {
+  const server = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
+  assert.match(server, /app\.get\(\['\/jkbot', '\/jkbot\/'\]/);
+  assert.match(server, /renderJkBotPage\(INDEX_TEMPLATE/);
+  assert.match(server, /app\.post\('\/api\/reactions\/channel'/);
+  assert.match(server, /warcraftAccountFromToken\(req\.headers\.authorization/);
+  assert.match(server, /warcraftSessionForPhone\(account\.phone\)/);
+  assert.match(server, /sendChannelReaction\(session\.sock, req\.body\)/);
 });
 
 test('WhatsApp ofrece un menú interactivo para aceptar las misiones del nivel', () => {
@@ -208,6 +220,77 @@ test('Jugar WoW carga el juego horizontal dentro de la página, sin pantalla com
     assert.equal(window.document.documentElement.classList.contains('wc-game-mode'), false);
     assert.equal(window.document.body.classList.contains('wc-game-mode'), false);
     assert.equal(orientationUnlocks, 0);
+  } finally {
+    window.close();
+  }
+});
+
+test('en /jkbot el giro se intenta al tocar, usa fallback sin fullscreen y conserva talentos/poderes visibles', async () => {
+  let orientationLocks = 0;
+  let fullscreenRequests = 0;
+  const botData = {};
+  game.ensureRoot(botData);
+  const root = botData.warcraft;
+  const account = { username: 'rotator', phone: '5350002098', createdAt: new Date().toISOString() };
+  root.accounts[account.username] = account;
+  assert.equal(web.execute({ botData, root, account, input: { action: 'create_character', params: { name: 'Runa', classKey: 'deathknight' } } }).ok, true);
+  const player = game.playerForAccount(root, account);
+  player.level = 5;
+  player.talentPoints = 4;
+  player.talents.attack = 2;
+  player.talentPointsSpent = 1;
+  game.recalc(player);
+  const catalog = web.catalog();
+  const shop = game.shopItems(player).map(item => ({ ...item, image: web.itemImage(item) }));
+  const dom = new JSDOM(jkbotHtml, {
+    runScripts: 'dangerously',
+    url: 'http://localhost/jkbot',
+    beforeParse(window) {
+      window.localStorage.setItem('jk_warcraft_token', 'game-session');
+      Object.defineProperty(window, 'innerWidth', { value: 390, configurable: true });
+      Object.defineProperty(window, 'innerHeight', { value: 844, configurable: true });
+      window.fetch = async url => {
+        const target = String(url);
+        if (target.endsWith('/catalog')) return { ok: true, status: 200, json: async () => ({ ok: true, ...catalog }) };
+        if (target.endsWith('/me')) return { ok: true, status: 200, json: async () => ({ ok: true, account: { username: account.username }, ...web.playerState(root, account), rank: 1 }) };
+        if (target.endsWith('/shop')) return { ok: true, status: 200, json: async () => ({ ok: true, items: shop }) };
+        if (target.endsWith('/active-users')) return { ok: true, status: 200, json: async () => ({ ok: true, users: [], totalRegistered: 1, totalCharacters: 1 }) };
+        return { ok: true, status: 200, json: async () => ({ ok: true, message: 'ok' }) };
+      };
+      window.io = () => ({ on() {}, emit() {} });
+      window.confirm = () => true;
+      window.IntersectionObserver = class { observe() {} disconnect() {} };
+      window.HTMLElement.prototype.scrollIntoView = function () {};
+      window.HTMLCanvasElement.prototype.getContext = () => null;
+      Object.defineProperty(window.screen, 'orientation', { configurable: true, value: {
+        lock: () => { orientationLocks++; return Promise.reject(new Error('orientation lock unavailable')); },
+        unlock() {}
+      } });
+    }
+  });
+  const window = dom.window;
+  try {
+    window.document.documentElement.requestFullscreen = () => { fullscreenRequests++; return Promise.resolve(); };
+    window.eval(fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.js'), 'utf8'));
+    await new Promise(resolve => setTimeout(resolve, 80));
+    assert.match(window.document.getElementById('wcProfileStats').textContent, /Talentos disponibles\s*4/);
+    assert.match(window.document.getElementById('wcProfileStats').textContent, /Talentos usados\s*1/);
+    assert.match(window.document.getElementById('wcProfileAbilities').textContent, /Talentos asignados:\s*Ataque 1/);
+    assert.match(window.document.getElementById('wcProfileAbilities').textContent, /Golpe de muerte/);
+    assert.match(window.document.getElementById('wcProfileAbilities').textContent, /Espiral mortal/);
+    window.document.getElementById('menuToggle').click();
+    window.document.getElementById('menuPlayWow').click();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    assert.equal(orientationLocks, 1, 'se pide el giro horizontal durante el gesto de Jugar');
+    assert.equal(window.document.body.classList.contains('wc-css-landscape'), true, 'si el navegador lo rechaza aplica el fallback visual');
+    assert.ok(window.document.querySelector('.wc-game-shell'), 'la partida se carga aun cuando falla el bloqueo nativo');
+    window.document.getElementById('wcRotateGame').click();
+    await new Promise(resolve => setTimeout(resolve, 10));
+    assert.equal(orientationLocks, 2, 'el botón Girar pantalla vuelve a intentarlo');
+    assert.equal(fullscreenRequests, 0, 'no utiliza pantalla completa');
+    window.document.getElementById('wcExitGameMode').click();
+    assert.equal(window.document.body.classList.contains('wc-game-mode'), false);
+    assert.equal(window.document.body.classList.contains('wc-css-landscape'), false);
   } finally {
     window.close();
   }

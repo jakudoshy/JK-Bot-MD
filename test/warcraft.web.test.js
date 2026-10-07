@@ -53,6 +53,10 @@ test('la creación de personaje web usa el mismo motor y las 13 clases aceptan r
   assert.equal(state.player.classKey, 'deathknight');
   assert.equal(state.player.classImage, '/assets/warcraft/generated/classes/deathknight.png');
   assert.ok(state.player.xpForNext > 0);
+  assert.equal(state.player.talentPointsSpent, 0);
+  assert.equal(state.skillProgression.find(skill => skill.id === 'golpe_muerte').unlocked, false);
+  game.playerForAccount(root, playerAccount).level = 5;
+  assert.equal(web.playerState(root, playerAccount).skills.golpe_muerte.name, 'Golpe de muerte');
   const created = act(botData, root, playerAccount, 'create_character', { name: 'Otra', classKey: 'warrior' });
   assert.equal(created.ok, true, created.message);
   assert.equal(created.result.characters.length, 2);

@@ -1,0 +1,21 @@
+{
+  "name": "JK Bot",
+  "short_name": "JK Bot",
+  "description": "Panel JK Bot con herramientas, Warcraft y Auto Reacción.",
+  "lang": "es",
+  "start_url": "/jkbot",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#080a16",
+  "theme_color": "#09202a",
+  "categories": ["utilities", "social", "games"],
+  "icons": [
+    {
+      "src": "/Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg",
+      "sizes": "any",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

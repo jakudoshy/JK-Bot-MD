@@ -64,6 +64,30 @@ test('talentos se aplican y recalculan antes de gastar el punto', () => {
   assert.equal(game.spendTalent(player, 'ataque').error.includes('punto'), true);
 });
 
+test('cuenta talentos usados y desbloquea poderes de clase por nivel', () => {
+  const { data } = playerAtLevel();
+  const dk = game.createPlayer(data, '5350000191@s.whatsapp.net', 'Runa', 'deathknight').player;
+  assert.equal(game.talentPointsUsed(dk), 0);
+  dk.talentPoints = 2;
+  assert.equal(game.spendTalent(dk, 'ataque').error, undefined);
+  assert.equal(game.talentPointsUsed(dk), 1);
+  assert.equal(game.skillProgressionForPlayer(dk).find(skill => skill.id === 'golpe_muerte').unlocked, false);
+  assert.equal(game.skillsForPlayer(dk).golpe_muerte, undefined);
+  dk.level = 5;
+  assert.equal(game.skillsForPlayer(dk).golpe_muerte.name, 'Golpe de muerte');
+  assert.equal(game.skillProgressionForPlayer(dk).find(skill => skill.id === 'golpe_muerte').unlocked, true);
+  assert.equal(game.skillsForPlayer(dk).espiral_mortal, undefined);
+  dk.level = 15;
+  assert.equal(game.skillsForPlayer(dk).espiral_mortal.name, 'Espiral mortal');
+
+  const paladin = game.createPlayer(data, '5350000192@s.whatsapp.net', 'Luz', 'paladin').player;
+  paladin.level = 5;
+  assert.equal(game.skillsForPlayer(paladin).sentencia_luz.name, 'Sentencia de luz');
+  assert.equal(game.skillProgressionForPlayer(paladin).find(skill => skill.id === 'destello_luz').unlocked, false);
+  paladin.level = 15;
+  assert.equal(game.skillsForPlayer(paladin).destello_luz.type, 'heal');
+});
+
 test('el tablón muestra una sola misión principal por nivel y sus recompensas escalan', () => {
   const { player } = playerAtLevel(1);
   const levelOneBoard = game.getQuestBoard(player);

@@ -1,0 +1,29 @@
+#autoReaction[hidden]{display:none!important}
+#autoReaction{display:none}
+body.auto-reaction-mode{overflow:hidden!important;background:#070b10!important}
+body.auto-reaction-mode>header,body.auto-reaction-mode>.hero-banner,body.auto-reaction-mode>.banner-nav,body.auto-reaction-mode>footer,body.auto-reaction-mode>main>*:not(#autoReaction){display:none!important}
+body.auto-reaction-mode #autoReaction{position:fixed;inset:0;z-index:12000;display:grid;place-items:start center;overflow-y:auto;overscroll-behavior:contain;width:100%;height:100dvh;min-height:100vh;padding:clamp(14px,4vw,34px);background:radial-gradient(ellipse at 50% 0%,rgba(39,226,190,.12),transparent 45%),linear-gradient(160deg,#091019,#07090e 70%);color:#e8f4f0}
+.reaction-shell{width:min(100%,520px);margin:auto}
+.reaction-topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px}
+.reaction-wordmark{display:grid;gap:4px}.reaction-wordmark strong{color:#e9fbf5;font-size:.96rem;letter-spacing:.08em}.reaction-wordmark span{color:#8da79f;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase}
+.reaction-exit{min-height:42px;padding:8px 12px;border:1px solid rgba(92,222,190,.3);border-radius:11px;background:rgba(255,255,255,.035);color:#c6e9de;font:inherit;font-size:.8rem;cursor:pointer}
+.reaction-card{padding:clamp(18px,5vw,28px);border:1px solid rgba(72,214,179,.22);border-radius:20px;background:linear-gradient(155deg,rgba(18,31,39,.98),rgba(10,15,22,.98));box-shadow:0 22px 60px rgba(0,0,0,.36)}
+.reaction-kicker{margin:0 0 8px;color:#68e5c4;font-size:.7rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.reaction-card h1{margin:0 0 10px;color:#f1fff9;font-size:clamp(1.45rem,6vw,2rem);line-height:1.12}
+.reaction-intro{margin:0 0 22px;color:#a9bbb6;font-size:.9rem;line-height:1.55}
+#channelReactionForm{display:grid;gap:10px}
+#channelReactionForm label{color:#d2e8e1;font-size:.78rem;font-weight:700}
+#channelReactionForm input[type=url],#channelReactionForm input[type=text]{width:100%;min-height:48px;padding:12px 13px;border:1px solid rgba(128,164,155,.27);border-radius:11px;outline:none;background:#080e13;color:#f4fffb;font:inherit;font-size:.86rem}
+#channelReactionForm input:focus{border-color:#45d9b3;box-shadow:0 0 0 3px rgba(69,217,179,.12)}
+.reaction-hint{margin:-3px 0 5px;color:#8ca29b;font-size:.72rem;line-height:1.45}
+.reaction-consent{display:grid;grid-template-columns:20px 1fr;align-items:start;gap:9px;margin:5px 0 7px;color:#bbcec8!important;font-size:.74rem!important;font-weight:500!important;line-height:1.45}
+.reaction-consent input{width:17px;height:17px;margin:1px 0 0;accent-color:#42d7b0}
+#channelReactionSubmit{min-height:48px;border:1px solid rgba(63,224,182,.4);border-radius:12px;background:linear-gradient(135deg,#2ac49d,#198b7a);color:#04140f;font:inherit;font-size:.9rem;font-weight:800;cursor:pointer;transition:filter .15s,transform .15s}
+#channelReactionSubmit:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
+#channelReactionSubmit:disabled{opacity:.58;cursor:wait}
+#channelReactionStatus{min-height:42px;margin:7px 0 0;padding:10px 11px;border:1px solid rgba(139,167,158,.18);border-radius:10px;background:rgba(255,255,255,.025);color:#b8cbc5;font-size:.76rem;line-height:1.45}
+#channelReactionStatus[data-kind=success]{border-color:rgba(63,224,182,.35);color:#89f0d2}#channelReactionStatus[data-kind=warning]{border-color:rgba(255,196,104,.35);color:#ffd08b}#channelReactionStatus[data-kind=error]{border-color:rgba(255,113,132,.38);color:#ffb2bc}
+#reactionLogin{width:100%;min-height:44px;margin-top:10px;border:1px solid rgba(92,222,190,.28);border-radius:11px;background:rgba(255,255,255,.035);color:#d8f6ec;font:inherit;font-size:.8rem;font-weight:700;cursor:pointer}
+.reaction-safety{display:flex;gap:10px;margin:14px 2px 0;color:#8da29c;font-size:.72rem;line-height:1.5}.reaction-safety i{margin-top:2px;color:#68e5c4}
+@media(max-width:420px){body.auto-reaction-mode #autoReaction{padding:12px}.reaction-topbar{margin-bottom:16px}.reaction-card{border-radius:16px}.reaction-exit{min-height:40px;padding:7px 9px}}
+@media(prefers-reduced-motion:reduce){#channelReactionSubmit{transition:none}}

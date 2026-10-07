@@ -18,6 +18,8 @@ const { createTelegramBackupStore } = require('./lib/telegramBackupStore');
 const aiMedia = require('./lib/aiMedia');
 const warcraftGame = require('./lib/warcraft');
 const warcraftWeb = require('./lib/warcraftWeb');
+const { renderJkBotPage } = require('./lib/jkbotPage');
+const { sendChannelReaction } = require('./lib/channelReactions');
 const { installWhatsAppBrand, decorateText, smallCaps } = require('./lib/whatsappBrand');
 
 // El acceso Owner es una lista blanca fija: ningún valor del panel o de Premium puede ampliarla.
@@ -747,6 +749,13 @@ app.get('/admin', (req, res) => {
     sendIndexWithPreview(req, res);
 });
 
+app.get(['/jkbot', '/jkbot/'], (req, res) => {
+    res.set({ 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate', 'Pragma': 'no-cache', 'Expires': '0' });
+    const protocol = req.get('x-forwarded-proto') || req.protocol || 'https';
+    const imageUrl = `${protocol.split(',')[0].trim()}://${req.get('host')}/${BANNER_FILE}`;
+    res.type('html').send(renderJkBotPage(INDEX_TEMPLATE, imageUrl));
+});
+
 app.get('/health', (req, res) => {
     res.status(200).send('OK');
 });
@@ -831,6 +840,21 @@ app.post('/api/warcraft/duel', (req, res) => handleWarcraftWebAction(req, res, '
 app.get('/api/warcraft/mmo/catalog', (req, res) => res.json({ ok: true, recipes: warcraftGame.RECIPES, sources: warcraftGame.MATERIAL_SOURCES }));
 app.post('/api/warcraft/mmo', (req, res) => handleWarcraftWebAction(req, res));
 app.post('/api/warcraft/action', (req, res) => handleWarcraftWebAction(req, res));
+app.post('/api/reactions/channel', async (req, res) => {
+    const account = warcraftAccountFromToken(req.headers.authorization?.replace(/^Bearer\s+/i, ''));
+    if (!account) return res.status(401).json({ ok: false, message: 'Inicia sesión en tu cuenta WoW para usar Auto Reacción.' });
+    if (req.body?.confirmed !== true) return res.status(400).json({ ok: false, message: 'Confirma la reacción antes de enviarla.' });
+    const session = warcraftSessionForPhone(account.phone);
+    if (!session) return res.status(503).json({ ok: false, message: 'No hay una sesión de WhatsApp conectada para el número de esta cuenta.' });
+    try {
+        const result = await sendChannelReaction(session.sock, req.body);
+        return res.json({ ok: true, message: `Reacción ${req.body.emoji} enviada${result.channelName ? ` al canal ${result.channelName}` : ''}.` });
+    } catch (error) {
+        const message = String(error?.message || 'No se pudo enviar la reacción.');
+        const clientError = /enlace|link|emoji|publicación|post|canal/i.test(message);
+        return res.status(clientError ? 400 : 502).json({ ok: false, message });
+    }
+});
 // El comercio rápido web se retiró; los regalos e intercambios Warcraft se coordinan por WhatsApp.
 const LEGACY_DATA_DIR = path.resolve(__dirname, 'data');
 const LEGACY_RUNTIME_DIR = path.resolve(__dirname, 'bot');
