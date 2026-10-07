@@ -16,3 +16,45 @@
 .wc-game-log{max-height:180px;overflow:auto;padding:10px 12px;border-radius:11px;background:rgba(0,0,0,.22);color:#c9c2b5;font-size:.85rem;line-height:1.55}.wc-game-log div{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.035)}.wc-game-input, .wc-game-select{width:100%;min-height:42px;padding:10px 12px;border:1px solid rgba(205,175,119,.25);border-radius:10px;background:#17181e;color:#eee5d7;outline:none}.wc-game-input:focus,.wc-game-select:focus{border-color:#c99d57;box-shadow:0 0 0 3px rgba(201,157,87,.12)}.wc-game-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:end}.wc-game-form label{display:block;margin:0 0 5px;color:#cfc4b0;font-size:.83rem}.wc-game-form .full{grid-column:1/-1}.wc-game-empty{padding:24px;text-align:center;border:1px dashed rgba(205,175,119,.24);border-radius:14px;color:#aaa293}.wc-class-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;margin:12px 0 16px}.wc-class-choice{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 8px;border:1px solid rgba(201,167,110,.2);border-radius:14px;background:rgba(15,17,23,.7);color:#e7dac2;cursor:pointer}.wc-class-choice img{width:70px;height:70px;object-fit:cover;border:1px solid #64553d;border-radius:50%}.wc-class-choice.selected{border-color:#dfb86f;background:rgba(135,94,43,.2);box-shadow:0 0 18px rgba(214,170,86,.16)}.wc-game-overlay{position:fixed;inset:0;z-index:10020;display:grid;place-items:center;padding:20px;background:rgba(4,5,8,.78);backdrop-filter:blur(8px)}.wc-game-dialog{width:min(440px,100%);padding:22px;border:1px solid #bd9657;border-radius:18px;background:#17161a;box-shadow:0 25px 80px rgba(0,0,0,.55)}.wc-game-dialog h3{margin-top:0;color:#f8dfab}.wc-game-dialog .wc-game-item{margin:12px 0}.wc-game-footnote{margin-top:12px;color:#a49b8e;font-size:.78rem}
 @media(max-width:720px){.wc-game-hero{grid-template-columns:auto 1fr;gap:12px;padding:16px}.wc-game-portrait{width:62px;height:62px}.wc-game-vitals{grid-column:1/-1;justify-content:flex-start}.wc-game-grid{grid-template-columns:1fr}.wc-game-body{padding:12px}.wc-game-form{grid-template-columns:1fr}.wc-game-card.wide,.wc-game-form .full{grid-column:auto}.wc-game-tabs button{padding:9px 11px;font-size:.82rem}.wc-game-item-grid{grid-template-columns:1fr}.wc-game-mount{margin-top:18px}}
 @media(prefers-reduced-motion:reduce){.wc-game-btn,.wc-game-tabs button,.wc-game-bar span{transition:none}}
+
+
+/* Modo de juego dedicado: oculta el sitio y usa toda la pantalla para Warcraft. */
+.wc-game-mode-bar,
+.wc-orientation-hint{display:none}
+html.wc-game-mode,
+html.wc-game-mode body{width:100%;height:100%;min-height:100%;overflow:hidden}
+body.wc-game-mode{height:100vh;height:100dvh;min-height:0;overflow:hidden;background:#09090c!important}
+body.wc-game-mode> :not(#warcraft):not(script):not(noscript){display:none!important}
+body.wc-game-mode #warcraft{position:fixed;z-index:1000;inset:0;width:100vw;height:100vh;height:100dvh;max-width:none;margin:0;padding:clamp(8px,1.4vw,20px);overflow:auto;overscroll-behavior:contain;border:0;border-radius:0;background:radial-gradient(ellipse at 12% 0%,rgba(101,65,37,.24),transparent 45%),linear-gradient(155deg,#0b0d12,#100d13 72%,#17110d)!important;box-shadow:none!important;scrollbar-color:#604728 #0c0d11}
+body.wc-game-mode #warcraft>h2,
+body.wc-game-mode #warcraft>.sample-note,
+body.wc-game-mode #wcLobbyCard,
+body.wc-game-mode #wcTutorials,
+body.wc-game-mode #wcProfilePanel>.wc-profile-top,
+body.wc-game-mode #wcProfileStats,
+body.wc-game-mode #wcProfilePanel>.wc-profile-columns{display:none!important}
+body.wc-game-mode .wc-game-mode-bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;min-height:48px;margin:-2px 0 12px;padding:8px 12px;border:1px solid rgba(210,170,100,.24);border-radius:13px;background:rgba(8,9,13,.94);backdrop-filter:blur(12px)}
+body.wc-game-mode .wc-game-mode-bar strong{color:#f5d59d;font-size:.96rem}
+body.wc-game-mode .wc-game-mode-bar span{flex:1;color:#a99f90;font-size:.78rem}
+body.wc-game-mode .wc-game-mode-bar button{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:7px 11px;border:1px solid rgba(215,174,104,.38);border-radius:10px;background:rgba(255,255,255,.04);color:#f0dfc2;font:inherit;font-size:.78rem;font-weight:600;cursor:pointer}
+body.wc-game-mode .wc-game-mode-bar button:hover{border-color:#e1bd79;background:rgba(165,116,54,.2)}
+body.wc-game-mode #warcraft>.premium-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:12px;margin:0}
+body.wc-game-mode #wcProfilePanel,
+body.wc-game-mode #wcCharacterSetup{grid-column:1/-1!important;width:100%;margin:0;padding:0;border:0;background:transparent!important;box-shadow:none!important}
+body.wc-game-mode #wcProfilePanel #wcGameMount{margin:0}
+body.wc-game-mode #wcCreateCharacterForm,
+body.wc-game-mode #wcLoginForm,
+body.wc-game-mode #wcRegisterForm{min-width:0}
+body.wc-game-mode #wcLoginForm[style*="display: none"],
+body.wc-game-mode #wcRegisterForm[style*="display: none"]{display:none!important}
+body.wc-game-mode .wc-orientation-hint{display:none}
+body.wc-game-mode.wc-portrait-override #wcOrientationHint{display:none!important}
+body.wc-game-mode #wcOrientationHint .wc-orientation-card{width:min(420px,calc(100vw - 32px));padding:24px;border:1px solid #b58a4b;border-radius:20px;background:#151217;color:#eee5d7;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.55)}
+body.wc-game-mode #wcOrientationHint .wc-orientation-card>i{color:#f0c36f;font-size:2rem}
+body.wc-game-mode #wcOrientationHint h2{margin:12px 0 8px;color:#ffe0a2;font-size:1.2rem}
+body.wc-game-mode #wcOrientationHint p{margin:0 0 16px;color:#c8bead;font-size:.88rem;line-height:1.5}
+body.wc-game-mode #wcOrientationHint .wc-game-btn{width:100%}
+@media (orientation:portrait) and (max-width:900px){body.wc-game-mode #wcOrientationHint{position:fixed;inset:0;z-index:10030;display:grid;place-items:center;padding:18px;background:rgba(3,4,7,.96)}}
+@media (orientation:landscape) and (max-height:620px){body.wc-game-mode #warcraft{padding:7px 12px}body.wc-game-mode .wc-game-mode-bar{min-height:40px;margin-bottom:7px;padding:5px 9px}body.wc-game-mode .wc-game-hero{grid-template-columns:auto minmax(120px,1fr) auto;gap:10px;padding:10px 14px}body.wc-game-mode .wc-game-portrait{width:48px;height:48px;border-radius:12px}body.wc-game-mode .wc-game-vitals{gap:5px}body.wc-game-mode .wc-game-chip{padding:5px 8px;font-size:.72rem}body.wc-game-mode .wc-game-chip img{width:18px;height:18px}body.wc-game-mode .wc-game-tabs{gap:5px;padding:7px 9px}body.wc-game-mode .wc-game-tabs button{padding:7px 10px;font-size:.76rem}body.wc-game-mode .wc-game-body{padding:10px}body.wc-game-mode .wc-game-card{padding:12px}}
+@media(max-width:720px){body.wc-game-mode #warcraft>.premium-grid{grid-template-columns:minmax(0,1fr)}body.wc-game-mode .wc-game-mode-bar span{display:none}body.wc-game-mode .wc-game-mode-bar button{margin-left:auto}}
+@media(prefers-reduced-motion:reduce){body.wc-game-mode *{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}

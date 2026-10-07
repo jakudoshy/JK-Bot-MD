@@ -272,6 +272,41 @@
     if (button) button.disabled = false;
     if (data.ok && response.ok) { state.tab = 'resumen'; state.classKey = ''; await refresh({ keepNotice: false }); }
   });
+  const lockLandscape = () => {
+    try {
+      const orientation = window.screen?.orientation;
+      const result = orientation?.lock?.('landscape');
+      if (result?.catch) result.catch(() => {});
+    } catch {}
+  };
+  const enterGameMode = () => {
+    document.documentElement.classList.add('wc-game-mode');
+    document.body.classList.add('wc-game-mode');
+    document.body.classList.remove('wc-portrait-override');
+    try {
+      const fullscreen = document.documentElement.requestFullscreen?.();
+      if (fullscreen?.then) fullscreen.then(lockLandscape).catch(lockLandscape);
+      else lockLandscape();
+    } catch { lockLandscape(); }
+  };
+  const leaveGameMode = () => {
+    document.documentElement.classList.remove('wc-game-mode');
+    document.body.classList.remove('wc-game-mode', 'wc-portrait-override');
+    try { window.screen?.orientation?.unlock?.(); } catch {}
+    try {
+      const result = document.fullscreenElement ? document.exitFullscreen?.() : null;
+      if (result?.catch) result.catch(() => {});
+    } catch {}
+  };
+  el('menuPlayWow')?.addEventListener('click', enterGameMode);
+  el('wcExitGameMode')?.addEventListener('click', leaveGameMode);
+  el('wcContinuePortrait')?.addEventListener('click', () => document.body.classList.add('wc-portrait-override'));
+  document.addEventListener('fullscreenchange', () => {
+    if (document.body.classList.contains('wc-game-mode') && !document.fullscreenElement) leaveGameMode();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && document.body.classList.contains('wc-game-mode')) leaveGameMode();
+  });
   window.addEventListener('wc-profile-refresh', () => refresh());
   window.wcGameRefresh = refresh;
   refresh();

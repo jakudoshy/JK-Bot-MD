@@ -15,6 +15,12 @@ test('la página incluye acceso WoW y tutoriales de cada sección', () => {
   assert.equal(document.querySelectorAll('#wcTutorials .wc-help').length, 10);
   assert.ok(document.querySelector('#wcCharacterSetup .wc-help'));
   assert.ok(document.getElementById('wcGameMount'));
+  assert.equal(document.querySelector('#menuPlayWow')?.getAttribute('href'), '#warcraft');
+  assert.ok(document.getElementById('wcExitGameMode'));
+  assert.ok(document.getElementById('wcOrientationHint'));
+  const gameCss = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.css'), 'utf8');
+  assert.match(gameCss, /body\.wc-game-mode> :not\(#warcraft\)/);
+  assert.match(gameCss, /orientation:landscape/);
   assert.match(html, /jugar con botones en la web o comandos en WhatsApp/i);
   dom.window.close();
 });
@@ -127,6 +133,52 @@ test('la navegación alterna entre acceso público y cuenta sin solapar menús',
     assert.equal(profileLink.style.display, 'none');
     assert.equal(get('wcLoginForm').style.display, '');
     assert.equal(get('wcRegisterForm').style.display, '');
+  } finally {
+    window.close();
+  }
+});
+
+test('Jugar WoW abre la pantalla exclusiva del juego y permite volver al sitio', async () => {
+  let fullscreenRequests = 0;
+  let orientationLocks = 0;
+  let orientationUnlocks = 0;
+  const virtualConsole = new VirtualConsole();
+  virtualConsole.on('jsdomError', () => {});
+  const dom = new JSDOM(html, {
+    runScripts: 'dangerously',
+    url: 'http://localhost/',
+    virtualConsole,
+    beforeParse(window) {
+      window.fetch = async () => ({ ok: true, json: async () => ({ ok: false }) });
+      window.io = () => ({ on() {}, emit() {} });
+      window.confirm = () => true;
+      window.IntersectionObserver = class { observe() {} disconnect() {} };
+      window.HTMLElement.prototype.scrollIntoView = function () {};
+      window.HTMLCanvasElement.prototype.getContext = () => null;
+      Object.defineProperty(window.screen, 'orientation', { configurable: true, value: {
+        lock: () => { orientationLocks++; return Promise.resolve(); },
+        unlock: () => { orientationUnlocks++; }
+      } });
+    }
+  });
+  const window = dom.window;
+  try {
+    window.document.documentElement.requestFullscreen = () => { fullscreenRequests++; return Promise.resolve(); };
+    const gameScript = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.js'), 'utf8');
+    window.eval(gameScript);
+    await new Promise(resolve => setTimeout(resolve, 30));
+    window.document.getElementById('menuToggle').click();
+    window.document.getElementById('menuPlayWow').click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.ok(window.document.documentElement.classList.contains('wc-game-mode'));
+    assert.ok(window.document.body.classList.contains('wc-game-mode'));
+    assert.equal(window.document.getElementById('menuDrawer').getAttribute('aria-hidden'), 'true');
+    assert.equal(fullscreenRequests, 1);
+    assert.equal(orientationLocks, 1);
+    window.document.getElementById('wcExitGameMode').click();
+    assert.equal(window.document.documentElement.classList.contains('wc-game-mode'), false);
+    assert.equal(window.document.body.classList.contains('wc-game-mode'), false);
+    assert.equal(orientationUnlocks, 1);
   } finally {
     window.close();
   }
