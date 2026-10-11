@@ -240,6 +240,23 @@ test('el estado web expone el comercio pendiente solo al jugador destinatario', 
   assert.deepEqual(web.playerState(root, sender).trades, []);
 });
 
+test('el modo web admite iniciar mazmorra en solitario y expone correctamente el turno', () => {
+  const { botData, root } = setup();
+  const user = account(botData, root, 'sola', '5350002029', 'Sola', 'warrior');
+  const player = game.playerForAccount(root, user);
+  player.level = game.DUNGEONS.find(dungeon => dungeon.id === 'crypt').level;
+  game.recalc(player);
+  const started = act(botData, root, user, 'dungeon_start', { dungeonId: 'crypt' });
+  assert.equal(started.ok, true, started.message);
+  const state = web.playerState(root, user);
+  assert.equal(state.dungeon.myTurn, true);
+  assert.equal(state.dungeon.currentPlayer.name, 'Sola');
+  const client = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.js'), 'utf8');
+  assert.match(client, /Entrar en solitario/);
+  assert.match(client, /run\.myTurn \? '' : 'disabled'/);
+  assert.doesNotMatch(client, /JSON\.stringify\(run, null, 2\)/, 'la actividad se presenta con paneles legibles y no como JSON técnico');
+});
+
 test('misiones web mantienen el objetivo activo y el combate entrega automáticamente la recompensa', () => {
   const { botData, root } = setup();
   const user = account(botData, root, 'ana', '5350002020', 'Ana', 'warrior');

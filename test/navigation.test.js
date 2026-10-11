@@ -25,6 +25,9 @@ test('la página incluye acceso WoW y tutoriales de cada sección', () => {
   assert.equal(document.getElementById('wcRotateGame'), null);
   const gameCss = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.css'), 'utf8');
   assert.match(gameCss, /body\.wc-game-mode #warcraft\{position:relative/);
+  assert.match(gameCss, /Cinzel/);
+  assert.match(gameCss, /DM Sans/);
+  assert.match(gameCss, /top:82px/);
   assert.doesNotMatch(gameCss, /body\.wc-game-mode> :not\(#warcraft\)/);
   assert.match(gameCss, /orientation:landscape/);
   assert.doesNotMatch(gameCss, /rotate\(90deg\)/);
@@ -154,6 +157,12 @@ test('la navegación alterna entre acceso público y cuenta sin solapar menús',
     assert.equal(profileLink.style.display, 'none');
     assert.equal(get('wcLoginForm').style.display, '');
     assert.equal(get('wcRegisterForm').style.display, '');
+
+    get('menuToggle').click();
+    get('menuDrawer').querySelector('a[href=\"#wcLoginForm\"]').click();
+    assert.equal(get('menuDrawer').getAttribute('aria-hidden'), 'true');
+    assert.ok(window.document.body.classList.contains('wc-game-mode'));
+    assert.equal(get('wcLoginForm').style.display, '', 'el enlace del menú muestra el login en la vista de juego');
   } finally {
     window.close();
   }

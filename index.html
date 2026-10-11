@@ -27,7 +27,7 @@
 <meta name="twitter:description" content="Novedades, actualizaciones y herramientas para tu WhatsApp.">
 <meta name="twitter:image" content="__JK_OG_IMAGE__">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#080a16;
@@ -886,7 +886,7 @@ function setStatus(msg, type){
 }
 
 /* ---------------- Pairing logic ---------------- */
-const menuToggle=document.getElementById('menuToggle'),menuDrawer=document.getElementById('menuDrawer'),menuClose=document.getElementById('menuClose');function setMenu(open){menuDrawer.classList.toggle('open',open);menuDrawer.setAttribute('aria-hidden',String(!open));menuToggle.setAttribute('aria-expanded',String(open));if(open&&document.getElementById('wcAccountDropdown')){document.getElementById('wcAccountDropdown').style.display='none';document.getElementById('wcAccountButton')?.setAttribute('aria-expanded','false');}}menuToggle?.addEventListener('click',()=>setMenu(!menuDrawer.classList.contains('open')));menuClose?.addEventListener('click',()=>setMenu(false));menuDrawer?.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>setMenu(false)));
+const menuToggle=document.getElementById('menuToggle'),menuDrawer=document.getElementById('menuDrawer'),menuClose=document.getElementById('menuClose');function setMenu(open){menuDrawer.classList.toggle('open',open);menuDrawer.setAttribute('aria-hidden',String(!open));menuToggle.setAttribute('aria-expanded',String(open));if(open&&document.getElementById('wcAccountDropdown')){document.getElementById('wcAccountDropdown').style.display='none';document.getElementById('wcAccountButton')?.setAttribute('aria-expanded','false');}}menuToggle?.addEventListener('click',()=>setMenu(!menuDrawer.classList.contains('open')));menuClose?.addEventListener('click',()=>setMenu(false));menuDrawer?.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>setMenu(false)));document.querySelectorAll('#menuDrawer .wc-auth-link').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();setMenu(false);document.body.classList.add('wc-game-mode');const form=el(link.getAttribute('href')?.slice(1));if(form){if(el('wcCharacterSetup'))el('wcCharacterSetup').style.display='block';form.style.display='';form.scrollIntoView({behavior:'smooth',block:'center'});form.querySelector('input')?.focus({preventScroll:true});}}));
 		const socket = io();
 		socket.on('warcraft:update', () => window.dispatchEvent(new Event('wc-profile-refresh')));
 		const phoneInput = document.getElementById('phone');

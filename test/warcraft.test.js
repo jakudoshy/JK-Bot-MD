@@ -161,7 +161,7 @@ test('el tablero ofrece cinco caminos de aventura en todos los niveles y repone 
   player.professions[gathering.materialId.includes('hierba') ? 'herbalismo' : 'mineria'] = 1;
   assert.equal(game.acceptQuest(player, gathering.id).error, undefined);
   let result;
-  for (let i = 0; i < gathering.goal; i++) result = game.gather(player, gathering.materialId);
+  for (let i = 0; i < gathering.goal; i++) result = game.gather(player, gathering.materialId, 1000 + i * game.GATHER_COOLDOWN_MS);
   assert.equal(result.quest.completed, true);
   assert.equal(player.activeQuest, null);
   const replenished = game.ensureRepeatableMissionBoard(player).missions;
@@ -399,6 +399,119 @@ test('el antispam elimina el tercer mensaje repetido y respeta a admins', async 
   assert.equal(await security.enforce(sock, group, message, botData, true, { conversation: 'texto sexual' }, 'texto sexual'), false);
 });
 
+
+
+
+test('la recolección respeta un tiempo de reaparición por jugador, zona y recurso', () => {
+  const { player } = playerAtLevel(1);
+  player.professions.herbalismo = 1;
+  const first = game.gather(player, 'hierba_lunar', 50000);
+  assert.equal(first.error, undefined);
+  const before = player.inventory.length;
+  const tooSoon = game.gather(player, 'hierba_lunar', 50001);
+  assert.match(tooSoon.error, /agotado.*15 segundos/i);
+  assert.equal(player.inventory.length, before, 'un intento anticipado no entrega material ni avanza misión');
+  assert.equal(game.gather(player, 'hierba_lunar', 50000 + game.GATHER_COOLDOWN_MS).error, undefined);
+});
+
+test('una misión activa se conserva al subir de nivel y puede progresar y pagarse', () => {
+  const { player } = playerAtLevel(1);
+  const board = game.ensureRepeatableMissionBoard(player).missions;
+  const quest = board.find(item => item.missionType === 'gather');
+  player.professions.herbalismo = 1;
+  assert.equal(game.acceptQuest(player, quest.id).error, undefined);
+  const accepted = player.activeQuest;
+  game.grantXp(player, 1e9);
+  const refreshed = game.ensureRepeatableMissionBoard(player);
+  assert.ok(refreshed.missions.some(item => item.id === accepted.id));
+  assert.equal(player.activeQuest.id, accepted.id);
+  let result;
+  for (let i = 0; i < accepted.goal; i++) result = game.gather(player, accepted.materialId, 1000 + i * game.GATHER_COOLDOWN_MS);
+  assert.equal(result.quest.completed, true);
+  assert.equal(player.activeQuest, null);
+});
+
+test('las habilidades de sanación pura no dañan al enemigo y los consumibles no saltan turnos', () => {
+  const data = {};
+  const player = game.createPlayer(data, '5350000991@s.whatsapp.net', 'Sanadora', 'priest').player;
+  const root = game.ensureRoot(data);
+  player.level = 10; game.recalc(player); player.hp = Math.floor(player.maxHp / 2);
+  const combat = game.startCombat(root, player, 'lobo').combat;
+  const enemyHp = combat.enemy.hp;
+  const potionCount = player.inventory.filter(id => id === 'health_potion').length;
+  assert.match(game.useItem(player, 'health_potion', root).error, /durante un encuentro/i);
+  assert.equal(player.inventory.filter(id => id === 'health_potion').length, potionCount);
+  const heal = game.combatAttack(root, player, 'sanar');
+  assert.equal(heal.damage, 0);
+  assert.ok(heal.healed > 0);
+  assert.equal(combat.enemy.hp, enemyHp, 'la curación no también golpea al enemigo');
+});
+
+test('las sanaciones puras de duelo curan la vida del duelo sin herir al rival ni modificar vida PvE', () => {
+  const data = {};
+  const healer = game.createPlayer(data, '5350000995@s.whatsapp.net', 'Sanadora', 'priest').player;
+  const rival = game.createPlayer(data, '5350000996@s.whatsapp.net', 'Rival', 'warrior').player;
+  healer.level = 10; game.recalc(healer);
+  const root = game.ensureRoot(data);
+  const invitation = game.createDuel(root, healer, rival.id);
+  assert.equal(invitation.error, undefined);
+  const duel = game.acceptDuel(root, rival).duel;
+  duel.hp[healer.id] = 20;
+  const rivalHp = duel.hp[rival.id], healerPveHp = healer.hp;
+  const turn = game.duelAttack(root, healer, 'sanar');
+  assert.equal(turn.damage, 0);
+  assert.ok(turn.healed > 0);
+  assert.equal(duel.hp[rival.id], rivalHp);
+  assert.equal(duel.hp[healer.id], 20 + turn.healed);
+  assert.equal(healer.hp, healerPveHp);
+  assert.equal(duel.turn, rival.id);
+});
+
+test('los objetos equipados dejan de aportar estadísticas al regalarse o retirarse', () => {
+  const { player } = playerAtLevel(1);
+  const previousAttack = player.attack;
+  assert.equal(player.equipment.weapon, 'rusty_sword');
+  assert.equal(game.removeItems(player, ['rusty_sword']), true);
+  assert.equal(player.equipment.weapon, undefined);
+  assert.ok(player.attack < previousAttack);
+});
+
+test('el correo rechaza oro negativo, fracciones y autorregalos sin modificar balances ni mochila', () => {
+  const data = {};
+  const sender = game.createPlayer(data, '5350000992@s.whatsapp.net', 'Sender', 'warrior').player;
+  const receiver = game.createPlayer(data, '5350000993@s.whatsapp.net', 'Receiver', 'mage').player;
+  const root = game.ensureRoot(data);
+  const gold = sender.gold, inventory = [...sender.inventory];
+  assert.match(game.sendMail(root, sender, receiver.id, 'health_potion', -5).error, /entero entre/i);
+  assert.match(game.sendMail(root, sender, receiver.id, 'health_potion', 1.5).error, /entero entre/i);
+  assert.match(game.sendMail(root, sender, sender.id, 'health_potion', 0).error, /otro jugador/i);
+  assert.equal(sender.gold, gold);
+  assert.deepEqual(sender.inventory, inventory);
+  assert.equal((root.mail[receiver.id] || []).length, 0);
+});
+
+test('las mazmorras pueden iniciarse en solitario sin grupo', () => {
+  const { data, player } = playerAtLevel(1);
+  const root = game.ensureRoot(data);
+  player.level = game.DUNGEONS.find(item => item.id === 'crypt').level; game.recalc(player);
+  const started = game.startDungeonRun(root, player, 'crypt');
+  assert.equal(started.error, undefined);
+  assert.deepEqual(started.run.roster, [player.id]);
+  assert.equal(game.dungeonRunStatus(root, player).currentPlayer.id, player.id);
+});
+
+test('un personaje no mezcla combate de enemigo y duelo activo', () => {
+  const { data, player } = playerAtLevel(1);
+  const root = game.ensureRoot(data);
+  const rival = game.createPlayer(data, '5350000994@s.whatsapp.net', 'Rival', 'warrior').player;
+  assert.equal(game.startCombat(root, player, 'lobo').error, undefined);
+  assert.match(game.createDuel(root, player, rival.id).error, /encuentro actual/i);
+  root.combat[player.id].status = 'fled';
+  const invite = game.createDuel(root, player, rival.id);
+  assert.equal(invite.error, undefined);
+  root.combat[player.id] = { status: 'active' };
+  assert.match(game.acceptDuel(root, rival).error, /otro encuentro/i);
+});
 
 test('la tienda rechaza equipo de nivel superior y descuenta oro solo al comprar', () => {
   const data = {};
