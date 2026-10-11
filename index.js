@@ -18,6 +18,7 @@ const { createTelegramBackupStore } = require('./lib/telegramBackupStore');
 const aiMedia = require('./lib/aiMedia');
 const warcraftGame = require('./lib/warcraft');
 const warcraftWeb = require('./lib/warcraftWeb');
+const { createWarcraftRecovery } = require('./lib/warcraftRecovery');
 const { renderJkBotPage } = require('./lib/jkbotPage');
 const { sendChannelReaction, parseChannelPostUrl, parseReactionEmoji } = require('./lib/channelReactions');
 const reactionLimits = require('./lib/reactionLimits');
@@ -769,6 +770,7 @@ function hashWarcraftPassword(value, salt = crypto.randomBytes(16).toString('hex
 function checkWarcraftPassword(value, stored) { try { const [salt, digest] = String(stored || '').split(':'); const actual = crypto.scryptSync(String(value), salt, 64).toString('hex'); return crypto.timingSafeEqual(Buffer.from(actual, 'hex'), Buffer.from(digest || '', 'hex')); } catch { return false; } }
 function warcraftRoot() { botData.warcraft ||= { players: {}, accounts: {}, trades: {}, guilds: {}, sessions: {}, combat: {}, duels: {}, duelRequests: {}, pendingPurchases: {}, parties: {}, auctions: {}, mail: {}, battlegrounds: {}, world: {}, webSessions: {}, activityNotifications: {} }; const root = botData.warcraft; for (const key of ['players', 'accounts', 'trades', 'guilds', 'sessions', 'combat', 'duels', 'duelRequests', 'pendingPurchases', 'parties', 'auctions', 'mail', 'battlegrounds', 'world', 'webSessions', 'activityNotifications']) root[key] ||= {}; return root; }
 function warcraftSessionForPhone(phone) { const target = normalizeWarcraftPhone(phone); return Object.values(sessions || {}).find(session => [session.phoneNumber, session.requestedPhoneNumber, session.userId, session.sock?.user?.id].some(value => normalizeWarcraftPhone(value) === target) && session.sock && session.isConnected); }
+const warcraftRecovery = createWarcraftRecovery({ normalizePhone: normalizeWarcraftPhone });
 function warcraftAccountFromToken(token) { const root = warcraftRoot(); const session = root.webSessions[String(token || '')]; if (!session || session.expiresAt < Date.now()) return null; return root.accounts[session.username] || null; }
 function warcraftPublicLeaderboard(root = warcraftRoot()) { return Object.values(root.accounts || {}).map(account => { const player = warcraftGame.playerForAccount(root, account); if (!player) return null; warcraftGame.recalc(player); return { username: account.username, character: player.name, classKey: player.classKey, className: warcraftGame.CLASS_CONFIG[player.classKey]?.label || 'Aventurero', gs: Number(player.gs || 0), level: Number(player.level || 1), xp: Number(player.xp || 0), phone: normalizeWarcraftPhone(account.phone) }; }).filter(Boolean).sort((a, b) => b.gs - a.gs || b.level - a.level || b.xp - a.xp || a.username.localeCompare(b.username)).map((player, index) => ({ ...player, rank: index + 1 })); }
 async function handleWarcraftWebAction(req, res, forcedAction = null) {
@@ -813,6 +815,27 @@ app.post('/api/warcraft/register/verify', (req, res) => {
     const token = crypto.randomBytes(24).toString('hex'); root.webSessions[token] = { username: pending.username, expiresAt: Date.now() + 24 * 60 * 60 * 1000 };
     warcraftPendingCodes.delete(phone); saveBotData();
     res.json({ ok: true, token, username: pending.username, message: `Cuenta registrada correctamente.\n\nUsuario: ${pending.username}\nContraseña: la que elegiste\n\nYa puedes abrir el panel Warcraft de la web y jugar con botones; WhatsApp sigue disponible con /login y /warcraft.` });
+});
+app.post('/api/warcraft/recovery/request-code', async (req, res) => {
+    const identifier = String(req.body?.identifier || '').slice(0, 120);
+    const result = await warcraftRecovery.request(warcraftRoot(), identifier, req.ip, async (phone, code) => {
+        const session = warcraftSessionForPhone(phone);
+        if (!session) throw new Error('No hay una sesión WhatsApp conectada para enviar el código.');
+        await session.sock.sendMessage(`${phone}@s.whatsapp.net`, { text: `🔐 Restauración de cuenta Warcraft\n\nCódigo: ${code}\nCaduca en 10 minutos. No lo compartas con nadie.` });
+    });
+    res.json(result);
+});
+app.post('/api/warcraft/recovery/verify-code', (req, res) => {
+    const result = warcraftRecovery.verify(warcraftRoot(), req.body?.identifier, req.body?.code);
+    if (!result.ok) return res.status(400).json(result);
+    res.json(result);
+});
+app.post('/api/warcraft/recovery/reset-password', (req, res) => {
+    const root = warcraftRoot();
+    const result = warcraftRecovery.reset(root, req.body?.recoveryToken, req.body?.password, hashWarcraftPassword);
+    if (!result.ok) return res.status(400).json(result);
+    saveBotData();
+    res.json({ ok: true, username: result.username, message: result.message });
 });
 app.post('/api/warcraft/login', (req, res) => {
     const username = String(req.body?.username || '').trim().toLowerCase(); const root = warcraftRoot();

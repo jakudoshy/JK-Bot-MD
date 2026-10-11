@@ -19,12 +19,20 @@ test('la página JK Bot conserva el sitio actual y añade los módulos independi
   assert.match(page, /id="menuToggle"/);
   assert.doesNotMatch(page, /fa-ellipsis-vertical/);
   assert.match(page, /id="jkNotificationBell"/);
+  assert.match(page, /id="wcForgotPassword"/);
+  assert.match(page, /id="wcRecoveryPanel"/);
+  assert.match(page, /Restauración de cuenta/);
+  assert.match(page, /fa-trophy/);
   const portalCss = fs.readFileSync(path.join(__dirname, '..', 'public/jkbot/jkbot.css'), 'utf8');
   assert.match(portalCss, /\.nav-actions\{position:fixed;top:16px;right:18px/);
   assert.match(portalCss, /#jkNotificationBell\{position:relative;inset:auto/);
   assert.match(portalCss, /#menuToggle\{position:relative;inset:auto;z-index:1;display:grid;align-content:center/);
   assert.match(portalCss, /#wcAccountButton \.wc-avatar/);
+  assert.match(portalCss, /wc-recovery-panel/);
+  assert.match(portalCss, /warcraft\/generated\/ui\/guild\.png/);
+  assert.match(portalCss, /#wcLobbyCard\{background:/);
   const dom = new JSDOM(page);
+  assert.equal(dom.window.document.querySelector('#wcLoginForm #wcRecoveryPanel'), null, 'la restauración no debe anidar formularios de HTML');
   const menu = dom.window.document.getElementById('menuToggle');
   assert.equal(menu.querySelectorAll('span').length, 3, 'el botón conserva exactamente sus tres rayitas');
   const visibleControls = [...menu.parentElement.children].filter(node => ['jkNotificationBell', 'menuToggle', 'wc-account-wrap'].includes(node.id || node.className)).map(node => node.id || node.className);
@@ -41,6 +49,7 @@ test('la página JK Bot conserva el sitio actual y añade los módulos independi
   assert.match(page, /id="wcProfileAbilities"/);
   assert.match(page, /id="wcGameMount"/);
   assert.match(page, /id="admin"/);
+  assert.match(page, /src="\/public\/jkbot\/account-recovery\.js"/);
   assert.match(page, /src="\/public\/reactions\/reaction-ui\.js"/);
   assert.match(page, /href="\/public\/reactions\/reaction-ui\.css"/);
   assert.match(page, /https:\/\/example\.test\/banner\.jpeg/);

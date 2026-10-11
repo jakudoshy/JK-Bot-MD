@@ -152,3 +152,40 @@ body.wc-account-authenticated:not(.wc-game-mode) #wcGameMount{display:none!impor
 .wc-quest-card .wc-quest-kind{margin-bottom:10px;}
 .wc-quest-main{border-color:rgba(211,166,82,.42);background:linear-gradient(145deg,rgba(37,34,27,.72),rgba(16,24,36,.98) 54%);}
 @media(max-width:640px){.wc-adventure-meta{gap:6px}.wc-adventure-meta span{font-size:.68rem}.wc-quest-card{padding:14px}.wc-adventure-banner{padding:16px}}
+
+
+/* Crónicas vivas: animación ligera y arte del pack de Warcraft ya incluido. */
+.wc-game-shell{border-color:rgba(255,82,115,.36);background:radial-gradient(ellipse at 6% 0%,rgba(227,49,82,.16),transparent 39%),linear-gradient(155deg,#111018,#151019 70%,#1b1116)}
+.wc-game-hero{--hero-accent:#ff6680;border-bottom-color:color-mix(in srgb,var(--hero-accent) 27%,transparent);background:radial-gradient(ellipse at 6% 30%,color-mix(in srgb,var(--hero-accent) 20%,transparent),transparent 35%),linear-gradient(100deg,rgba(199,55,82,.1),transparent 58%);animation:wc-hero-arrive .45s cubic-bezier(.2,.8,.2,1) both}
+.wc-game-portrait{border-color:var(--hero-accent);box-shadow:0 0 25px color-mix(in srgb,var(--hero-accent) 30%,transparent);transition:transform .25s ease,box-shadow .25s ease}
+.wc-game-portrait:hover{transform:translateY(-3px) rotate(-2deg);box-shadow:0 0 34px color-mix(in srgb,var(--hero-accent) 54%,transparent)}
+.wc-class-warrior{--hero-accent:#ff7056}.wc-class-paladin{--hero-accent:#ffd36a}.wc-class-hunter{--hero-accent:#92df70}.wc-class-picaro{--hero-accent:#d58cff}.wc-class-priest{--hero-accent:#eee9ff}.wc-class-shaman{--hero-accent:#54d0ff}.wc-class-mago{--hero-accent:#839dff}.wc-class-warlock{--hero-accent:#ff65a1}.wc-class-monk{--hero-accent:#ffae6c}.wc-class-druida{--hero-accent:#74e293}.wc-class-deathknight{--hero-accent:#82c5ff}.wc-class-demonhunter{--hero-accent:#bd8cff}.wc-class-evoker{--hero-accent:#ff9067}
+.wc-game-tabs button{transition:transform .2s ease,border-color .2s ease,background .2s ease,color .2s ease,box-shadow .2s ease}
+.wc-game-tabs button.active{border-color:rgba(255,91,119,.65);background:linear-gradient(135deg,rgba(228,46,84,.25),rgba(114,53,136,.2));color:#ffdce3;box-shadow:inset 0 0 0 1px rgba(255,201,119,.08),0 0 18px rgba(255,49,91,.12)}
+.wc-game-btn{border-color:rgba(255,100,126,.38);background:linear-gradient(135deg,rgba(155,39,70,.38),rgba(82,37,83,.4));color:#ffe6ec}
+.wc-game-btn.gold{border-color:#dca23e;background:linear-gradient(135deg,#a35a25,#693b24);color:#fff0c8;box-shadow:0 0 16px rgba(255,174,67,.1)}
+.wc-game-btn:hover:not(:disabled){box-shadow:0 8px 24px rgba(255,49,91,.18)}
+.wc-game-grid>.wc-game-card{animation:wc-card-arrive .38s cubic-bezier(.2,.8,.2,1) both}
+.wc-game-grid>.wc-game-card:nth-child(2){animation-delay:.035s}.wc-game-grid>.wc-game-card:nth-child(3){animation-delay:.07s}.wc-game-grid>.wc-game-card:nth-child(4){animation-delay:.105s}.wc-game-grid>.wc-game-card:nth-child(n+5){animation-delay:.13s}
+.wc-game-card{border-color:rgba(255,111,133,.17);transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease}
+.wc-game-card:hover{border-color:rgba(255,106,132,.38);box-shadow:0 15px 34px rgba(0,0,0,.2),0 0 22px rgba(255,49,91,.06)}
+.wc-game-item{position:relative;overflow:hidden;border-color:color-mix(in srgb,var(--rarity-accent,#e38aa0) 32%,transparent);transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease}
+.wc-game-item:hover{transform:translateY(-3px);border-color:var(--rarity-accent,#e38aa0);box-shadow:0 14px 32px color-mix(in srgb,var(--rarity-accent,#e38aa0) 13%,transparent)}
+.wc-game-item:after{content:"";position:absolute;right:-40px;top:-55px;width:116px;height:116px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--rarity-accent,#e38aa0) 16%,transparent),transparent 68%);pointer-events:none}
+.rarity-common{--rarity-accent:#63df9b}.rarity-uncommon{--rarity-accent:#57cde0}.rarity-rare{--rarity-accent:#af7bff}.rarity-epic{--rarity-accent:#f275ea}.rarity-legendary{--rarity-accent:#ffc35d}.rarity-mythic{--rarity-accent:#ff617e}
+.rarity-common .wc-item-art,.rarity-uncommon .wc-item-art,.rarity-rare .wc-item-art,.rarity-epic .wc-item-art,.rarity-legendary .wc-item-art,.rarity-mythic .wc-item-art{border-color:var(--rarity-accent);box-shadow:0 0 16px color-mix(in srgb,var(--rarity-accent) 24%,transparent)}
+.wc-reward-rarity{gap:8px;border-color:color-mix(in srgb,var(--rarity-accent,#e38aa0) 40%,transparent);box-shadow:inset 0 0 14px color-mix(in srgb,var(--rarity-accent,#e38aa0) 9%,transparent)}
+.wc-reward-rarity img{width:28px;height:28px;object-fit:contain}
+.wc-reward-rarity>span{display:grid;gap:1px}.wc-reward-rarity small{color:var(--rarity-accent,#e38aa0);font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.wc-adventure-banner{background-image:linear-gradient(90deg,rgba(15,13,20,.97) 0%,rgba(15,13,20,.91) 58%,rgba(15,13,20,.61) 100%),url('/assets/warcraft/generated/classes/deathknight.png');background-position:center,right 18px center;background-size:cover,auto 138%;background-repeat:no-repeat;border-color:rgba(255,113,137,.37);box-shadow:inset 0 0 44px rgba(0,0,0,.2),0 12px 30px rgba(0,0,0,.2)}
+.wc-adventure-banner:after{height:3px;background:linear-gradient(90deg,transparent,#ff526f,#ffd072,#b77cff,transparent);background-size:200% 100%;animation:wc-legendary-line 4s linear infinite}
+.wc-adventure-kicker{color:#ff9cac}.wc-adventure-banner h3{color:#fff0da;text-shadow:0 0 20px rgba(255,91,119,.2)}
+.wc-quest-main{border-color:rgba(255,194,93,.48);background:radial-gradient(ellipse at 100% 0,rgba(255,187,71,.12),transparent 45%),linear-gradient(145deg,rgba(47,29,21,.79),rgba(16,15,21,.98) 60%)}
+.wc-quest-card:hover{transform:translateY(-3px);box-shadow:0 16px 34px rgba(0,0,0,.25),0 0 22px rgba(255,58,94,.08)}
+.wc-game-bar.xp span{background:linear-gradient(90deg,#ff3d68,#ff9568,#ffd16c);box-shadow:0 0 12px rgba(255,73,97,.35)}
+.wc-game-notice:not(:empty){animation:wc-notice-arrive .25s ease-out both}
+@keyframes wc-hero-arrive{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes wc-card-arrive{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes wc-notice-arrive{from{opacity:.25;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes wc-legendary-line{to{background-position:200% 0}}
+@media(prefers-reduced-motion:reduce){.wc-game-grid>.wc-game-card,.wc-game-hero,.wc-game-notice:not(:empty),.wc-adventure-banner:after{animation:none!important}.wc-game-item:hover,.wc-game-card:hover,.wc-game-portrait:hover{transform:none!important}}
