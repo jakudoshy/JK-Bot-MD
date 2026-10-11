@@ -8,9 +8,12 @@
   if (!bell || !panel || !badge || !list || !toast) return;
 
   const storagePrefix = 'jkbot_notifications_v1:';
+  const dismissedPrefix = 'jkbot_notifications_dismissed_v1:';
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const number = value => Number(value || 0).toLocaleString('es-ES');
   let username = '';
   let notifications = [];
+  let dismissed = new Set();
   let toastTimer = null;
 
   function readSaved(account) {
@@ -19,9 +22,18 @@
       return Array.isArray(parsed) ? parsed.filter(item => item && typeof item.id === 'string') : [];
     } catch { return []; }
   }
+  function readDismissed(account) {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(dismissedPrefix + account) || '[]');
+      return new Set(Array.isArray(parsed) ? parsed.filter(item => typeof item === 'string') : []);
+    } catch { return new Set(); }
+  }
   function save() {
     if (!username) return;
-    try { localStorage.setItem(storagePrefix + username, JSON.stringify(notifications.slice(-30))); } catch {}
+    try {
+      localStorage.setItem(storagePrefix + username, JSON.stringify(notifications.slice(-30)));
+      localStorage.setItem(dismissedPrefix + username, JSON.stringify([...dismissed].slice(-100)));
+    } catch {}
   }
   function collect(state) {
     const current = new Map();
@@ -35,7 +47,8 @@
       if (mail.claimed) continue;
       const id = String(mail.id || mail.sentAt || `${mail.senderName || 'correo'}:${index}`);
       const key = `mail:${id}`;
-      current.set(key, { id: key, kind: 'mail', title: 'Correo pendiente', message: `Tienes un mensaje de ${mail.senderName || 'otro jugador'}.`, target: 'mas' });
+      const details = [Number(mail.gold) > 0 ? `${number(mail.gold)} de oro` : '', mail.itemName || mail.item || ''].filter(Boolean).join(' y ');
+      current.set(key, { id: key, kind: 'mail', title: 'Correo recibido', message: `${mail.senderName || 'Un jugador'} te envió ${details || 'un mensaje'}.`, target: 'mail' });
     }
     for (const [index, trade] of (state.trades || []).entries()) {
       if (!trade.incoming || (trade.status && trade.status !== 'pending')) continue;
@@ -47,7 +60,12 @@
       if (!transaction.incoming) continue;
       const id = String(transaction.id || `${transaction.fromName || 'jugador'}:${index}`);
       const key = `refund:${id}`;
-      current.set(key, { id: key, kind: 'refund', title: 'Reembolso pendiente', message: `${transaction.fromName || 'Un jugador'} te envió una solicitud de reembolso.`, target: 'jugadores' });
+      current.set(key, { id: key, kind: 'refund', title: 'Solicitud de reembolso', message: `${transaction.fromName || 'Un jugador'} te envió una solicitud de reembolso.`, target: 'jugadores' });
+    }
+    for (const [index, event] of (state.activityNotifications || []).entries()) {
+      if (!event) continue;
+      const key = `activity:${event.id || `${event.kind || 'aviso'}:${index}`}`;
+      current.set(key, { id: key, kind: event.kind || 'activity', title: event.title || 'Actividad nueva', message: event.message || 'Tienes una actividad nueva.', target: event.target || 'mas' });
     }
     return current;
   }
@@ -78,11 +96,11 @@
   function update(state) {
     const account = String(state?.account?.username || '');
     if (!account) return;
-    if (username !== account) { username = account; notifications = readSaved(account); }
+    if (username !== account) { username = account; notifications = readSaved(account); dismissed = readDismissed(account); }
     const current = collect(state);
     const fresh = [];
     for (const [id, item] of current) {
-      if (notifications.some(existing => existing.id === id)) continue;
+      if (dismissed.has(id) || notifications.some(existing => existing.id === id)) continue;
       const entry = { ...item, createdAt: Date.now(), read: false };
       notifications.push(entry);
       fresh.push(entry);
@@ -111,14 +129,24 @@
   document.addEventListener('click', event => {
     const dismiss = event.target.closest?.('[data-jkbot-notification-dismiss]');
     if (dismiss) {
-      notifications = notifications.filter(item => item.id !== dismiss.dataset.jkbotNotificationDismiss);
+      const id = dismiss.dataset.jkbotNotificationDismiss;
+      dismissed.add(id);
+      notifications = notifications.filter(item => item.id !== id);
       save(); render(); return;
     }
     const target = event.target.closest?.('[data-jkbot-notification-target]');
     if (target) {
-      const tab = target.dataset.jkbotNotificationTarget;
+      const destination = target.dataset.jkbotNotificationTarget;
+      const tab = destination === 'mail' ? 'mas' : destination === 'duel' ? 'jugadores' : destination;
       closePanel();
-      const openTab = () => document.querySelector(`[data-tab="${tab}"]`)?.click();
+      const openTab = () => {
+        document.querySelector(`[data-tab="${tab}"]`)?.click();
+        window.setTimeout(() => {
+          const focus = destination === 'mail' ? document.getElementById('wcMailInbox') : destination === 'duel' ? document.querySelector('[data-wc-action="duel_accept"]') : null;
+          focus?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+          if (destination === 'duel') focus?.focus?.({ preventScroll: true });
+        }, 80);
+      };
       if (!document.body.classList.contains('wc-game-mode')) {
         document.getElementById('menuPlayWow')?.click();
         window.setTimeout(openTab, 500);

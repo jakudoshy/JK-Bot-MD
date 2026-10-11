@@ -17,7 +17,7 @@ test('la campana avisa de desafíos, correos, comercios y reembolsos sin duplica
     const state = {
       account: { username: 'ana' },
       pendingDuel: { id: 'duel-1', challenger: 'Bran' },
-      mail: [{ id: 'mail-1', senderName: 'Cami', claimed: false }],
+      mail: [{ id: 'mail-1', senderName: 'Cami', claimed: false, gold: 53, itemName: 'Espada de roble' }],
       trades: [{ id: 'trade-1', fromName: 'Dora', incoming: true, status: 'pending' }],
       transactions: [{ id: 'refund-1', fromName: 'Eli', incoming: true }]
     };
@@ -30,9 +30,10 @@ test('la campana avisa de desafíos, correos, comercios y reembolsos sin duplica
     assert.equal(badge.hidden, false);
     assert.equal(list.querySelectorAll('.jkbot-notification-item').length, 4);
     assert.match(list.textContent, /Nuevo desafío/);
-    assert.match(list.textContent, /Correo pendiente/);
+    assert.match(list.textContent, /Correo recibido/);
+    assert.match(list.textContent, /Cami te envió 53 de oro y Espada de roble/);
     assert.match(list.textContent, /Solicitud de comercio/);
-    assert.match(list.textContent, /Reembolso pendiente/);
+    assert.match(list.textContent, /Solicitud de reembolso/);
     assert.equal(bell.classList.contains('has-unread'), true, 'la campana muestra énfasis mientras haya avisos sin leer');
 
     bell.click();
@@ -53,6 +54,8 @@ test('la campana avisa de desafíos, correos, comercios y reembolsos sin duplica
     assert.equal(badge.hidden, true, 'los avisos leídos no vuelven a alertar');
     list.querySelector('[data-jkbot-notification-dismiss]')?.click();
     assert.equal(list.querySelectorAll('.jkbot-notification-item').length, 3, 'se pueden quitar manualmente del historial');
+    window.dispatchEvent(new window.CustomEvent('jkbot:state', { detail: state }));
+    assert.equal(list.querySelectorAll('.jkbot-notification-item').length, 3, 'un aviso quitado no reaparece al siguiente estado real-time');
   } finally {
     window.close();
   }
@@ -67,4 +70,31 @@ test('la campana avisa también cuando el duelo pasa de solicitud a combate acti
     assert.match(dom.window.document.getElementById('jkNotificationList').textContent, /Duelo aceptado/);
     assert.match(dom.window.document.getElementById('jkNotificationList').textContent, /Bran/);
   } finally { dom.window.close(); }
+});
+
+test('la campana enlaza un aviso social al apartado indicado y evita duplicarlo', async () => {
+  const dom = new JSDOM(markup, { url: 'https://jkbot.test/jkbot', runScripts: 'outside-only', pretendToBeVisual: true });
+  const { window } = dom;
+  try {
+    window.document.body.classList.add('wc-game-mode');
+    let opened = false;
+    const tab = window.document.createElement('button');
+    tab.dataset.tab = 'mas';
+    tab.addEventListener('click', () => { opened = true; });
+    window.document.body.append(tab);
+    const inbox = window.document.createElement('div');
+    inbox.id = 'wcMailInbox';
+    inbox.scrollIntoView = () => {};
+    window.document.body.append(inbox);
+    window.eval(source);
+    const state = { account: { username: 'ana' }, activityNotifications: [{ id: 'gift-1', kind: 'gift', title: 'Regalo recibido', message: 'Bran te envió 75 de oro.', target: 'mas' }] };
+    window.dispatchEvent(new window.CustomEvent('jkbot:state', { detail: state }));
+    const list = window.document.getElementById('jkNotificationList');
+    assert.match(list.textContent, /Bran te envió 75 de oro/);
+    list.querySelector('[data-jkbot-notification-target="mas"]').click();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    assert.equal(opened, true, 'Ver abre la sección relacionada');
+    window.dispatchEvent(new window.CustomEvent('jkbot:state', { detail: state }));
+    assert.equal(list.querySelectorAll('.jkbot-notification-item').length, 1, 'el estado real-time no duplica la alerta');
+  } finally { window.close(); }
 });

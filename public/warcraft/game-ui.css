@@ -133,3 +133,22 @@ body.wc-account-authenticated:not(.wc-game-mode) #wcGameMount{display:none!impor
 .wc-power-list li small{display:block;margin-top:3px;color:#99a7b3;font-size:.76rem}
 .wc-power-list .wc-power-locked{opacity:.72}
 .wc-power-list .wc-power-unlocked strong{color:#8de4bf}
+
+.wc-mail-inbox{display:grid;gap:8px;margin:14px 0;padding:12px;border:1px solid rgba(250,92,126,.28);border-radius:14px;background:rgba(250,92,126,.055)}
+.wc-mail-inbox h5{margin:0;color:#ffd1dc;font-size:.95rem}
+.wc-mail-row{margin:0;padding:9px 11px;border-radius:9px;background:rgba(255,255,255,.045);color:#f4eaf0;font-size:.85rem;line-height:1.45}
+.wc-mail-row.claimed{opacity:.68}
+
+/* Diario de aventura y tablón de misiones */
+.wc-adventure-banner{position:relative;overflow:hidden;border-color:rgba(211,166,82,.48);background:radial-gradient(ellipse at 90% 10%,rgba(211,166,82,.19),transparent 42%),linear-gradient(120deg,rgba(22,34,49,.98),rgba(13,22,34,.98));}
+.wc-adventure-banner::after{content:"";position:absolute;inset:auto 0 0;height:2px;background:linear-gradient(90deg,transparent,#d3a652,#f1d48b,transparent);opacity:.85;}
+.wc-adventure-kicker{color:#e2bd73;font-size:.69rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;margin-bottom:8px;}
+.wc-adventure-banner h3{font-family:Georgia,"Times New Roman",serif;font-size:clamp(1.25rem,3vw,1.8rem);margin:0 0 8px;color:#fff3d0;}
+.wc-adventure-banner>p{max-width:72ch;color:#d5dce6;line-height:1.65;}
+.wc-adventure-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+.wc-adventure-meta span,.wc-quest-kind{display:inline-flex;align-items:center;border:1px solid rgba(211,166,82,.32);border-radius:999px;padding:5px 10px;background:rgba(12,19,29,.55);color:#edd08f;font-size:.75rem;font-weight:700;}
+.wc-quest-card{position:relative;overflow:hidden;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;}
+.wc-quest-card:hover{transform:translateY(-2px);border-color:rgba(211,166,82,.45);box-shadow:0 10px 28px rgba(0,0,0,.2);}
+.wc-quest-card .wc-quest-kind{margin-bottom:10px;}
+.wc-quest-main{border-color:rgba(211,166,82,.42);background:linear-gradient(145deg,rgba(37,34,27,.72),rgba(16,24,36,.98) 54%);}
+@media(max-width:640px){.wc-adventure-meta{gap:6px}.wc-adventure-meta span{font-size:.68rem}.wc-quest-card{padding:14px}.wc-adventure-banner{padding:16px}}

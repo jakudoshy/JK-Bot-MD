@@ -767,7 +767,7 @@ function notifyWarcraftUpdate() { try { io.emit('warcraft:update'); } catch {} }
 function warcraftWebPlayer(player) { if (!player) return null; const { talents, talentPoints, ...view } = player; return view; }
 function hashWarcraftPassword(value, salt = crypto.randomBytes(16).toString('hex')) { return `${salt}:${crypto.scryptSync(String(value), salt, 64).toString('hex')}`; }
 function checkWarcraftPassword(value, stored) { try { const [salt, digest] = String(stored || '').split(':'); const actual = crypto.scryptSync(String(value), salt, 64).toString('hex'); return crypto.timingSafeEqual(Buffer.from(actual, 'hex'), Buffer.from(digest || '', 'hex')); } catch { return false; } }
-function warcraftRoot() { botData.warcraft ||= { players: {}, accounts: {}, trades: {}, guilds: {}, sessions: {}, combat: {}, duels: {}, duelRequests: {}, pendingPurchases: {}, parties: {}, auctions: {}, mail: {}, battlegrounds: {}, world: {}, webSessions: {} }; const root = botData.warcraft; for (const key of ['players', 'accounts', 'trades', 'guilds', 'sessions', 'combat', 'duels', 'duelRequests', 'pendingPurchases', 'parties', 'auctions', 'mail', 'battlegrounds', 'world', 'webSessions']) root[key] ||= {}; return root; }
+function warcraftRoot() { botData.warcraft ||= { players: {}, accounts: {}, trades: {}, guilds: {}, sessions: {}, combat: {}, duels: {}, duelRequests: {}, pendingPurchases: {}, parties: {}, auctions: {}, mail: {}, battlegrounds: {}, world: {}, webSessions: {}, activityNotifications: {} }; const root = botData.warcraft; for (const key of ['players', 'accounts', 'trades', 'guilds', 'sessions', 'combat', 'duels', 'duelRequests', 'pendingPurchases', 'parties', 'auctions', 'mail', 'battlegrounds', 'world', 'webSessions', 'activityNotifications']) root[key] ||= {}; return root; }
 function warcraftSessionForPhone(phone) { const target = normalizeWarcraftPhone(phone); return Object.values(sessions || {}).find(session => [session.phoneNumber, session.requestedPhoneNumber, session.userId, session.sock?.user?.id].some(value => normalizeWarcraftPhone(value) === target) && session.sock && session.isConnected); }
 function warcraftAccountFromToken(token) { const root = warcraftRoot(); const session = root.webSessions[String(token || '')]; if (!session || session.expiresAt < Date.now()) return null; return root.accounts[session.username] || null; }
 function warcraftPublicLeaderboard(root = warcraftRoot()) { return Object.values(root.accounts || {}).map(account => { const player = warcraftGame.playerForAccount(root, account); if (!player) return null; warcraftGame.recalc(player); return { username: account.username, character: player.name, classKey: player.classKey, className: warcraftGame.CLASS_CONFIG[player.classKey]?.label || 'Aventurero', gs: Number(player.gs || 0), level: Number(player.level || 1), xp: Number(player.xp || 0), phone: normalizeWarcraftPhone(account.phone) }; }).filter(Boolean).sort((a, b) => b.gs - a.gs || b.level - a.level || b.xp - a.xp || a.username.localeCompare(b.username)).map((player, index) => ({ ...player, rank: index + 1 })); }
@@ -777,10 +777,11 @@ async function handleWarcraftWebAction(req, res, forcedAction = null) {
     const root = warcraftRoot();
     const input = { ...(req.body && typeof req.body === 'object' ? req.body : {}), ...(forcedAction ? { action: forcedAction } : {}) };
     const result = warcraftWeb.execute({ botData, root, account, input });
+    const notices = result.ok ? warcraftWeb.whatsappNotifications(root, account, input, result) : [];
     if (result.changed) { saveBotData(); notifyWarcraftUpdate(); }
     if (!result.ok) return res.status(result.status || 400).json({ ok: false, message: result.message });
     let whatsappSent = 0;
-    for (const notice of warcraftWeb.whatsappNotifications(root, account, input, result)) {
+    for (const notice of notices) {
         const session = warcraftSessionForPhone(notice.phone);
         if (!session) continue;
         try { await session.sock.sendMessage(`${notice.phone}@s.whatsapp.net`, { text: notice.text }); whatsappSent++; }
@@ -1824,7 +1825,7 @@ class BotSession {
                                 try {
                                     // =================== 120+ COMMAND SWITCH ===================
                                     switch (commandName) {
-                                        case 'agrow': case 'curarw': case 'especializacionw': {
+                                        case 'agrow': case 'curarw': case 'especializacionw': case 'descansarw': {
                                             let changed = false;
                                             const saveWarcraftData = (...saveArgs) => { changed = true; return saveBotData(...saveArgs); };
                                             await commands.warcraft(this.sock, from, msg, commandName, q, botData, saveWarcraftData);

@@ -1,16 +1,20 @@
-body.jkbot-app #menuToggle{position:fixed;top:16px;right:18px;z-index:700;display:grid;align-content:center;width:44px;height:44px;padding:0;border:1px solid rgba(255,49,91,.48);border-radius:13px;background:rgba(18,7,13,.9);color:#ff315b;font-size:1.05rem;box-shadow:0 8px 24px rgba(0,0,0,.24),0 0 16px rgba(255,49,91,.14)}
-body.jkbot-app #menuToggle:hover,body.jkbot-app #menuToggle:focus-visible{border-color:#ff315b;background:rgba(52,12,24,.95);outline:2px solid rgba(255,49,91,.28);outline-offset:2px}
-body.jkbot-app #menuDrawer #menuAutoReaction{color:#63f5d1;border-left:2px solid rgba(99,245,209,.48)}
-body.jkbot-app #menuDrawer #menuAutoReaction:hover,body.jkbot-app #menuDrawer #menuAutoReaction:focus-visible{background:rgba(99,245,209,.09);color:#b8fff0}
-body.jkbot-app #autoReaction{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
-
-/* Campana y centro de notificaciones del portal JK Bot */
-body.jkbot-app #jkNotificationBell{position:fixed;top:16px;right:72px;z-index:700;display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid rgba(255,49,91,.38);border-radius:13px;background:rgba(18,7,13,.9);color:#ffd4dd;font-size:1rem;cursor:pointer}
+/* Barra superior del portal: campana | tres rayas | cuenta */
+body.jkbot-app .nav-actions{position:fixed;top:16px;right:18px;z-index:1350;display:flex;align-items:center;gap:8px;width:max-content;margin:0}
+body.jkbot-app #jkNotificationBell{position:relative;inset:auto;z-index:1;display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;padding:0;border:1px solid rgba(255,49,91,.38);border-radius:13px;background:rgba(18,7,13,.94);color:#ffd4dd;font-size:1rem;cursor:pointer}
 body.jkbot-app #jkNotificationBell:hover,body.jkbot-app #jkNotificationBell:focus-visible{border-color:#ff315b;outline:2px solid rgba(255,49,91,.25);outline-offset:2px}
 body.jkbot-app #jkNotificationBell.has-unread{animation:jkbot-bell-pulse 1.6s ease-in-out infinite;border-color:#ff315b;color:#ff315b;box-shadow:0 0 0 3px rgba(255,49,91,.12),0 0 18px rgba(255,49,91,.3)}
+body.jkbot-app #menuToggle{position:relative;inset:auto;z-index:1;display:grid;align-content:center;justify-items:stretch;gap:5px;flex:0 0 44px;width:44px;height:44px;padding:0 10px;border:1px solid rgba(255,49,91,.48);border-radius:13px;background:rgba(18,7,13,.94);color:#ff315b;font-size:1.05rem;box-shadow:0 8px 24px rgba(0,0,0,.24),0 0 16px rgba(255,49,91,.14)}
+body.jkbot-app #menuToggle:hover,body.jkbot-app #menuToggle:focus-visible{border-color:#ff315b;background:rgba(52,12,24,.95);outline:2px solid rgba(255,49,91,.28);outline-offset:2px}
+body.jkbot-app #menuToggle span{display:block;width:100%;height:2px;background:#ff315b;box-shadow:0 0 7px rgba(255,49,91,.65)}
+body.jkbot-app .wc-account-wrap{position:relative;display:flex;align-items:center;flex:0 0 auto}
+body.jkbot-app #wcAccountButton{position:relative;inset:auto;z-index:1;width:44px;height:44px;flex:0 0 44px}
+body.jkbot-app #wcAccountButton .wc-avatar{width:38px;height:38px;font-size:1rem}
+body.jkbot-app #menuDrawer #menuAutoReaction{color:#ff8299;border-left:2px solid rgba(255,49,91,.5)}
+body.jkbot-app #menuDrawer #menuAutoReaction:hover,body.jkbot-app #menuDrawer #menuAutoReaction:focus-visible{background:rgba(255,49,91,.09);color:#ffc0cc}
+body.jkbot-app #autoReaction{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
 #jkNotificationBadge{position:absolute;top:-5px;right:-5px;display:grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border:2px solid #130a0f;border-radius:999px;background:#ff315b;color:#fff;font:700 .68rem/1 system-ui}
 #jkNotificationBadge[hidden],#jkNotificationPanel[hidden],#jkNotificationToast[hidden]{display:none!important}
-#jkNotificationPanel{position:fixed;z-index:1400;top:76px;right:clamp(10px,3vw,30px);width:min(390px,calc(100vw - 20px));max-height:min(68vh,590px);overflow:auto;border:1px solid rgba(255,49,91,.35);border-radius:18px;background:linear-gradient(150deg,#171018,#090b10);color:#f5edf1;box-shadow:0 20px 70px rgba(0,0,0,.55)}
+#jkNotificationPanel{position:fixed;z-index:1400;top:76px;right:18px;width:min(390px,calc(100vw - 20px));max-height:min(68vh,590px);overflow:auto;border:1px solid rgba(255,49,91,.35);border-radius:18px;background:linear-gradient(150deg,#171018,#090b10);color:#f5edf1;box-shadow:0 20px 70px rgba(0,0,0,.55)}
 .jkbot-notification-heading{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.09);background:#171018}
 .jkbot-notification-heading h2{margin:0;font-size:1rem}
 #jkNotificationMarkRead{border:0;background:transparent;color:#ff8ba2;font:600 .78rem system-ui;cursor:pointer}
@@ -27,5 +31,5 @@ body.jkbot-app #jkNotificationBell.has-unread{animation:jkbot-bell-pulse 1.6s ea
 #jkNotificationToast.show{animation:jkbot-toast-in .24s ease forwards}
 @keyframes jkbot-bell-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
 @keyframes jkbot-toast-in{to{opacity:1;transform:translateY(0)}}
-@media(max-width:540px){#jkNotificationPanel{top:68px;right:8px;max-height:70vh}.jkbot-notification-item{align-items:flex-start}}
+@media(max-width:540px){body.jkbot-app .nav-actions{top:12px;right:8px;gap:6px}body.jkbot-app #jkNotificationBell,body.jkbot-app #menuToggle,body.jkbot-app #wcAccountButton{width:42px;height:42px;flex-basis:42px}body.jkbot-app #menuToggle{padding:0 9px}body.jkbot-app nav .brand{max-width:calc(100vw - 172px)}#jkNotificationPanel{top:64px;right:8px;max-height:70vh}.jkbot-notification-item{align-items:flex-start}}
 @media(prefers-reduced-motion:reduce){body.jkbot-app #jkNotificationBell.has-unread{animation:none}#jkNotificationToast.show{animation:none;opacity:1;transform:none}}

@@ -152,11 +152,11 @@ test('la experiencia permite subir y aceptar la misión principal sin secundaria
   assert.doesNotMatch(game.formatStatus(player), /Completa.*desbloquear el siguiente nivel/i);
 });
 
-test('el tablero ofrece cacería, élite y recolección en todos los niveles y repone la misión al cobrarla', () => {
+test('el tablero ofrece cinco caminos de aventura en todos los niveles y repone la misión al cobrarla', () => {
   const { player } = playerAtLevel(1);
   const board = game.ensureRepeatableMissionBoard(player).missions;
-  assert.equal(board.length, 3);
-  assert.deepEqual(new Set(board.map(quest => quest.missionType)), new Set(['hunt', 'elite', 'gather']));
+  assert.equal(board.length, 5);
+  assert.deepEqual(new Set(board.map(quest => quest.missionType)), new Set(['hunt', 'elite', 'gather', 'explore', 'dungeon']));
   const gathering = board.find(quest => quest.missionType === 'gather');
   player.professions[gathering.materialId.includes('hierba') ? 'herbalismo' : 'mineria'] = 1;
   assert.equal(game.acceptQuest(player, gathering.id).error, undefined);
@@ -165,9 +165,43 @@ test('el tablero ofrece cacería, élite y recolección en todos los niveles y r
   assert.equal(result.quest.completed, true);
   assert.equal(player.activeQuest, null);
   const replenished = game.ensureRepeatableMissionBoard(player).missions;
-  assert.equal(replenished.length, 3);
-  assert.deepEqual(new Set(replenished.map(quest => quest.missionType)), new Set(['hunt', 'elite', 'gather']));
+  assert.equal(replenished.length, 5);
+  assert.deepEqual(new Set(replenished.map(quest => quest.missionType)), new Set(['hunt', 'elite', 'gather', 'explore', 'dungeon']));
   assert.notEqual(replenished.find(quest => quest.missionType === 'gather').id, gathering.id);
+});
+
+test('las misiones de exploración y mazmorra de nivel 1 tienen destinos jugables y se reponen', () => {
+  const { player } = playerAtLevel(1);
+  let board = game.ensureRepeatableMissionBoard(player).missions;
+  const exploration = board.find(quest => quest.missionType === 'explore');
+  assert.ok(game.ZONES[exploration.zoneId]);
+  assert.equal(game.acceptQuest(player, exploration.id).error, undefined);
+  const travel = game.travel(player, exploration.zoneId);
+  assert.equal(travel.quest.completed, true);
+  assert.equal(player.activeQuest, null);
+
+  board = game.ensureRepeatableMissionBoard(player).missions;
+  const dungeonQuest = board.find(quest => quest.missionType === 'dungeon');
+  assert.equal(dungeonQuest.dungeonId, 'ruinas_alba');
+  assert.equal(game.acceptQuest(player, dungeonQuest.id).error, undefined);
+  const dungeon = game.dungeon(player, dungeonQuest.dungeonId);
+  assert.equal(dungeon.quest.completed, true);
+  assert.equal(player.activeQuest, null);
+  assert.ok(game.ensureRepeatableMissionBoard(player).missions.some(quest => quest.missionType === 'dungeon' && quest.id !== dungeonQuest.id));
+});
+
+test('el catálogo incluye muchos logros con desbloqueo real por nivel, caza y descanso', () => {
+  const { data, player } = playerAtLevel(9);
+  assert.ok(Object.keys(game.ACHIEVEMENTS).length >= 30);
+  player.hp = Math.max(1, player.maxHp - 20);
+  const rested = game.rest(game.ensureRoot(data), player);
+  assert.ok(rested.achievements.some(achievement => achievement.id === 'rested_10') === false);
+  for (let i = 0; i < 9; i++) { player.hp = Math.max(1, player.maxHp - 1); game.rest(game.ensureRoot(data), player); }
+  assert.ok(player.achievements.rested_10);
+  game.grantXp(player, game.xpForLevel(9));
+  assert.ok(player.achievements.level_10);
+  player.adventureStats.kills = 10;
+  assert.ok(game.evaluateAchievements(player).some(achievement => achievement.id === 'hunter_10'));
 });
 
 test('aceptar la misión del Gran mago fija el objetivo en enemigos y paga al completarla', () => {
@@ -535,7 +569,7 @@ test('los encargos opcionales no requieren completar secundarias para desbloquea
   const unfinishedSecondary = game.QUESTS.filter(q => q.campaign && q.minLevel === 1 && !q.mainQuest).some(q => !player.quests[q.id]?.completed);
   assert.equal(unfinishedSecondary, true);
   const optional = game.ensureRepeatableMissionBoard(player).missions;
-  assert.equal(optional.length, 3);
+  assert.equal(optional.length, 5);
   assert.equal(player.repeatableMissionsUnlocked, true);
   assert.equal(game.getQuestBoard(player).length, 1, 'el tablón principal sigue mostrando solo la principal actual');
 });
@@ -547,8 +581,8 @@ test('los encargos secundarios aleatorios tienen NPC con habilidades, hacen dañ
   const board = game.getQuestBoard(player);
   assert.equal(board.length, 1, 'el tablón principal no mezcla encargos opcionales');
   const side = game.ensureRepeatableMissionBoard(player).missions;
-  assert.equal(side.length, 3);
-  assert.equal(new Set(side.map(q => q.id)).size, 3);
+  assert.equal(side.length, 5);
+  assert.equal(new Set(side.map(q => q.id)).size, 5);
   const quest = side[0];
   const accepted = game.acceptQuest(player, quest.id);
   assert.equal(accepted.error, undefined);
@@ -576,7 +610,7 @@ test('los encargos secundarios aleatorios tienen NPC con habilidades, hacen dañ
     game.combatAttack(root, player);
   }
   const refreshed = game.ensureRepeatableMissionBoard(player).missions;
-  assert.equal(refreshed.length, 3);
+  assert.equal(refreshed.length, 5);
   assert.ok(refreshed.some(item => !originalIds.has(item.id)));
   assert.ok(player.questHistory.some(item => item.id === quest.id && item.status === 'completed'));
 });
@@ -595,7 +629,7 @@ test('la tienda limita el equipo al tramo y la fuerza de las armas escala con el
   const damage = weaponIds.map(id => game.ITEMS[id].attack);
   assert.deepEqual(damage, [...damage].sort((a, b) => a - b));
   const bow = game.formatItem('rare_11_bow');
-  assert.match(bow, /ataque \+\d+[\s\S]*agilidad \+\d+/i);
+  assert.match(bow, /daño del arma \d+–\d+[\s\S]*agilidad \+\d+/i);
   assert.doesNotMatch(bow, /fuerza|intelecto \+0/i);
 });
 

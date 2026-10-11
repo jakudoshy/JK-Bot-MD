@@ -5,7 +5,7 @@
   const setup = document.getElementById('wcCharacterSetup');
   if (!mount || !setup) return;
 
-  const state = { catalog: null, me: null, shop: [], tab: 'resumen', shopFilter: 'all', classKey: '', notice: '', noticeError: false, pendingPurchase: null, players: [], playersLoadedAt: 0, awaitingCharacterSelection: false, formDrafts: new Map() };
+  const state = { catalog: null, me: null, shop: [], tab: 'resumen', shopFilter: 'all', classKey: '', notice: '', noticeError: false, pendingPurchase: null, players: [], playersLoadedAt: 0, awaitingCharacterSelection: false, creatingCharacter: false, formDrafts: new Map() };
   const token = () => localStorage.getItem(TOKEN_KEY);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const el = id => document.getElementById(id);
@@ -19,8 +19,10 @@
   const labelForZone = id => state.catalog?.zones?.find(z => z.id === id)?.name || id || 'Aldea del Alba';
   const enemyLabel = id => state.catalog?.enemies?.[id]?.name || state.me?.player?.generatedMissionEnemies?.[id]?.name || id || 'criaturas';
   const statRows = item => {
-    const keys = [['attack', 'Ataque'], ['armor', 'Armadura'], ['defense', 'Defensa'], ['strength', 'Fuerza'], ['agility', 'Agilidad'], ['intellect', 'Intelecto'], ['stamina', 'Aguante'], ['heal', 'Curación']];
-    return keys.filter(([key]) => Number(item?.[key] || 0) > 0).map(([key, label]) => `<span class="wc-item-stat">${label} +${esc(item[key])}</span>`).join('');
+    const hasDamageRange = Number.isFinite(Number(item?.damageMin)) && Number.isFinite(Number(item?.damageMax));
+    const keys = [['attack', 'Ataque'], ['armor', 'Armadura'], ['defense', 'Defensa'], ['strength', 'Fuerza'], ['agility', 'Agilidad'], ['intellect', 'Intelecto'], ['stamina', 'Aguante'], ['heal', 'Curación']].filter(([key]) => !(hasDamageRange && key === 'attack'));
+    const damage = hasDamageRange ? `<span class="wc-item-stat">Daño ${num(item.damageMin)}–${num(item.damageMax)}</span>` : '';
+    return damage + keys.filter(([key]) => Number(item?.[key] || 0) > 0).map(([key, label]) => `<span class="wc-item-stat">${label} +${esc(item[key])}</span>`).join('');
   };
   const rarityLabel = item => item?.rarityLabel || rarityLabels[item?.rarity] || 'Común';
   const itemCard = (item, { action = '', buttonLabel = '', dataAttr = 'itemId', quantity = null } = {}) => {
@@ -79,6 +81,7 @@
         else renderAccountLanding();
         return;
       }
+      if (state.creatingCharacter) { setup.style.display = 'block'; return; }
       if (!data.player) { renderClassSetup(); mount.innerHTML = ''; return; }
       setup.style.display = 'none';
       if (!state.shop.length || state.tab === 'tienda') {
@@ -181,6 +184,14 @@
     const hero = `<header class="wc-game-hero">${img(p.classImage, classLabel(p.classKey), 'wc-game-portrait')}<div><h3 class="wc-game-title">${esc(p.name)} · Nivel ${esc(p.level)}</h3><p class="wc-game-subtitle">${esc(classLabel(p.classKey))} · ${esc(labelForZone(p.zone))} · GS ${esc(p.gs)}</p>${bar(p.hp, p.maxHp, 'hp')}<div class="wc-game-statline"><span>Vida</span><strong>${num(p.hp)} / ${num(p.maxHp)}</strong></div>${bar(p.xp, p.xpForNext || 100, 'xp')}<div class="wc-game-statline"><span>Experiencia</span><strong>${num(p.xp)} / ${num(p.xpForNext || 100)}</strong></div></div><div class="wc-game-vitals"><span class="wc-game-chip">${img('/assets/warcraft/generated/ui/gold.png', 'Oro')}<strong>${num(p.gold)}</strong> oro</span><span class="wc-game-chip"><i class="fas fa-khanda"></i> Ataque <strong>${num(p.attack)}</strong></span><span class="wc-game-chip"><i class="fas fa-shield-halved"></i> Defensa <strong>${num(p.defense)}</strong></span><button class="wc-game-btn wc-manage-characters" type="button" data-wc-local="characters"><i class="fas fa-users"></i> Personajes</button></div></header>`;
     mount.innerHTML = `<section class="wc-game-shell">${hero}<nav class="wc-game-tabs" aria-label="Secciones del juego">${tabs.map(([id, label, icon]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-tab="${id}"><i class="fas fa-${icon}"></i> ${label}</button>`).join('')}</nav><div class="wc-game-body"><div class="wc-game-notice ${state.noticeError ? 'error' : ''}" role="status">${esc(state.notice)}</div>${renderTab()}</div></section>${state.pendingPurchase ? renderPurchaseOverlay() : ''}`;
     restoreUiPosition(uiPosition);
+    const vitals = mount.querySelector('.wc-game-vitals');
+    if (vitals && !vitals.querySelector('[data-wc-action="rest"]')) {
+      const restButton = document.createElement('button');
+      restButton.type = 'button'; restButton.className = 'wc-game-btn secondary'; restButton.dataset.wcAction = 'rest';
+      restButton.innerHTML = '<i class="fas fa-bed"></i> Dormir y recuperar vida'; restButton.disabled = Number(p.hp) >= Number(p.maxHp);
+      vitals.appendChild(restButton);
+    }
+    renderMailInbox();
   }
   function renderTab() {
     switch (state.tab) {
@@ -207,16 +218,20 @@
     const quests = state.me.quests || [];
     const secondaryQuests = state.me.secondaryQuests || [];
     const active = state.me.player.activeQuest;
+    const player = state.me.player;
+    const chapter = quests[0];
     const activeBox = active ? `<article class="wc-game-card wide"><h4>Misión en progreso</h4><p><strong>${esc(active.name || active.id)}</strong> · ${esc(active.description || 'Completa el objetivo para cobrar la recompensa.')}</p><div class="wc-game-statline"><span>Progreso</span><strong>${num(active.progress || 0)} / ${num(active.goal || 1)}</strong></div><div class="wc-game-actions"><button class="wc-game-btn danger" data-wc-action="quest_cancel"><i class="fas fa-ban"></i> Cancelar misión</button></div></article>` : '';
     const cards = list => list.map(q => {
       const main = q.mainQuest || q.questType === 'main' || q.campaign === 'main';
       const rewardItems = (q.rewardItems || []).map(id => itemInfo(id)).filter(Boolean);
-      const objective = q.objective === 'gather' ? `${num(q.goal || 1)} · ${state.catalog.items?.[q.materialId]?.name || esc(q.materialId || 'recurso')}` : q.objective === 'dungeon' ? `${num(q.goal || 1)} · ${esc(q.dungeonName || q.dungeonId || 'mazmorra')}` : `${num(q.goal || 1)} · ${esc(q.enemyName || enemyLabel(q.enemyId))}`;
-      return `<article class="wc-game-card"><h4>${main ? '<i class="fas fa-crown"></i> Misión principal' : '<i class="fas fa-feather-pointed"></i> Misión secundaria'}</h4><p><strong>${esc(q.name)}</strong></p><p>${esc(q.description)}</p><div class="wc-game-statline"><span>Objetivo</span><strong>${objective}</strong></div><div class="wc-game-statline"><span>Recompensas</span><strong>${num(q.xp)} XP · ${num(q.gold)} oro</strong></div>${rewardItems.length ? `<div class="wc-item-stats">${rewardItems.map(i => `<span class="wc-game-chip">${img(i.image, i.name)}${esc(i.name)}</span>`).join('')}</div>` : ''}<div class="wc-game-actions"><button class="wc-game-btn gold" type="button" data-wc-action="quest_accept" data-id="${esc(q.id)}" ${active ? 'disabled' : ''}><i class="fas fa-check"></i> Aceptar misión</button></div></article>`;
+      const objective = q.objective === 'gather' ? `${num(q.goal || 1)} · ${state.catalog.items?.[q.materialId]?.name || esc(q.materialId || 'recurso')}` : q.objective === 'dungeon' ? `${num(q.goal || 1)} · ${esc(q.dungeonName || q.dungeonId || 'mazmorra')}` : q.objective === 'explore' ? `Viajar a ${esc(q.zoneName || state.catalog.zones.find(zone => zone.id === q.zoneId)?.name || q.zoneId || 'una zona')}` : `${num(q.goal || 1)} · ${esc(q.enemyName || enemyLabel(q.enemyId))}`;
+      const kind = ({ hunt: 'Cacería', elite: 'Élite', gather: 'Recolección', explore: 'Exploración', dungeon: 'Mazmorra' })[q.missionType] || (main ? 'Campaña' : 'Encargo');
+      return `<article class="wc-game-card wc-quest-card ${main ? 'wc-quest-main' : ''}"><span class="wc-quest-kind">${esc(kind)}</span><h4>${main ? '<i class="fas fa-crown"></i> Misión principal' : '<i class="fas fa-feather-pointed"></i> Misión secundaria'}</h4><p><strong>${esc(q.name)}</strong></p><p>${esc(q.description)}</p><div class="wc-game-statline"><span>Objetivo</span><strong>${objective}</strong></div><div class="wc-game-statline"><span>Recompensas</span><strong>${num(q.xp)} XP · ${num(q.gold)} oro</strong></div>${rewardItems.length ? `<div class="wc-item-stats">${rewardItems.map(i => `<span class="wc-game-chip">${img(i.image, i.name)}${esc(i.name)}</span>`).join('')}</div>` : ''}<div class="wc-game-actions"><button class="wc-game-btn gold" type="button" data-wc-action="quest_accept" data-id="${esc(q.id)}" ${active ? 'disabled' : ''}><i class="fas fa-check"></i> Aceptar misión</button></div></article>`;
     }).join('');
     const mainBoard = quests.length ? cards(quests) : '<div class="wc-game-empty">La misión principal de este nivel ya está completada. Sigue ganando experiencia para avanzar.</div>';
     const sideBoard = secondaryQuests.length ? cards(secondaryQuests) : '<div class="wc-game-empty">Preparando encargos secundarios…</div>';
-    return `<div class="wc-game-grid">${activeBox}<article class="wc-game-card wide"><h4>Misión principal</h4><p>La principal está disponible sin terminar secundarias. Gana XP en combate para subir de nivel; las misiones no bloquean tu progreso.</p></article>${mainBoard}<article class="wc-game-card wide"><h4>Misiones secundarias · ${num(secondaryQuests.length)} disponibles</h4><p>Se reponen al completar encargos. Puedes elegir cacerías, campeones de élite y suministros de recolección; no son requisito para subir de nivel.</p></article>${sideBoard}</div>`;
+    const chapterText = chapter?.description || 'El reino vuelve a necesitar héroes. Explora, reúne aliados y elige cómo escribir tu propia leyenda.';
+    return `<div class="wc-game-grid"><article class="wc-game-card wide wc-adventure-banner"><div class="wc-adventure-kicker">CRÓNICAS DEL REINO · NIVEL ${num(player.level)}</div><h3>${esc(chapter?.name || 'Una aventura que continúa')}</h3><p>${esc(chapterText)}</p><div class="wc-adventure-meta"><span>${esc(labelForZone(player.zone))}</span><span>${num(secondaryQuests.length)} encargos disponibles</span><span>${num(Object.keys(state.me.achievements || {}).length)} logros obtenidos</span></div></article>${activeBox}<article class="wc-game-card wide"><h4>Misión principal</h4><p>La campaña avanza por nivel y no exige terminar encargos secundarios. Gana experiencia, desbloquea capítulos y derrota jefes con estilos y habilidades diferentes.</p></article>${mainBoard}<article class="wc-game-card wide"><h4>Tablón de encargos · ${num(secondaryQuests.length)} disponibles</h4><p>El tablón repone cinco caminos: cacerías, campeones de élite, recolección, exploración y mazmorras. Los encargos son opcionales y no bloquean tu subida de nivel.</p></article>${sideBoard}</div>`;
   }
   function renderCombat() {
     const combat = state.me.combat;
@@ -298,6 +313,25 @@
     const item = state.shop.find(i => i.id === state.pendingPurchase) || itemInfo(state.pendingPurchase);
     return `<div class="wc-game-overlay" role="dialog" aria-modal="true" aria-labelledby="wcBuyTitle"><div class="wc-game-dialog"><h3 id="wcBuyTitle">Confirmar compra</h3><p>Vas a comprar este objeto por ${num(item.price)} de oro. La compra solo se completa al confirmar.</p>${itemCard(item)}<p class="wc-game-footnote">Después de comprar, el objeto aparecerá en tu mochila compartida con WhatsApp.</p><div class="wc-game-actions"><button class="wc-game-btn gold" data-wc-action="shop_confirm">Confirmar compra</button><button class="wc-game-btn secondary" data-wc-action="shop_cancel">Cancelar</button></div></div></div>`;
   }
+  function renderMailInbox() {
+    if (state.tab !== 'mas') return;
+    const card = [...mount.querySelectorAll('.wc-game-card')].find(node => node.querySelector('h4')?.textContent.trim() === 'Correo y logros');
+    if (!card) return;
+    const inbox = document.createElement('section'); inbox.id = 'wcMailInbox'; inbox.className = 'wc-mail-inbox'; inbox.setAttribute('aria-live', 'polite');
+    const heading = document.createElement('h5'); heading.textContent = 'Buzón'; inbox.appendChild(heading);
+    const mails = [...(state.me.mail || [])].reverse();
+    if (!mails.length) { const empty = document.createElement('p'); empty.className = 'muted'; empty.textContent = 'No tienes correos.'; inbox.appendChild(empty); }
+    for (const mail of mails) {
+      const row = document.createElement('p'); row.className = `wc-mail-row${mail.claimed ? ' claimed' : ''}`;
+      const contents = [Number(mail.gold) > 0 ? `${num(mail.gold)} de oro` : '', mail.itemName || mail.item || ''].filter(Boolean).join(' y ') || 'un mensaje';
+      row.textContent = `${mail.senderName || 'Un jugador'} te envió ${contents}. ${mail.claimed ? 'Recibido.' : 'Pendiente de reclamar.'}`;
+      inbox.appendChild(row);
+    }
+    const previous = card.querySelector('#wcMailInbox'); previous?.remove();
+    card.insertBefore(inbox, card.querySelector('.wc-game-item-grid'));
+    const claimButton = card.querySelector('[data-wc-action="mail_claim"]');
+    if (claimButton) claimButton.disabled = !mails.some(mail => !mail.claimed);
+  }
   async function action(name, params = {}) {
     let response; let data;
     try { ({ response, data } = await api('/api/warcraft/action', { method: 'POST', body: JSON.stringify({ action: name, ...params }) })); }
@@ -324,8 +358,10 @@
       if (localAction.dataset.wcLocal === 'goto-login') { const form = el('wcLoginForm'); form?.scrollIntoView?.({ behavior: 'smooth', block: 'center' }); form?.querySelector('input')?.focus?.(); form?.classList.add('wc-auth-attention'); return; }
       if (localAction.dataset.wcLocal === 'create-character') {
         state.awaitingCharacterSelection = false;
+        state.creatingCharacter = true;
+        state.classKey = '';
         mount.innerHTML = '';
-        setup.style.display = 'block';
+        renderClassSetup();
         setup.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
         return;
       }
@@ -390,7 +426,7 @@
     const { response, data } = await api('/api/warcraft/action', { method: 'POST', body: JSON.stringify({ action: 'create_character', name, classKey: state.classKey }) });
     if (status) status.textContent = data.message || (data.ok ? 'Personaje creado.' : 'No se pudo crear el personaje.');
     if (button) button.disabled = false;
-    if (data.ok && response.ok) { state.tab = 'resumen'; state.classKey = ''; state.awaitingCharacterSelection = true; await refresh({ keepNotice: false }); }
+    if (data.ok && response.ok) { state.tab = 'resumen'; state.classKey = ''; state.creatingCharacter = false; state.awaitingCharacterSelection = true; await refresh({ keepNotice: false }); }
   });
   el('wcLoginForm')?.addEventListener('submit', () => { state.awaitingCharacterSelection = true; }, true);
   el('wcVerifyBtn')?.addEventListener('click', () => { state.awaitingCharacterSelection = true; }, true);

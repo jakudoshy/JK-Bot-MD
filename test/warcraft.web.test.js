@@ -35,7 +35,7 @@ function act(botData, root, user, action, params = {}) {
     assert.ok(fs.existsSync(path.join(__dirname, '..', 'assets/warcraft/generated', manifest.classIcons[item.id].asset)), item.id);
   }
   for (const zone of catalog.zones) {
-    assert.ok(fs.existsSync(path.join(__dirname, '..', 'assets/warcraft/generated', manifest.zoneMaps[zone.id].asset)), zone.id);
+    assert.ok(fs.existsSync(path.join(__dirname, '..', zone.image.replace(/^\//, ''))), `${zone.id} -> ${zone.image}`);
   }
   for (const [id, item] of Object.entries(catalog.items)) {
     const file = path.join(__dirname, '..', item.image.replace(/^\//, ''));
@@ -54,8 +54,8 @@ test('la creación de personaje web usa el mismo motor y las 13 clases aceptan r
   assert.equal(state.player.classImage, '/assets/warcraft/generated/classes/deathknight.png');
   assert.ok(state.player.xpForNext > 0);
   assert.equal(state.player.talentPointsSpent, 0);
-  assert.equal(state.secondaryQuests.length, 3);
-  assert.deepEqual(new Set(state.secondaryQuests.map(quest => quest.missionType)), new Set(['hunt', 'elite', 'gather']));
+  assert.equal(state.secondaryQuests.length, 5);
+  assert.deepEqual(new Set(state.secondaryQuests.map(quest => quest.missionType)), new Set(['hunt', 'elite', 'gather', 'explore', 'dungeon']));
   assert.equal(state.skillProgression.find(skill => skill.id === 'golpe_muerte').unlocked, false);
   game.playerForAccount(root, playerAccount).level = 5;
   assert.equal(web.playerState(root, playerAccount).skills.golpe_muerte.name, 'Golpe de muerte');
@@ -144,6 +144,11 @@ test('las armas y pecheras escalan por nivel y usan nombres e iconos coherentes'
   const level11 = game.ITEMS.rare_11_blade;
   assert.ok(level10.attack > level1.attack, `nivel 10 (${level10.attack}) debe superar nivel 1 (${level1.attack})`);
   assert.ok(level11.attack > level10.attack, `nivel 11 (${level11.attack}) debe superar nivel 10 (${level10.attack})`);
+  assert.deepEqual([level1.damageMin, level1.damageMax], [1, 4]);
+  assert.deepEqual([game.ITEMS.common_2_blade.damageMin, game.ITEMS.common_2_blade.damageMax], [2, 5]);
+  assert.deepEqual([level10.damageMin, level10.damageMax], [10, 13]);
+  assert.ok(level11.damageMin > level10.damageMin, 'la rareza rara aumenta el daño mínimo');
+  assert.match(game.formatItem(level1), /daño del arma 1–4/);
   assert.ok(game.ITEMS.common_10_leather.defense > game.ITEMS.common_1_leather.defense);
   assert.match(game.ITEMS.common_10_leather.name, /^Pechera de cuero Común/);
   assert.match(game.ITEMS.rare_11_robe.name, /^Vestidura Rara/);
