@@ -5,7 +5,7 @@
   const setup = document.getElementById('wcCharacterSetup');
   if (!mount || !setup) return;
 
-  const state = { catalog: null, me: null, shop: [], tab: 'resumen', shopFilter: 'all', classKey: '', notice: '', noticeError: false, pendingPurchase: null, players: [], playersLoadedAt: 0, awaitingCharacterSelection: false, creatingCharacter: false, formDrafts: new Map() };
+  const state = { catalog: null, me: null, shop: [], tab: 'resumen', shopFilter: 'all', classKey: '', notice: '', noticeError: false, pendingPurchase: null, players: [], playersLoadedAt: 0, awaitingCharacterSelection: false, creatingCharacter: false, formDrafts: new Map(), refreshing: false, lastRefreshAt: 0 };
   const token = () => localStorage.getItem(TOKEN_KEY);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const el = id => document.getElementById(id);
@@ -47,6 +47,10 @@
     return state.catalog;
   }
   async function refresh({ keepNotice = true } = {}) {
+    if (state.refreshing) return;
+    state.refreshing = true;
+    state.lastRefreshAt = Date.now();
+    try {
     if (!token()) {
       setup.style.display = 'none';
       if (document.body.classList.contains('wc-game-mode')) { if (el('wcProfilePanel')) el('wcProfilePanel').style.display = 'block'; renderLoginNeeded(); }
@@ -93,6 +97,9 @@
     } catch (error) {
       setNotice(error.message || 'No se pudo conectar con Warcraft.', true);
       if (state.me?.player) render();
+    }
+    } finally {
+      state.refreshing = false;
     }
   }
   function renderLegacyProfile() {
@@ -143,7 +150,7 @@
     if (form && mount.contains(active) && active.name) {
       focus = { form: form.dataset.wcForm, name: active.name, type: active.type, start: active.selectionStart, end: active.selectionEnd };
     }
-    return { tabScrollLeft: mount.querySelector('.wc-game-tabs')?.scrollLeft || 0, focus };
+    return { tabScrollLeft: mount.querySelector('.wc-game-tabs')?.scrollLeft || 0, pageScrollX: window.scrollX || 0, pageScrollY: window.scrollY || 0, focus };
   }
   function formDraftKey(name) { return `${state.me?.account?.username || ''}:${name}`; }
   function saveFormDraft(form) {
@@ -164,6 +171,9 @@
     }
     const tabs = mount.querySelector('.wc-game-tabs');
     if (tabs) tabs.scrollLeft = snapshot.tabScrollLeft;
+    if ((window.scrollX || 0) !== snapshot.pageScrollX || (window.scrollY || 0) !== snapshot.pageScrollY) {
+      try { window.scrollTo(snapshot.pageScrollX, snapshot.pageScrollY); } catch {}
+    }
     if (snapshot.focus) {
       const form = [...mount.querySelectorAll('form[data-wc-form]')].find(candidate => candidate.dataset.wcForm === snapshot.focus.form);
       const field = form && [...form.elements].find(candidate => candidate.name === snapshot.focus.name && candidate.type === snapshot.focus.type);
@@ -430,33 +440,8 @@
   });
   el('wcLoginForm')?.addEventListener('submit', () => { state.awaitingCharacterSelection = true; }, true);
   el('wcVerifyBtn')?.addEventListener('click', () => { state.awaitingCharacterSelection = true; }, true);
-  let nativePortraitLock = false;
-  const gameElement = () => el('warcraft') || document.documentElement;
-  const requestGameFullscreen = () => {
-    if (document.fullscreenElement) return Promise.resolve(true);
-    const target = gameElement();
-    if (typeof target?.requestFullscreen !== 'function') return Promise.resolve(false);
-    try { return Promise.resolve(target.requestFullscreen()).then(() => true, () => false); }
-    catch { return Promise.resolve(false); }
-  };
-  const lockGamePortrait = async () => {
-    const orientation = window.screen?.orientation;
-    if (typeof orientation?.lock !== 'function') return false;
-    try { await orientation.lock('portrait'); nativePortraitLock = true; return true; }
-    catch { nativePortraitLock = false; return false; }
-  };
-  const activateFullscreenPortrait = async fullscreenPromise => {
-    const entered = await fullscreenPromise;
-    if (entered) await lockGamePortrait();
-    return entered;
-  };
-  const restoreGameOrientation = () => {
-    if (nativePortraitLock) { try { window.screen?.orientation?.unlock?.(); } catch {} }
-    nativePortraitLock = false;
-  };
   const enterGameMode = async event => {
     event?.preventDefault?.();
-    const fullscreenPromise = requestGameFullscreen();
     document.body.classList.add('wc-game-mode');
     const profile = el('wcProfilePanel');
     if (profile) profile.style.display = 'block';
@@ -466,20 +451,17 @@
       if (status) status.textContent = state.notice;
       setup.style.display = 'none';
       renderLoginNeeded(state.notice);
-      await activateFullscreenPortrait(fullscreenPromise);
       return;
     }
     mount.innerHTML = '<div class="wc-game-loading" role="status"><span class="wc-game-spinner"></span><h3>Entrando a Warcraft</h3><p>Cargando tu cuenta, personaje y mundo…</p></div>';
-    await Promise.all([refresh({ keepNotice: false }), activateFullscreenPortrait(fullscreenPromise)]);
+    await refresh({ keepNotice: false });
     if (!state.me && token()) {
       if (profile) profile.style.display = 'block';
       mount.innerHTML = `<div class="wc-game-load-error" role="alert"><h3>No se pudo cargar el juego</h3><p>${esc(state.notice || 'Revisa tu conexión e inténtalo de nuevo.')}</p><button class="wc-game-btn" type="button" data-wc-local="retry-game">Reintentar</button></div>`;
     }
   };
-  const leaveGameMode = async () => {
-    restoreGameOrientation();
-    document.body.classList.remove('wc-game-mode', 'wc-portrait-override');
-    if (document.fullscreenElement === gameElement()) { try { await document.exitFullscreen?.(); } catch {} }
+  const leaveGameMode = () => {
+    document.body.classList.remove('wc-game-mode');
   };
   document.addEventListener('click', event => {
     const play = event.target?.closest?.('#menuPlayWow');
@@ -488,19 +470,20 @@
     enterGameMode(event);
   }, true);
   el('wcExitGameMode')?.addEventListener('click', leaveGameMode);
-  el('wcRotateGame')?.addEventListener('click', () => { activateFullscreenPortrait(requestGameFullscreen()); });
-  el('wcContinuePortrait')?.addEventListener('click', () => { activateFullscreenPortrait(requestGameFullscreen()); });
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && document.body.classList.contains('wc-game-mode')) leaveGameMode();
   });
-  document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement && document.body.classList.contains('wc-game-mode')) {
-      restoreGameOrientation();
-      document.body.classList.remove('wc-game-mode', 'wc-portrait-override');
-    }
-  });
   window.addEventListener('wc-profile-refresh', () => refresh());
-  window.addEventListener('orientationchange', () => refresh());
+  const refreshWhenGameIsOpen = () => {
+    if (!document.hidden && document.body.classList.contains('wc-game-mode') && !state.refreshing) void refresh();
+  };
+  const softRefreshTimer = window.setInterval(refreshWhenGameIsOpen, 5000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && document.body.classList.contains('wc-game-mode') && Date.now() - state.lastRefreshAt >= 5000) refreshWhenGameIsOpen();
+  });
+  window.addEventListener('focus', refreshWhenGameIsOpen);
+  window.addEventListener('online', refreshWhenGameIsOpen);
+  window.addEventListener('pagehide', () => window.clearInterval(softRefreshTimer), { once: true });
   window.wcGameRefresh = refresh;
   refresh();
 })();

@@ -139,10 +139,9 @@
   }
   .brand{display:flex;align-items:center;gap:12px;}
   .brand .mark{
-    width:40px;height:40px;border-radius:8px;border:1px solid var(--border);
-    display:flex;align-items:center;justify-content:center;
-    font-family:'Share Tech Mono',monospace;font-size:1.2rem;color:var(--green);
-    background:var(--green-glass);text-shadow:0 0 10px var(--green);
+    width:40px;height:40px;border-radius:50%;border:2px solid var(--border);
+    display:block;object-fit:cover;flex:0 0 40px;
+    background:var(--green-glass);box-shadow:0 0 12px rgba(255,18,56,.35);
   }
   .brand .name{font-weight:700;font-size:1rem;letter-spacing:.5px;}
   .brand .tag{font-size:.68rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
@@ -477,7 +476,7 @@ header{position:relative}header:before{content:"// ACCESS GRANTED";position:abso
 <style id="jk-final-hd-red">
 /* Final HD red finish: strong borders, rounded surfaces and crisp mobile layout. */
 :root{--green:#ff0d35;--border:rgba(255,24,58,.72);--green-glass:rgba(255,0,31,.14)}
-.brand .mark{width:42px;height:42px;border:3px solid #ff1238;border-radius:13px;background:linear-gradient(145deg,#ff1238,#65000f 72%);color:#fff;font-family:'Share Tech Mono',monospace;font-size:1rem;font-weight:900;letter-spacing:.04em;text-shadow:0 0 10px #fff,0 0 18px #ff1238;box-shadow:0 0 16px rgba(255,0,31,.8),inset 0 0 12px rgba(255,255,255,.16)}
+.brand .mark{width:42px;height:42px;flex-basis:42px;border:3px solid #ff1238;border-radius:50%;object-fit:cover;box-shadow:0 0 16px rgba(255,0,31,.55)}
 section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content{border-width:2px;border-color:rgba(255,18,56,.72)!important;box-shadow:0 18px 65px rgba(255,0,31,.18),inset 0 0 22px rgba(255,0,31,.035)!important}
 .feature-item,.official-card,.review-card,.step-card,.quick-item,.admin-kpi,.premium-card,.channel-item,.banner-nav a,.menu-drawer,.code-box,.input-group input,.premium-card select,.premium-card input,.admin-broadcast-input{border-width:2px;border-color:rgba(255,18,56,.58)!important}
 .hero-banner{box-shadow:0 22px 90px rgba(255,0,31,.3)!important}
@@ -485,7 +484,7 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
 .btn{border:2px solid #ff1238!important;border-radius:15px!important;box-shadow:0 0 22px rgba(255,0,31,.42)!important}
 .menu-toggle{border-width:2px!important;border-radius:13px!important}
 .admin-live-pill,.admin-section-tag,.premium-token{border-width:2px!important}
-@media(max-width:768px){section.panel{padding:22px 16px}.hero-banner{width:calc(100% - 20px);border-radius:18px}.hero-banner img{max-height:360px}.brand .mark{width:38px;height:38px;border-radius:11px}}
+@media(max-width:768px){section.panel{padding:22px 16px}.hero-banner{width:calc(100% - 20px);border-radius:18px}.hero-banner img{max-height:360px}.brand .mark{width:38px;height:38px;flex-basis:38px;border-radius:50%}}
 .bot-telemetry{width:min(1100px,calc(100% - 32px));margin:22px auto 0;display:grid;grid-template-columns:1.35fr .85fr;gap:14px;text-align:left}
 .telemetry-card{position:relative;overflow:hidden;padding:18px;border:3px solid rgba(255,18,56,.7);border-radius:22px;background:linear-gradient(145deg,rgba(29,0,8,.94),rgba(5,0,3,.98));box-shadow:0 0 26px rgba(255,0,31,.18),inset 0 0 28px rgba(255,0,31,.06)}
 .telemetry-card:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0,rgba(255,255,255,.025) 1px,transparent 1px,transparent 5px);pointer-events:none;opacity:.45}
@@ -603,7 +602,7 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
 
 <nav>
   <div class="brand">
-    <div class="mark" aria-label="JK BOT">JK</div>
+    <img class="mark" src="/Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg" alt="JK Bot">
     <div>
       <div class="name">ᴊᴋ ʙᴏᴛꫂꤪꤨᴼᶠᶜ</div>
       <div class="tag">ᴍᴏᴅ ʙʏ ᴊᴀᴋᴜᴅᴏsʜʏꫂꤪꤨᴼᶠᶜ</div>
@@ -735,7 +734,6 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
 
   <section id="warcraft" class="panel" data-label="./warcraft">
     <div id="wcGameModeBar" class="wc-game-mode-bar"><strong>Warcraft RPG</strong><span>Partida compartida con WhatsApp</span><button id="wcExitGameMode" type="button"><i class="fas fa-arrow-left"></i> Volver al sitio</button></div>
-    <div id="wcOrientationHint" class="wc-orientation-hint" role="status"><div class="wc-orientation-card"><i class="fas fa-mobile-screen-button"></i><h2>Modo de juego vertical</h2><p>El juego se abre en pantalla completa cuando tu navegador lo permite. Si Chrome bloquea la orientación, el panel sigue ajustado y puedes continuar aquí.</p><button id="wcContinuePortrait" class="wc-game-btn" type="button">Activar pantalla completa</button></div></div>
     <h2><i class="fas fa-dragon"></i> WoW · Warcraft RPG</h2>
     <p class="sample-note">Un mundo de fantasía original para jugar con botones en la web o comandos en WhatsApp. Ambos usan la misma cuenta, personaje, inventario y progreso.</p>
     <div class="premium-grid">
@@ -795,16 +793,6 @@ section.panel,.hero-banner,.admin-card,.admin-head,#adminLoginBox,.modal-content
         <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-shield-halved"></i> Panel protegido</span><strong class="admin-kpi-value">OK</strong></div>
       </div>
       <div class="admin-promo-card"><div><h4><i class="fas fa-bullhorn"></i> Promoción del canal</h4><p>Envía el aviso a todos los grupos donde los bots puedan escribir. Solo se ejecuta desde esta sesión ADMIN.</p></div><button id="adminPromoButton" class="btn" type="button"><i class="fas fa-paper-plane"></i> Enviar promoción</button></div>
-      <div class="admin-card admin-reaction-token-card">
-        <div class="admin-card-head"><div><h3>Token de reacción bot</h3><p>Activa hasta 10 reacciones diarias para una cuenta WoW.</p></div><span class="admin-section-tag">AUTO REACCIÓN</span></div>
-        <form id="reactionTokenAdminForm" class="premium-grid">
-          <div class="sample-note">Cada token se puede canjear una sola vez y queda vinculado a la primera cuenta que lo active.</div>
-          <button id="reactionTokenAdminGenerate" class="btn" type="submit"><i class="fas fa-key"></i> Generar token de reacción</button>
-          <div id="reactionTokenAdminResult" class="premium-token" title="Pulsa para copiar"></div>
-        </form>
-        <div id="reactionTokenAdminStatus" class="premium-status" aria-live="polite"></div>
-        <div id="reactionTokenAdminList" class="premium-list"><strong>Tokens de reacción</strong>Sin tokens generados.</div>
-      </div>
       <div class="admin-console-grid">
         <div class="admin-card">
           <div class="admin-card-head"><div><h3>Acceso Premium</h3><p>Usuarios y tokens de acceso</p></div><span class="admin-section-tag">CONTROL</span></div>
@@ -923,11 +911,6 @@ const premiumTokenResult = document.getElementById('premiumTokenResult');
 const premiumStatus = document.getElementById('premiumStatus');
 const premiumUsersList = document.getElementById('premiumUsersList');
 const premiumTokensList = document.getElementById('premiumTokensList');
-const reactionTokenAdminForm = document.getElementById('reactionTokenAdminForm');
-const reactionTokenAdminGenerate = document.getElementById('reactionTokenAdminGenerate');
-const reactionTokenAdminResult = document.getElementById('reactionTokenAdminResult');
-const reactionTokenAdminStatus = document.getElementById('reactionTokenAdminStatus');
-const reactionTokenAdminList = document.getElementById('reactionTokenAdminList');
 const publicBotsList = document.getElementById('publicBotsList');
 const publicBotsLive = document.getElementById('publicBotsLive');
 const adminActiveSessions = document.getElementById('adminActiveSessions');
@@ -1062,39 +1045,6 @@ premiumUsersList?.addEventListener('click',(event)=>{
 premiumTokensList?.addEventListener('click',(event)=>{
   const button=event.target.closest('[data-premium-token]');
   if(button && confirm('¿Eliminar este token?')) socket.emit('admin-premium-remove-token',{id:button.dataset.premiumToken});
-});
-function renderReactionTokenData(tokens=[]){
-  if(!reactionTokenAdminList)return;
-  reactionTokenAdminList.innerHTML='<strong>Tokens de reacción</strong>'+(tokens.length?tokens.map(token=>{
-    const value=token.value||token.preview||token.id;
-    const claimed=token.claimedBy?`Activado por ${escapeAdminHtml(token.claimedBy)}`:'Disponible para canjear';
-    const created=token.createdAt?` · creado ${new Date(token.createdAt).toLocaleDateString('es-ES')}`:'';
-    return `<div class="premium-list-row"><span><code>${escapeAdminHtml(value)}</code> · ${claimed}${escapeAdminHtml(created)}</span><button class="premium-remove" data-reaction-token-remove="${escapeAdminHtml(token.id)}" type="button">Eliminar</button></div>`;
-  }).join(''):'Sin tokens generados.');
-}
-reactionTokenAdminForm?.addEventListener('submit',event=>{
-  event.preventDefault();
-  if(reactionTokenAdminGenerate)reactionTokenAdminGenerate.disabled=true;
-  if(reactionTokenAdminResult){reactionTokenAdminResult.textContent='';reactionTokenAdminResult.classList.remove('show');}
-  if(reactionTokenAdminStatus)reactionTokenAdminStatus.textContent='Generando token…';
-  socket.emit('admin-reaction-token-generate');
-});
-socket.on('admin-reaction-token-created',(result={})=>{
-  if(reactionTokenAdminResult){reactionTokenAdminResult.textContent=result.token||'';reactionTokenAdminResult.classList.toggle('show',Boolean(result.token));}
-  if(reactionTokenAdminGenerate)reactionTokenAdminGenerate.disabled=false;
-});
-socket.on('admin-reaction-token-status',(result={})=>{
-  if(reactionTokenAdminStatus){reactionTokenAdminStatus.textContent=result.message||'';reactionTokenAdminStatus.style.color=result.ok?'var(--green)':'var(--danger)';}
-  if(reactionTokenAdminGenerate)reactionTokenAdminGenerate.disabled=false;
-});
-socket.on('admin-reaction-tokens-data',renderReactionTokenData);
-reactionTokenAdminResult?.addEventListener('click',()=>{
-  if(!reactionTokenAdminResult.textContent)return;
-  navigator.clipboard?.writeText(reactionTokenAdminResult.textContent).then(()=>showToast('Token de reacción copiado'));
-});
-reactionTokenAdminList?.addEventListener('click',event=>{
-  const button=event.target.closest('[data-reaction-token-remove]');
-  if(button&&confirm('¿Eliminar este token y desactivar su cupo de 10 reacciones diarias?'))socket.emit('admin-reaction-token-remove',{id:button.dataset.reactionTokenRemove});
 });
 function copyCode(){
   const code = pairingCode.innerText;
