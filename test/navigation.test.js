@@ -36,6 +36,8 @@ test('la página incluye acceso WoW y tutoriales de cada sección', () => {
   assert.equal(document.getElementById('wcRotateGame'), null);
   const gameCss = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.css'), 'utf8');
   assert.match(gameCss, /body\.wc-game-mode #warcraft\{position:relative/);
+  assert.match(gameCss, /#warcraft:fullscreen/);
+  assert.match(gameCss, /wc-game-fullscreen-fallback/);
   assert.match(gameCss, /Cinzel/);
   assert.match(gameCss, /DM Sans/);
   assert.match(gameCss, /top:82px/);
@@ -45,7 +47,9 @@ test('la página incluye acceso WoW y tutoriales de cada sección', () => {
   assert.match(gameCss, /body:not\(\.wc-game-mode\):not\(\.wc-account-authenticated\) #warcraft\{display:none!important\}/);
   assert.match(gameCss, /body\.wc-account-authenticated:not\(\.wc-game-mode\) #wcGameMount\{display:none!important\}/);
   const gameScript = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.js'), 'utf8');
-  assert.doesNotMatch(gameScript, /requestFullscreen|orientation\.lock|wcRotateGame|wcContinuePortrait/);
+  assert.match(gameScript, /requestFullscreen/);
+  assert.match(gameScript, /scrollGameIntoView/);
+  assert.doesNotMatch(gameScript, /orientation\.lock|wcRotateGame|wcContinuePortrait/);
   assert.match(html, /jugar con botones en la web o comandos en WhatsApp/i);
   dom.window.close();
 });
@@ -179,8 +183,9 @@ test('la navegación alterna entre acceso público y cuenta sin solapar menús',
   }
 });
 
-test('Jugar WoW abre la vista integrada sin fullscreen obligatorio ni pantalla negra', async () => {
+test('Jugar WoW desplaza el reino a la vista y solicita fullscreen sin pantalla negra', async () => {
   let fullscreenRequests = 0;
+  let scrollRequests = 0;
   let orientationLocks = 0;
   let orientationUnlocks = 0;
   const botData = {};
@@ -232,6 +237,7 @@ test('Jugar WoW abre la vista integrada sin fullscreen obligatorio ni pantalla n
     window.eval(gameScript);
     await new Promise(resolve => setTimeout(resolve, 80));
     assert.ok(window.document.querySelector('.wc-game-shell'), 'la partida ya cargó en el panel');
+    window.HTMLElement.prototype.scrollIntoView = function () { scrollRequests++; };
     window.document.getElementById('menuToggle').click();
     window.document.getElementById('menuPlayWow').click();
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -239,7 +245,8 @@ test('Jugar WoW abre la vista integrada sin fullscreen obligatorio ni pantalla n
     assert.ok(window.document.body.classList.contains('wc-game-mode'));
     assert.equal(window.document.getElementById('menuDrawer').getAttribute('aria-hidden'), 'true');
     assert.ok(window.document.querySelector('.wc-game-shell'), 'Jugar no deja la pantalla en negro: muestra el juego');
-    assert.equal(fullscreenRequests, 0, 'Jugar no solicita fullscreen');
+    assert.equal(fullscreenRequests, 1, 'Jugar con sesión solicita fullscreen desde el clic');
+    assert.ok(scrollRequests > 0, 'el panel del reino se desplaza a la vista');
     assert.equal(orientationLocks, 0, 'Jugar no bloquea la orientación');
     window.document.getElementById('wcExitGameMode').click();
     assert.equal(window.document.documentElement.classList.contains('wc-game-mode'), false);
@@ -250,7 +257,7 @@ test('Jugar WoW abre la vista integrada sin fullscreen obligatorio ni pantalla n
   }
 });
 
-test('en /jkbot el juego se sincroniza suavemente sin fullscreen y conserva formularios y posición', async () => {
+test('en /jkbot el juego abre fullscreen, sincroniza y conserva formularios y posición', async () => {
   let orientationLocks = 0;
   let fullscreenRequests = 0;
   let softRefreshTick;
@@ -315,7 +322,7 @@ test('en /jkbot el juego se sincroniza suavemente sin fullscreen y conserva form
     window.document.getElementById('menuPlayWow').click();
     await new Promise(resolve => setTimeout(resolve, 100));
     assert.equal(orientationLocks, 0, 'no se solicita el bloqueo de orientación');
-    assert.equal(fullscreenRequests, 0, 'no se solicita fullscreen');
+    assert.equal(fullscreenRequests, 1, 'Jugar en /jkbot también solicita fullscreen');
     assert.equal(window.document.body.classList.contains('wc-css-landscape'), false, 'el juego no rota fuera del viewport');
     assert.ok(window.document.querySelector('.wc-game-shell'), 'la partida se integra dentro de la página');
     assert.equal(window.document.getElementById('wcRotateGame'), null, 'no existe el botón de giro/fullscreen');
