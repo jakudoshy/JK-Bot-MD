@@ -5,7 +5,7 @@
   const setup = document.getElementById('wcCharacterSetup');
   if (!mount || !setup) return;
 
-  const state = { catalog: null, me: null, shop: [], tab: 'resumen', shopFilter: 'all', classKey: '', notice: '', noticeError: false, pendingPurchase: null, players: [], playersLoadedAt: 0, awaitingCharacterSelection: false, creatingCharacter: false, formDrafts: new Map() };
+  const state = { catalog: null, me: null, shop: [], tab: 'resumen', shopFilter: 'all', classKey: '', notice: '', noticeError: false, pendingPurchase: null, players: [], playersLoadedAt: 0, awaitingCharacterSelection: false, creatingCharacter: false, formDrafts: new Map(), refreshing: false, lastRefreshAt: 0 };
   const token = () => localStorage.getItem(TOKEN_KEY);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const el = id => document.getElementById(id);
@@ -47,6 +47,10 @@
     return state.catalog;
   }
   async function refresh({ keepNotice = true } = {}) {
+    if (state.refreshing) return;
+    state.refreshing = true;
+    state.lastRefreshAt = Date.now();
+    try {
     if (!token()) {
       setup.style.display = 'none';
       if (document.body.classList.contains('wc-game-mode')) { if (el('wcProfilePanel')) el('wcProfilePanel').style.display = 'block'; renderLoginNeeded(); }
@@ -93,6 +97,9 @@
     } catch (error) {
       setNotice(error.message || 'No se pudo conectar con Warcraft.', true);
       if (state.me?.player) render();
+    }
+    } finally {
+      state.refreshing = false;
     }
   }
   function renderLegacyProfile() {
@@ -143,7 +150,7 @@
     if (form && mount.contains(active) && active.name) {
       focus = { form: form.dataset.wcForm, name: active.name, type: active.type, start: active.selectionStart, end: active.selectionEnd };
     }
-    return { tabScrollLeft: mount.querySelector('.wc-game-tabs')?.scrollLeft || 0, focus };
+    return { tabScrollLeft: mount.querySelector('.wc-game-tabs')?.scrollLeft || 0, pageScrollX: window.scrollX || 0, pageScrollY: window.scrollY || 0, focus };
   }
   function formDraftKey(name) { return `${state.me?.account?.username || ''}:${name}`; }
   function saveFormDraft(form) {
@@ -164,6 +171,9 @@
     }
     const tabs = mount.querySelector('.wc-game-tabs');
     if (tabs) tabs.scrollLeft = snapshot.tabScrollLeft;
+    if ((window.scrollX || 0) !== snapshot.pageScrollX || (window.scrollY || 0) !== snapshot.pageScrollY) {
+      try { window.scrollTo(snapshot.pageScrollX, snapshot.pageScrollY); } catch {}
+    }
     if (snapshot.focus) {
       const form = [...mount.querySelectorAll('form[data-wc-form]')].find(candidate => candidate.dataset.wcForm === snapshot.focus.form);
       const field = form && [...form.elements].find(candidate => candidate.name === snapshot.focus.name && candidate.type === snapshot.focus.type);
@@ -275,8 +285,8 @@
     const p = state.me.player;
     const group = state.me.party;
     const members = group?.members || [];
-    const dungeonInfo = run ? `<article class="wc-game-card wide"><h4>Mazmorra en curso</h4><p>${esc(run.dungeon?.name || run.name || 'Incursión')} · Ronda ${num(run.run?.round || run.round || 1)}</p><pre class="wc-game-log">${esc(JSON.stringify(run, null, 2).slice(0, 1400))}</pre><div class="wc-game-actions"><button class="wc-game-btn gold" data-wc-action="dungeon_attack" data-skill-id="auto">Atacar</button><button class="wc-game-btn" data-wc-action="dungeon_aggro">Tomar agro</button><button class="wc-game-btn" data-wc-action="dungeon_heal" data-target="banda">Curar banda</button>${Object.entries(state.me.skills || {}).map(([id, skill]) => `<button class="wc-game-btn" data-wc-action="dungeon_attack" data-skill-id="${esc(id)}">${esc(skill.name || id)}</button>`).join('')}</div></article>` : '';
-    return `<div class="wc-game-grid"><article class="wc-game-card wide"><h4>Grupo</h4>${group ? `<p>ID de grupo <strong>${esc(group.id)}</strong> · líder ${esc(group.leader)} · ${members.length}/5 integrantes</p><p>${members.map(m => `${esc(m.name)} · ${esc(classLabel(m.classKey))} · Nv ${num(m.level)} · ${num(m.hp)}/${num(m.maxHp)} vida`).join('<br>')}</p><button class="wc-game-btn danger" data-wc-action="party_leave">Salir del grupo</button>` : `<p>No tienes grupo. Crea uno y comparte el código para invitar a otros jugadores.</p><div class="wc-game-actions"><button class="wc-game-btn gold" data-wc-action="party_create">Crear grupo</button></div><form class="wc-game-form" data-wc-form="party_join"><div><label for="wcPartyId">Código del grupo</label><input id="wcPartyId" class="wc-game-input" name="partyId" required></div><button class="wc-game-btn" type="submit">Unirme</button></form>`}</article>${dungeonInfo}<article class="wc-game-card wide"><h4>Mazmorras disponibles</h4><p>Los turnos, el agro del tanque, las curaciones y el orden de NPC se comparten con el grupo.</p><div class="wc-game-map-grid">${dungeons.map(d => `<article class="wc-game-card"><h4>${esc(d.name)}</h4><p>Nivel ${num(d.level)} · Jefe: ${esc(state.catalog.enemies[d.boss]?.name || d.boss)}</p><p>${(d.rooms || []).map(room => esc(room.name)).join(' → ')}</p><button class="wc-game-btn gold" data-wc-action="dungeon_start" data-dungeon-id="${esc(d.id)}" ${p.level < d.level || !group ? 'disabled' : ''}>${group ? 'Entrar con el grupo' : 'Primero crea un grupo'}</button></article>`).join('')}</div></article></div>`;
+    const dungeonInfo = run ? `<article class="wc-game-card wide wc-dungeon-active"><div class="wc-dungeon-heading"><div><span class="wc-adventure-kicker">ENCUENTRO ACTIVO · RONDA ${num(run.round || 1)}</span><h4>${esc(run.dungeon?.name || 'Incursión')}</h4></div><span class="wc-quest-kind">${run.myTurn ? '✨ Tu turno' : `⏳ Turno de ${esc(run.currentPlayer?.name || 'otro jugador')}`}</span></div>${run.enemy ? `<div class="wc-dungeon-enemy"><strong>🐉 ${esc(run.enemy.name)}</strong><span>Nivel ${num(run.enemy.level)} · Sala: ${esc(run.enemy.roomName || 'Encuentro')}</span><div class="wc-game-bar hp"><span style="width:${pct(run.enemy.hp,run.enemy.maxHp)}%"></span></div><small>${num(run.enemy.hp)} / ${num(run.enemy.maxHp)} de vida</small></div>` : '<p>Encuentro finalizado.</p>'}<div class="wc-dungeon-members">${(run.members || []).map(member => `<div class="wc-dungeon-member ${member.active ? 'active' : ''}"><strong>${member.active ? '⚔️ ' : ''}${esc(member.name)}</strong><span>${num(member.hp)} / ${num(member.maxHp)} vida · ${esc(member.role)}</span><div class="wc-game-bar hp"><span style="width:${pct(member.hp,member.maxHp)}%"></span></div></div>`).join('')}</div><div class="wc-game-actions"><button class="wc-game-btn gold" data-wc-action="dungeon_attack" data-skill-id="auto" ${run.myTurn ? '' : 'disabled'}>⚔️ Atacar</button><button class="wc-game-btn" data-wc-action="dungeon_aggro" ${run.myTurn ? '' : 'disabled'}>🛡️ Tomar agro</button><button class="wc-game-btn" data-wc-action="dungeon_heal" data-target="banda" ${run.myTurn ? '' : 'disabled'}>💚 Curar banda</button>${Object.entries(state.me.skills || {}).map(([id, skill]) => `<button class="wc-game-btn" data-wc-action="dungeon_attack" data-skill-id="${esc(id)}" ${run.myTurn ? '' : 'disabled'}>${esc(skill.name || id)}</button>`).join('')}</div>${run.myTurn ? '<p class="wc-dungeon-tip">Elige una acción para avanzar el encuentro. Las acciones quedan bloqueadas cuando le toca a otro integrante.</p>' : '<p class="wc-dungeon-tip">Tu grupo está jugando. Los botones se activarán cuando llegue tu turno.</p>'}</article>` : '';
+    return `<div class="wc-game-grid"><article class="wc-game-card wide"><h4>Grupo</h4>${group ? `<p>ID de grupo <strong>${esc(group.id)}</strong> · líder ${esc(group.leader)} · ${members.length}/5 integrantes</p><p>${members.map(m => `${esc(m.name)} · ${esc(classLabel(m.classKey))} · Nv ${num(m.level)} · ${num(m.hp)}/${num(m.maxHp)} vida`).join('<br>')}</p><button class="wc-game-btn danger" data-wc-action="party_leave">Salir del grupo</button>` : `<p>No tienes grupo. Crea uno y comparte el código para invitar a otros jugadores.</p><div class="wc-game-actions"><button class="wc-game-btn gold" data-wc-action="party_create">Crear grupo</button></div><form class="wc-game-form" data-wc-form="party_join"><div><label for="wcPartyId">Código del grupo</label><input id="wcPartyId" class="wc-game-input" name="partyId" required></div><button class="wc-game-btn" type="submit">Unirme</button></form>`}</article>${dungeonInfo}<article class="wc-game-card wide"><h4>Mazmorras disponibles</h4><p>Los turnos, el agro del tanque, las curaciones y el orden de NPC se comparten con el grupo.</p><div class="wc-game-map-grid">${dungeons.map(d => `<article class="wc-game-card"><h4>${esc(d.name)}</h4><p>Nivel ${num(d.level)} · Jefe: ${esc(state.catalog.enemies[d.boss]?.name || d.boss)}</p><p>${(d.rooms || []).map(room => esc(room.name)).join(' → ')}</p><button class="wc-game-btn gold" data-wc-action="dungeon_start" data-dungeon-id="${esc(d.id)}" ${p.level < d.level ? 'disabled' : ''}>${group ? 'Entrar con el grupo' : 'Entrar en solitario'}</button></article>`).join('')}</div></article></div>`;
   }
   async function loadPlayers() {
     if (Date.now() - state.playersLoadedAt < 30000 && state.players.length) return;
@@ -290,7 +300,7 @@
     const transactions = state.me.transactions || [];
     const auctions = state.me.auctions || [];
     const players = state.players.filter(x => x.username !== state.me.account?.username);
-    return `<div class="wc-game-grid"><article class="wc-game-card wide"><h4>Duelos</h4>${pending ? `<p>${esc(pending.challenger)} te desafió.</p><button class="wc-game-btn gold" data-wc-action="duel_accept">Aceptar duelo</button>` : ''}${duel?.status === 'active' ? `<p>Duelo activo · ${duel.players.map(x => `${esc(x.name)} ${num(x.hp)}/${num(x.maxHp)} vida`).join(' · ')}</p><div class="wc-game-actions"><button class="wc-game-btn gold" data-wc-action="duel_attack" data-skill-id="auto">Ataque básico</button>${Object.entries(state.me.skills || {}).map(([id, skill]) => `<button class="wc-game-btn" data-wc-action="duel_attack" data-skill-id="${esc(id)}">${esc(skill.name || id)}</button>`).join('')}<button class="wc-game-btn danger" data-wc-action="duel_surrender">Rendirse</button></div>` : `<form class="wc-game-form" data-wc-form="duel_challenge"><div><label for="wcDuelTarget">Jugador (usuario, nombre o teléfono)</label><input id="wcDuelTarget" class="wc-game-input" name="target" required></div><button class="wc-game-btn gold" type="submit">Enviar desafío</button></form>`}</article><article class="wc-game-card wide"><h4>Jugadores</h4><div class="wc-game-item-grid">${players.slice(0, 12).map(row => `<article class="wc-game-item"><div class="wc-item-art">${img(state.catalog.classes.find(c => c.id === row.classKey)?.image, row.className)}</div><div><h4 class="wc-item-name">${esc(row.character)}</h4><p>@${esc(row.username)} · ${esc(row.className)} · Nivel ${num(row.level)} · GS ${num(row.gs)}</p><button class="wc-game-btn" data-target-player="${esc(row.username)}">Desafiar</button></div></article>`).join('') || '<div class="wc-game-empty">Todavía no hay otros personajes en el ranking.</div>'}</div></article><article class="wc-game-card wide"><h4>Regalos y reembolsos</h4><form class="wc-game-form" data-wc-form="gift"><div><label>Jugador destino</label><input class="wc-game-input" name="target" required></div><div><label>Tipo de regalo</label><select class="wc-game-select" name="assetType"><option value="gold">Oro</option><option value="item">Objeto</option></select></div><div><label>ID del objeto (si aplica)</label><select class="wc-game-select" name="itemId"><option value="">Selecciona objeto</option>${(state.me.inventoryDetails || []).map(i => `<option value="${esc(i.id)}">${esc(i.name)} × ${num(i.quantity)}</option>`).join('')}</select></div><div><label>Cantidad de oro/objetos</label><input class="wc-game-input" name="amount" type="number" min="1" value="1"></div><button class="wc-game-btn" type="submit">Enviar regalo inmediato</button></form><form class="wc-game-form" data-wc-form="refund_create" style="margin-top:14px"><div><label>Jugador destino</label><input class="wc-game-input" name="target" required></div><div><label>Qué ofreces</label><select class="wc-game-select" name="offerType"><option value="gold">Oro</option><option value="item">Objeto</option></select></div><div><label>Objeto ofrecido</label><select class="wc-game-select" name="offerItemId"><option value="">Selecciona objeto</option>${(state.me.inventoryDetails || []).map(i => `<option value="${esc(i.id)}">${esc(i.name)}</option>`).join('')}</select></div><div><label>Cantidad ofrecida</label><input class="wc-game-input" name="offerAmount" type="number" min="1" value="1"></div><div><label>Qué solicitas</label><select class="wc-game-select" name="requestType"><option value="none">Nada</option><option value="gold">Oro</option><option value="item">Objeto</option></select></div><div><label>Objeto solicitado (si aplica)</label><select class="wc-game-select" name="requestItemId"><option value="">Selecciona objeto</option>${Object.entries(state.catalog.items).slice(0,180).map(([id,i]) => `<option value="${esc(id)}">${esc(i.name)}</option>`).join('')}</select></div><div><label>Cantidad solicitada</label><input class="wc-game-input" name="requestAmount" type="number" min="1" value="1"></div><button class="wc-game-btn gold" type="submit">Enviar solicitud segura</button></form>${transactions.length ? `<h4 style="margin-top:18px">Solicitudes pendientes</h4>${transactions.map(tx => `<article class="wc-game-card"><p>${tx.incoming ? `De ${esc(tx.fromName)}` : `Para ${esc(tx.toName)}`} · ofrece ${esc(assetText(tx.offer))} y solicita ${esc(assetText(tx.request))}</p><div class="wc-game-actions">${tx.incoming ? `<button class="wc-game-btn gold" data-wc-action="refund_accept" data-transaction-id="${esc(tx.id)}">Aceptar intercambio</button>` : ''}<button class="wc-game-btn danger" data-wc-action="refund_cancel" data-transaction-id="${esc(tx.id)}">Cancelar</button></div></article>`).join('')}` : ''}</article><article class="wc-game-card wide"><h4>Casa de subastas</h4><div class="wc-game-item-grid">${auctions.map(a => `<article class="wc-game-item"><div class="wc-item-art">${img(a.itemInfo?.image, a.itemInfo?.name || 'Objeto')}</div><div><h4 class="wc-item-name">${esc(a.itemInfo?.name || a.item)}</h4><p>${num(a.price)} oro · vendedor ${esc(a.sellerName)}</p><button class="wc-game-btn" data-wc-action="auction_buy" data-id="${esc(a.id)}">Comprar</button></div></article>`).join('') || '<div class="wc-game-empty">No hay artículos publicados.</div>'}</div><form class="wc-game-form" data-wc-form="auction_list"><div><label>Objeto para publicar</label><select class="wc-game-select" name="itemId">${(state.me.inventoryDetails || []).map(i => `<option value="${esc(i.id)}">${esc(i.name)}</option>`).join('')}</select></div><div><label>Precio de salida</label><input class="wc-game-input" name="price" type="number" min="1" value="100"></div><button class="wc-game-btn" type="submit">Publicar artículo</button></form></article></div>`;
+    return `<div class="wc-game-grid"><article class="wc-game-card wide"><h4>Duelos</h4>${pending ? `<p>${esc(pending.challenger)} te desafió.</p><button class="wc-game-btn gold" data-wc-action="duel_accept">Aceptar duelo</button>` : ''}${duel?.status === 'active' ? `<p>Duelo activo · ${duel.players.map(x => `${esc(x.name)} ${num(x.hp)}/${num(x.maxHp)} vida`).join(' · ')}</p><p class="wc-dungeon-tip" aria-live="polite">${duel.myTurn ? '✨ Es tu turno: elige una habilidad.' : '⏳ Esperando el turno del rival.'}</p><div class="wc-game-actions"><button class="wc-game-btn gold" data-wc-action="duel_attack" data-skill-id="auto" ${duel.myTurn ? '' : 'disabled'}>⚔️ Ataque básico</button>${Object.entries(state.me.skills || {}).map(([id, skill]) => `<button class="wc-game-btn" data-wc-action="duel_attack" data-skill-id="${esc(id)}" ${duel.myTurn ? '' : 'disabled'}>${esc(skill.name || id)}</button>`).join('')}<button class="wc-game-btn danger" data-wc-action="duel_surrender">Rendirse</button></div>` : `<form class="wc-game-form" data-wc-form="duel_challenge"><div><label for="wcDuelTarget">Jugador (usuario, nombre o teléfono)</label><input id="wcDuelTarget" class="wc-game-input" name="target" required></div><button class="wc-game-btn gold" type="submit">Enviar desafío</button></form>`}</article><article class="wc-game-card wide"><h4>Jugadores</h4><div class="wc-game-item-grid">${players.slice(0, 12).map(row => `<article class="wc-game-item"><div class="wc-item-art">${img(state.catalog.classes.find(c => c.id === row.classKey)?.image, row.className)}</div><div><h4 class="wc-item-name">${esc(row.character)}</h4><p>@${esc(row.username)} · ${esc(row.className)} · Nivel ${num(row.level)} · GS ${num(row.gs)}</p><button class="wc-game-btn" data-target-player="${esc(row.username)}">Desafiar</button></div></article>`).join('') || '<div class="wc-game-empty">Todavía no hay otros personajes en el ranking.</div>'}</div></article><article class="wc-game-card wide"><h4>Regalos y reembolsos</h4><form class="wc-game-form" data-wc-form="gift"><div><label>Jugador destino</label><input class="wc-game-input" name="target" required></div><div><label>Tipo de regalo</label><select class="wc-game-select" name="assetType"><option value="gold">Oro</option><option value="item">Objeto</option></select></div><div><label>ID del objeto (si aplica)</label><select class="wc-game-select" name="itemId"><option value="">Selecciona objeto</option>${(state.me.inventoryDetails || []).map(i => `<option value="${esc(i.id)}">${esc(i.name)} × ${num(i.quantity)}</option>`).join('')}</select></div><div><label>Cantidad de oro/objetos</label><input class="wc-game-input" name="amount" type="number" min="1" value="1"></div><button class="wc-game-btn" type="submit">Enviar regalo inmediato</button></form><form class="wc-game-form" data-wc-form="refund_create" style="margin-top:14px"><div><label>Jugador destino</label><input class="wc-game-input" name="target" required></div><div><label>Qué ofreces</label><select class="wc-game-select" name="offerType"><option value="gold">Oro</option><option value="item">Objeto</option></select></div><div><label>Objeto ofrecido</label><select class="wc-game-select" name="offerItemId"><option value="">Selecciona objeto</option>${(state.me.inventoryDetails || []).map(i => `<option value="${esc(i.id)}">${esc(i.name)}</option>`).join('')}</select></div><div><label>Cantidad ofrecida</label><input class="wc-game-input" name="offerAmount" type="number" min="1" value="1"></div><div><label>Qué solicitas</label><select class="wc-game-select" name="requestType"><option value="none">Nada</option><option value="gold">Oro</option><option value="item">Objeto</option></select></div><div><label>Objeto solicitado (si aplica)</label><select class="wc-game-select" name="requestItemId"><option value="">Selecciona objeto</option>${Object.entries(state.catalog.items).slice(0,180).map(([id,i]) => `<option value="${esc(id)}">${esc(i.name)}</option>`).join('')}</select></div><div><label>Cantidad solicitada</label><input class="wc-game-input" name="requestAmount" type="number" min="1" value="1"></div><button class="wc-game-btn gold" type="submit">Enviar solicitud segura</button></form>${transactions.length ? `<h4 style="margin-top:18px">Solicitudes pendientes</h4>${transactions.map(tx => `<article class="wc-game-card"><p>${tx.incoming ? `De ${esc(tx.fromName)}` : `Para ${esc(tx.toName)}`} · ofrece ${esc(assetText(tx.offer))} y solicita ${esc(assetText(tx.request))}</p><div class="wc-game-actions">${tx.incoming ? `<button class="wc-game-btn gold" data-wc-action="refund_accept" data-transaction-id="${esc(tx.id)}">Aceptar intercambio</button>` : ''}<button class="wc-game-btn danger" data-wc-action="refund_cancel" data-transaction-id="${esc(tx.id)}">Cancelar</button></div></article>`).join('')}` : ''}</article><article class="wc-game-card wide"><h4>Casa de subastas</h4><div class="wc-game-item-grid">${auctions.map(a => `<article class="wc-game-item"><div class="wc-item-art">${img(a.itemInfo?.image, a.itemInfo?.name || 'Objeto')}</div><div><h4 class="wc-item-name">${esc(a.itemInfo?.name || a.item)}</h4><p>${num(a.price)} oro · vendedor ${esc(a.sellerName)}</p><button class="wc-game-btn" data-wc-action="auction_buy" data-id="${esc(a.id)}">Comprar</button></div></article>`).join('') || '<div class="wc-game-empty">No hay artículos publicados.</div>'}</div><form class="wc-game-form" data-wc-form="auction_list"><div><label>Objeto para publicar</label><select class="wc-game-select" name="itemId">${(state.me.inventoryDetails || []).map(i => `<option value="${esc(i.id)}">${esc(i.name)}</option>`).join('')}</select></div><div><label>Precio de salida</label><input class="wc-game-input" name="price" type="number" min="1" value="100"></div><button class="wc-game-btn" type="submit">Publicar artículo</button></form></article></div>`;
   }
   function assetText(asset) {
     if (!asset || asset.type === 'none') return 'nada';
@@ -430,33 +440,8 @@
   });
   el('wcLoginForm')?.addEventListener('submit', () => { state.awaitingCharacterSelection = true; }, true);
   el('wcVerifyBtn')?.addEventListener('click', () => { state.awaitingCharacterSelection = true; }, true);
-  let nativePortraitLock = false;
-  const gameElement = () => el('warcraft') || document.documentElement;
-  const requestGameFullscreen = () => {
-    if (document.fullscreenElement) return Promise.resolve(true);
-    const target = gameElement();
-    if (typeof target?.requestFullscreen !== 'function') return Promise.resolve(false);
-    try { return Promise.resolve(target.requestFullscreen()).then(() => true, () => false); }
-    catch { return Promise.resolve(false); }
-  };
-  const lockGamePortrait = async () => {
-    const orientation = window.screen?.orientation;
-    if (typeof orientation?.lock !== 'function') return false;
-    try { await orientation.lock('portrait'); nativePortraitLock = true; return true; }
-    catch { nativePortraitLock = false; return false; }
-  };
-  const activateFullscreenPortrait = async fullscreenPromise => {
-    const entered = await fullscreenPromise;
-    if (entered) await lockGamePortrait();
-    return entered;
-  };
-  const restoreGameOrientation = () => {
-    if (nativePortraitLock) { try { window.screen?.orientation?.unlock?.(); } catch {} }
-    nativePortraitLock = false;
-  };
   const enterGameMode = async event => {
     event?.preventDefault?.();
-    const fullscreenPromise = requestGameFullscreen();
     document.body.classList.add('wc-game-mode');
     const profile = el('wcProfilePanel');
     if (profile) profile.style.display = 'block';
@@ -466,20 +451,17 @@
       if (status) status.textContent = state.notice;
       setup.style.display = 'none';
       renderLoginNeeded(state.notice);
-      await activateFullscreenPortrait(fullscreenPromise);
       return;
     }
     mount.innerHTML = '<div class="wc-game-loading" role="status"><span class="wc-game-spinner"></span><h3>Entrando a Warcraft</h3><p>Cargando tu cuenta, personaje y mundo…</p></div>';
-    await Promise.all([refresh({ keepNotice: false }), activateFullscreenPortrait(fullscreenPromise)]);
+    await refresh({ keepNotice: false });
     if (!state.me && token()) {
       if (profile) profile.style.display = 'block';
       mount.innerHTML = `<div class="wc-game-load-error" role="alert"><h3>No se pudo cargar el juego</h3><p>${esc(state.notice || 'Revisa tu conexión e inténtalo de nuevo.')}</p><button class="wc-game-btn" type="button" data-wc-local="retry-game">Reintentar</button></div>`;
     }
   };
-  const leaveGameMode = async () => {
-    restoreGameOrientation();
-    document.body.classList.remove('wc-game-mode', 'wc-portrait-override');
-    if (document.fullscreenElement === gameElement()) { try { await document.exitFullscreen?.(); } catch {} }
+  const leaveGameMode = () => {
+    document.body.classList.remove('wc-game-mode');
   };
   document.addEventListener('click', event => {
     const play = event.target?.closest?.('#menuPlayWow');
@@ -488,19 +470,20 @@
     enterGameMode(event);
   }, true);
   el('wcExitGameMode')?.addEventListener('click', leaveGameMode);
-  el('wcRotateGame')?.addEventListener('click', () => { activateFullscreenPortrait(requestGameFullscreen()); });
-  el('wcContinuePortrait')?.addEventListener('click', () => { activateFullscreenPortrait(requestGameFullscreen()); });
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && document.body.classList.contains('wc-game-mode')) leaveGameMode();
   });
-  document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement && document.body.classList.contains('wc-game-mode')) {
-      restoreGameOrientation();
-      document.body.classList.remove('wc-game-mode', 'wc-portrait-override');
-    }
-  });
   window.addEventListener('wc-profile-refresh', () => refresh());
-  window.addEventListener('orientationchange', () => refresh());
+  const refreshWhenGameIsOpen = () => {
+    if (!document.hidden && document.body.classList.contains('wc-game-mode') && !state.refreshing) void refresh();
+  };
+  const softRefreshTimer = window.setInterval(refreshWhenGameIsOpen, 5000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && document.body.classList.contains('wc-game-mode') && Date.now() - state.lastRefreshAt >= 5000) refreshWhenGameIsOpen();
+  });
+  window.addEventListener('focus', refreshWhenGameIsOpen);
+  window.addEventListener('online', refreshWhenGameIsOpen);
+  window.addEventListener('pagehide', () => window.clearInterval(softRefreshTimer), { once: true });
   window.wcGameRefresh = refresh;
   refresh();
 })();

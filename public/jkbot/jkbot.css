@@ -9,9 +9,6 @@ body.jkbot-app #menuToggle span{display:block;width:100%;height:2px;background:#
 body.jkbot-app .wc-account-wrap{position:relative;display:flex;align-items:center;flex:0 0 auto}
 body.jkbot-app #wcAccountButton{position:relative;inset:auto;z-index:1;width:44px;height:44px;flex:0 0 44px}
 body.jkbot-app #wcAccountButton .wc-avatar{width:38px;height:38px;font-size:1rem}
-body.jkbot-app #menuDrawer #menuAutoReaction{color:#ff8299;border-left:2px solid rgba(255,49,91,.5)}
-body.jkbot-app #menuDrawer #menuAutoReaction:hover,body.jkbot-app #menuDrawer #menuAutoReaction:focus-visible{background:rgba(255,49,91,.09);color:#ffc0cc}
-body.jkbot-app #autoReaction{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
 #jkNotificationBadge{position:absolute;top:-5px;right:-5px;display:grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border:2px solid #130a0f;border-radius:999px;background:#ff315b;color:#fff;font:700 .68rem/1 system-ui}
 #jkNotificationBadge[hidden],#jkNotificationPanel[hidden],#jkNotificationToast[hidden]{display:none!important}
 #jkNotificationPanel{position:fixed;z-index:1400;top:76px;right:18px;width:min(390px,calc(100vw - 20px));max-height:min(68vh,590px);overflow:auto;border:1px solid rgba(255,49,91,.35);border-radius:18px;background:linear-gradient(150deg,#171018,#090b10);color:#f5edf1;box-shadow:0 20px 70px rgba(0,0,0,.55)}

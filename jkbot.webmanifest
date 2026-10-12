@@ -1,7 +1,7 @@
 {
   "name": "JK Bot",
   "short_name": "JK Bot",
-  "description": "Panel JK Bot con herramientas, Warcraft y Auto Reacción.",
+  "description": "Panel JK Bot con herramientas y Warcraft.",
   "lang": "es",
   "start_url": "/jkbot",
   "scope": "/",

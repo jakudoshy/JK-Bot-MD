@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const Module = require('node:module');
-const { createTelegramBackupStore, normalizeTelegramChatId, encryptSnapshot, MARKER, LEGACY_MARKERS } = require('../lib/telegramBackupStore');
+const { createTelegramBackupStore, normalizeTelegramChatId, encryptSnapshot, formatCubaBackupDateTime, createBackupCaption, parseBackupMetadata, MARKER, LEGACY_MARKERS } = require('../lib/telegramBackupStore');
 
 let appState = null;
 let poolOptions = null;
@@ -33,6 +33,26 @@ Module._load = function(request, parent, isMain) {
 };
 const store = require('../lib/postgresPremiumStore');
 Module._load = originalLoad;
+
+test('el respaldo muestra fecha y hora cubanas en formato de 12 horas y oculta el marcador técnico', () => {
+    const timestamp = '2026-10-11T23:29:35.096Z';
+    const formatted = formatCubaBackupDateTime(timestamp);
+    assert.equal(formatted.date, '11 de octubre de 2026');
+    assert.equal(formatted.time, '7:29 p.m.');
+    const caption = createBackupCaption(timestamp, { role: 'current', previousId: 42 });
+    const visibleText = caption.slice(0, caption.indexOf('<tg-spoiler>'));
+    assert.match(visibleText, /☁️ <b>RESPALDO SEGURO · JK BOT<\/b>/);
+    assert.match(visibleText, /✅ <b>Estado:<\/b> Sincronización completada/);
+    assert.match(visibleText, /📅 <b>Fecha:<\/b> 11 de octubre de 2026/);
+    assert.match(visibleText, /🕒 <b>Hora de Cuba:<\/b> 7:29 p\.m\./);
+    assert.match(visibleText, /🔐 <b>Protección:<\/b> datos y sesiones cifrados/);
+    assert.match(visibleText, /🧾 <b>Copia anterior:<\/b> disponible/);
+    assert.doesNotMatch(visibleText, /T23:29|23:29/);
+    assert.match(caption, /<tg-spoiler>JK-BOT-MD-STATE:v3:/);
+    assert.deepEqual(parseBackupMetadata(caption), { version: '3', timestamp, role: 'current', previousId: 42 });
+    assert.equal(parseBackupMetadata(`archivo ajeno ${MARKER}${timestamp}|role=current|prev=42`), null);
+    assert.equal(parseBackupMetadata(`${LEGACY_MARKERS[0]}2026-01-01T00:00:00.000Z|role=current|prev=8`).version, '2');
+});
 
 test('PostgreSQL conserva y restaura el estado completo y las escrituras en cola', async () => {
     appState = null;
@@ -84,7 +104,7 @@ test('Telegram guarda estado y sesiones Baileys cifrados y restaura sesiones sin
         async sendDocument(buffer, filename, caption) {
             const id = nextMessageId++;
             files.set(String(id), Buffer.from(buffer));
-            messages.set(id, { message_id: id, caption, document: { file_id: String(id) } });
+            messages.set(id, { message_id: id, caption, document: { file_id: String(id), file_name: filename } });
             return { message_id: id, filename, caption };
         },
         async pinMessage(messageId) {
@@ -114,7 +134,10 @@ test('Telegram guarda estado y sesiones Baileys cifrados y restaura sesiones sin
     store.scheduleSave(state, { immediate: true });
     await store.flush();
     const uploaded = files.get(String(pinnedMessage.message_id));
-    assert.ok(pinnedMessage.caption.startsWith(MARKER));
+    assert.ok(pinnedMessage.caption.startsWith('☁️ <b>RESPALDO SEGURO · JK BOT</b>'));
+    assert.ok(pinnedMessage.caption.includes(`<tg-spoiler>${MARKER}`), 'el marcador técnico de restauración va oculto en el spoiler');
+    assert.equal(pinnedMessage.document.file_name, 'respaldo-jk-bot-cifrado.enc');
+    assert.equal(parseBackupMetadata(pinnedMessage.caption).role, 'current');
     assert.equal(uploaded.includes(Buffer.from('secret')), false, 'el archivo almacenado no debe exponer el JSON en texto plano');
     assert.equal(uploaded.includes(Buffer.from('session-secret-initial')), false, 'las credenciales Baileys tampoco deben quedar en texto plano');
     fs.writeFileSync(authFile, JSON.stringify({ credential: 'session-secret-latest' }));
@@ -168,20 +191,22 @@ test('Telegram guarda estado y sesiones Baileys cifrados y restaura sesiones sin
     assert.deepEqual(afterIncompleteWrite.state.premiumTokens.testHash.claimedBy, [claimant], 'un archivo temporalmente incompleto no debe sustituir la última copia válida');
 });
 
-test('Telegram mantiene compatibilidad de lectura con copias v1 ya fijadas', async () => {
+test('Telegram mantiene compatibilidad de lectura con copias v1 y v2 ya fijadas', async () => {
     const token = 'test-legacy-token';
     const state = { adminSettings: { maintenance: false } };
     const encrypted = encryptSnapshot(state, token);
-    const pinnedMessage = { message_id: 88, caption: `${LEGACY_MARKERS[0]}2026-01-01T00:00:00.000Z|role=current|prev=0`, document: { file_id: 'legacy-file' } };
-    const api = {
-        async getChat() { return { type: 'channel', message_auto_delete_time: 0, pinned_message: pinnedMessage }; },
-        async downloadFile() { return encrypted; }
-    };
-    const store = createTelegramBackupStore({ token, chatId: '-100123', api, logger: { log() {}, error() {} } });
-    const restored = await store.restore();
-    assert.equal(restored.hasData, true);
-    assert.deepEqual(restored.state, state);
-    assert.equal(restored.authFilesAvailable, 0);
+    for (const [index, marker] of LEGACY_MARKERS.entries()) {
+        const pinnedMessage = { message_id: 88 + index, caption: `${marker}2026-01-01T00:00:00.000Z|role=current|prev=0`, document: { file_id: `legacy-file-${index}` } };
+        const api = {
+            async getChat() { return { type: 'channel', message_auto_delete_time: 0, pinned_message: pinnedMessage }; },
+            async downloadFile() { return encrypted; }
+        };
+        const store = createTelegramBackupStore({ token, chatId: '-100123', api, logger: { log() {}, error() {} } });
+        const restored = await store.restore();
+        assert.equal(restored.hasData, true);
+        assert.deepEqual(restored.state, state);
+        assert.equal(restored.authFilesAvailable, 0);
+    }
 });
 
 test('Telegram rechaza canales configurados con borrado automático', async () => {

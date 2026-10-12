@@ -1,7 +1,10 @@
-# TODO — nueva web JK Bot
+# Estado de la web JK Bot
 
-- [x] La ruta nueva `/jkbot` muestra el sitio JK Bot con las funciones existentes y navegación de tres puntos para Jugar WoW, Auto Reacción y Mi cuenta; la ruta `/` conserva su contenido y comportamiento.
-- [x] Auto Reacción permite que una cuenta autenticada pegue el enlace de una publicación de Canal WhatsApp, elija un emoji, confirme y envíe esa reacción desde la sesión activa asociada al teléfono; muestra estados claros si falla el enlace, la sesión o el envío.
-- [x] Warcraft conserva cuentas, personajes, progreso, inventario, oro y estado compartidos con WhatsApp; el perfil enseña vida, oro, talentos disponibles/usados y su distribución, y el juego se maneja con botones.
-- [x] Los poderes de clase se desbloquean conforme sube el nivel, indican su requisito y solo se pueden usar cuando están desbloqueados; incluye progresión propia para Caballero de la Muerte y Paladín.
-- [x] Jugar WoW intenta girar a horizontal sin pedir pantalla completa; si el navegador niega el bloqueo, usa una vista apaisada CSS. El juego sigue visible y al salir vuelve a la vista normal.
+- [x] `/jkbot` conserva el sitio y sus funciones; `/` mantiene su ruta y contenido.
+- [x] Auto Reacción se retiró del portal, la consola de creador, la API web y sus recursos asociados, según lo solicitado.
+- [x] El encabezado usa la misma imagen local de JK Bot que la portada, recortada en un avatar circular; no se añadieron fotos nuevas.
+- [x] Warcraft comparte cuenta, personajes, progreso, inventario, oro y estado con WhatsApp; el perfil muestra estadísticas, talentos y poderes.
+- [x] WoW permanece dentro de la página: no solicita pantalla completa ni bloquea la orientación; ofrece «Volver al sitio» y salida con Escape.
+- [x] Con el juego abierto, el cliente vuelve a consultar el estado cada cinco segundos sin recargar la página y conserva el foco, los borradores y la posición.
+- [x] La progresión de talentos y poderes se aplica en el motor compartido, incluidos Caballero de la Muerte y Paladín.
+- [x] El código admite persistencia en PostgreSQL y respaldo cifrado de estado/sesiones en Telegram; para activarla, el hosting debe tener configuradas sus variables privadas.

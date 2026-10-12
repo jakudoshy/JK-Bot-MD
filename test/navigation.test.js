@@ -13,24 +13,38 @@ const jkbotHtml = renderJkBotPage(html);
 test('la página incluye acceso WoW y tutoriales de cada sección', () => {
   const dom = new JSDOM(html);
   const document = dom.window.document;
-  assert.equal(document.querySelector('a[href="#wcRegisterForm"]')?.textContent.trim(), 'Crear cuenta WoW');
-  assert.equal(document.querySelector('a[href="#wcLoginForm"]')?.textContent.trim(), 'Iniciar sesión WoW');
+  assert.equal(document.querySelector('a[href="#wcRegisterForm"]')?.textContent.replace('✨','').trim(), 'Crear cuenta WoW');
+  assert.equal(document.querySelector('a[href="#wcLoginForm"]')?.textContent.replace('🔐','').trim(), 'Iniciar sesión WoW');
   assert.ok(document.getElementById('wcTutorials'));
   assert.equal(document.querySelectorAll('#wcTutorials .wc-help').length, 10);
   assert.ok(document.querySelector('#wcCharacterSetup .wc-help'));
   assert.ok(document.getElementById('wcGameMount'));
   assert.equal(document.querySelector('#menuPlayWow')?.getAttribute('href'), '#warcraft');
+  const drawer = document.getElementById('menuDrawer');
+  const drawerLabels = [...drawer.querySelectorAll('a')].map(link => link.textContent.replace(/\s+/g, ' ').trim());
+  assert.ok(!drawerLabels.join(' ').match(/reacci[oó]n|reaction/i), 'el menú no debe mostrar una opción de reacciones');
+  assert.ok(drawerLabels.some(label => label.includes('👑') && label.includes('Zona del creador')));
+  assert.ok(drawerLabels.some(label => label.includes('🔗') && label.includes('Vincular WhatsApp')));
+  assert.ok(drawerLabels.some(label => label.includes('📡') && label.includes('Canal de Telegram')));
+  assert.equal(document.querySelector('#menuDrawer').getAttribute('aria-label'), 'Menú principal');
+  assert.equal(document.querySelector('.banner-nav a[href="#connect"]')?.textContent.replace('🔗','').trim(), 'Conectar WhatsApp');
+  assert.match(html, /jk-friendly-navigation/);
+  assert.match(html, /font-family:Cinzel/);
   assert.ok(document.getElementById('wcExitGameMode'));
-  assert.ok(document.getElementById('wcOrientationHint'));
+  assert.equal(document.getElementById('wcOrientationHint'), null);
+  assert.equal(document.getElementById('wcRotateGame'), null);
   const gameCss = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.css'), 'utf8');
   assert.match(gameCss, /body\.wc-game-mode #warcraft\{position:relative/);
+  assert.match(gameCss, /Cinzel/);
+  assert.match(gameCss, /DM Sans/);
+  assert.match(gameCss, /top:82px/);
   assert.doesNotMatch(gameCss, /body\.wc-game-mode> :not\(#warcraft\)/);
   assert.match(gameCss, /orientation:landscape/);
-  assert.match(gameCss, /fullscreen vertical/);
-  assert.match(gameCss, /body\.wc-game-mode #warcraft:fullscreen/);
   assert.doesNotMatch(gameCss, /rotate\(90deg\)/);
   assert.match(gameCss, /body:not\(\.wc-game-mode\):not\(\.wc-account-authenticated\) #warcraft\{display:none!important\}/);
   assert.match(gameCss, /body\.wc-account-authenticated:not\(\.wc-game-mode\) #wcGameMount\{display:none!important\}/);
+  const gameScript = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.js'), 'utf8');
+  assert.doesNotMatch(gameScript, /requestFullscreen|orientation\.lock|wcRotateGame|wcContinuePortrait/);
   assert.match(html, /jugar con botones en la web o comandos en WhatsApp/i);
   dom.window.close();
 });
@@ -45,14 +59,12 @@ test('las rutas de juego web usan el adaptador Warcraft autenticado', () => {
   assert.doesNotMatch(server, /app\.post\('\/api\/warcraft\/(?:duel|mmo|action)'.*?status\(410\)/s);
 });
 
-test('la nueva ruta /jkbot añade módulos sin sustituir la ruta principal y protege Auto Reacción', () => {
+test('la ruta /jkbot se conserva y Auto Reacción ya no se expone en el servidor', () => {
   const server = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
   assert.match(server, /app\.get\(\['\/jkbot', '\/jkbot\/'\]/);
   assert.match(server, /renderJkBotPage\(INDEX_TEMPLATE/);
-  assert.match(server, /app\.post\('\/api\/reactions\/channel'/);
-  assert.match(server, /warcraftAccountFromToken\(req\.headers\.authorization/);
-  assert.match(server, /warcraftSessionForPhone\(account\.phone\)/);
-  assert.match(server, /sendChannelReaction\(session\.sock, req\.body\)/);
+  assert.doesNotMatch(server, /\/api\/reactions\//);
+  assert.doesNotMatch(server, /admin-reaction-token/);
 });
 
 test('WhatsApp ofrece un menú interactivo para aceptar las misiones del nivel', () => {
@@ -155,12 +167,18 @@ test('la navegación alterna entre acceso público y cuenta sin solapar menús',
     assert.equal(profileLink.style.display, 'none');
     assert.equal(get('wcLoginForm').style.display, '');
     assert.equal(get('wcRegisterForm').style.display, '');
+
+    get('menuToggle').click();
+    get('menuDrawer').querySelector('a[href=\"#wcLoginForm\"]').click();
+    assert.equal(get('menuDrawer').getAttribute('aria-hidden'), 'true');
+    assert.ok(window.document.body.classList.contains('wc-game-mode'));
+    assert.equal(get('wcLoginForm').style.display, '', 'el enlace del menú muestra el login en la vista de juego');
   } finally {
     window.close();
   }
 });
 
-test('Jugar WoW carga el juego en fullscreen vertical y no deja una pantalla negra', async () => {
+test('Jugar WoW abre la vista integrada sin fullscreen obligatorio ni pantalla negra', async () => {
   let fullscreenRequests = 0;
   let orientationLocks = 0;
   let orientationUnlocks = 0;
@@ -220,20 +238,24 @@ test('Jugar WoW carga el juego en fullscreen vertical y no deja una pantalla neg
     assert.ok(window.document.body.classList.contains('wc-game-mode'));
     assert.equal(window.document.getElementById('menuDrawer').getAttribute('aria-hidden'), 'true');
     assert.ok(window.document.querySelector('.wc-game-shell'), 'Jugar no deja la pantalla en negro: muestra el juego');
-    assert.equal(fullscreenRequests, 1, 'la página raíz solicita fullscreen al tocar Jugar');
-    assert.equal(orientationLocks, 1, 'la página raíz solicita orientación vertical');
+    assert.equal(fullscreenRequests, 0, 'Jugar no solicita fullscreen');
+    assert.equal(orientationLocks, 0, 'Jugar no bloquea la orientación');
     window.document.getElementById('wcExitGameMode').click();
     assert.equal(window.document.documentElement.classList.contains('wc-game-mode'), false);
     assert.equal(window.document.body.classList.contains('wc-game-mode'), false);
-    assert.equal(orientationUnlocks, 1, 'al salir libera el giro nativo');
+    assert.equal(orientationUnlocks, 0, 'no hay bloqueo nativo que liberar');
   } finally {
     window.close();
   }
 });
 
-test('en /jkbot fullscreen vertical conserva talentos, poderes y formularios visibles', async () => {
+test('en /jkbot el juego se sincroniza suavemente sin fullscreen y conserva formularios y posición', async () => {
   let orientationLocks = 0;
   let fullscreenRequests = 0;
+  let softRefreshTick;
+  let refreshDelay;
+  let profileRequests = 0;
+  let pageScrollY = 0;
   const botData = {};
   game.ensureRoot(botData);
   const root = botData.warcraft;
@@ -255,10 +277,13 @@ test('en /jkbot fullscreen vertical conserva talentos, poderes y formularios vis
       window.localStorage.setItem('jk_warcraft_token', 'game-session');
       Object.defineProperty(window, 'innerWidth', { value: 390, configurable: true });
       Object.defineProperty(window, 'innerHeight', { value: 844, configurable: true });
+      Object.defineProperty(window.document, 'hidden', { value: false, configurable: true });
+      Object.defineProperty(window, 'scrollY', { get: () => pageScrollY, configurable: true });
+      window.scrollTo = (_x, y) => { pageScrollY = y; };
       window.fetch = async url => {
         const target = String(url);
         if (target.endsWith('/catalog')) return { ok: true, status: 200, json: async () => ({ ok: true, ...catalog }) };
-        if (target.endsWith('/me')) return { ok: true, status: 200, json: async () => ({ ok: true, account: { username: account.username }, ...web.playerState(root, account), rank: 1 }) };
+        if (target.endsWith('/me')) { profileRequests++; return { ok: true, status: 200, json: async () => ({ ok: true, account: { username: account.username }, ...web.playerState(root, account), rank: 1 }) }; }
         if (target.endsWith('/shop')) return { ok: true, status: 200, json: async () => ({ ok: true, items: shop }) };
         if (target.endsWith('/active-users')) return { ok: true, status: 200, json: async () => ({ ok: true, users: [], totalRegistered: 1, totalCharacters: 1 }) };
         return { ok: true, status: 200, json: async () => ({ ok: true, message: 'ok' }) };
@@ -268,10 +293,11 @@ test('en /jkbot fullscreen vertical conserva talentos, poderes y formularios vis
       window.IntersectionObserver = class { observe() {} disconnect() {} };
       window.HTMLElement.prototype.scrollIntoView = function () {};
       window.HTMLCanvasElement.prototype.getContext = () => null;
-      Object.defineProperty(window.screen, 'orientation', { configurable: true, value: {
-        lock: () => { orientationLocks++; return Promise.reject(new Error('orientation lock unavailable')); },
-        unlock() {}
-      } });
+      const realSetInterval = window.setInterval.bind(window);
+      window.setInterval = (callback, delay, ...args) => {
+        if (delay === 5000) { softRefreshTick = callback; refreshDelay = delay; return realSetInterval(() => {}, delay, ...args); }
+        return realSetInterval(callback, delay, ...args);
+      };
     }
   });
   const window = dom.window;
@@ -287,13 +313,13 @@ test('en /jkbot fullscreen vertical conserva talentos, poderes y formularios vis
     window.document.getElementById('menuToggle').click();
     window.document.getElementById('menuPlayWow').click();
     await new Promise(resolve => setTimeout(resolve, 100));
-    assert.equal(orientationLocks, 1, 'se solicita orientación vertical después de fullscreen');
+    assert.equal(orientationLocks, 0, 'no se solicita el bloqueo de orientación');
+    assert.equal(fullscreenRequests, 0, 'no se solicita fullscreen');
     assert.equal(window.document.body.classList.contains('wc-css-landscape'), false, 'el juego no rota fuera del viewport');
-    assert.ok(window.document.querySelector('.wc-game-shell'), 'la partida carga aunque el navegador rechace el bloqueo de orientación');
-    window.document.getElementById('wcRotateGame').click();
-    await new Promise(resolve => setTimeout(resolve, 10));
-    assert.equal(orientationLocks, 2, 'el botón vuelve a solicitar orientación vertical');
-    assert.equal(fullscreenRequests, 2, 'Jugar y el botón usan fullscreen iniciado por clic');
+    assert.ok(window.document.querySelector('.wc-game-shell'), 'la partida se integra dentro de la página');
+    assert.equal(window.document.getElementById('wcRotateGame'), null, 'no existe el botón de giro/fullscreen');
+    assert.equal(refreshDelay, 5000, 'el refresco automático se programa cada cinco segundos');
+    assert.equal(typeof softRefreshTick, 'function');
     window.document.querySelector('[data-tab="mas"]').click();
     const mailTarget = window.document.querySelector('form[data-wc-form="mail_send"] input[name="target"]');
     mailTarget.focus();
@@ -302,12 +328,18 @@ test('en /jkbot fullscreen vertical conserva talentos, poderes y formularios vis
     mailTarget.dispatchEvent(new window.Event('input', { bubbles: true }));
     const tabRail = window.document.querySelector('.wc-game-tabs');
     tabRail.scrollLeft = 183;
-    window.dispatchEvent(new window.Event('wc-profile-refresh'));
+    pageScrollY = 241;
+    const pageRoot = window.document.documentElement;
+    const requestsBeforeSoftRefresh = profileRequests;
+    softRefreshTick();
     await new Promise(resolve => setTimeout(resolve, 80));
+    assert.ok(profileRequests > requestsBeforeSoftRefresh, 'el refresco automático vuelve a consultar el estado del perfil');
+    assert.equal(window.document.documentElement, pageRoot, 'actualiza datos sin recargar el documento');
     const restoredTarget = window.document.querySelector('form[data-wc-form="mail_send"] input[name="target"]');
     assert.equal(restoredTarget.value, '535000123456', 'el refresco en vivo conserva el número escrito');
     assert.equal(window.document.activeElement, restoredTarget, 'el refresco conserva el foco en el campo');
     assert.equal(window.document.querySelector('.wc-game-tabs').scrollLeft, 183, 'la navegación horizontal no retrocede al inicio');
+    assert.equal(pageScrollY, 241, 'la página conserva la posición vertical durante la actualización');
     window.document.getElementById('wcExitGameMode').click();
     assert.equal(window.document.body.classList.contains('wc-game-mode'), false);
     assert.equal(window.document.body.classList.contains('wc-css-landscape'), false);

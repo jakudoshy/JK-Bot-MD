@@ -18,11 +18,11 @@
 @media(prefers-reduced-motion:reduce){.wc-game-btn,.wc-game-tabs button,.wc-game-bar span{transition:none}}
 
 
-/* Modo de juego: fullscreen vertical cuando el navegador lo autoriza; panel interno desplazable como respaldo. */
-.wc-game-mode-bar,.wc-orientation-hint{display:none}
+/* Modo de juego integrado en la página: conserva el flujo y desplazamiento normal. */
+.wc-game-mode-bar{display:none}
 body.wc-game-mode #warcraft{position:relative;z-index:1;width:100%;max-width:1560px;height:auto;min-height:0;max-height:none;margin:clamp(12px,2vw,26px) auto;padding:clamp(10px,1.8vw,22px);overflow:visible;overscroll-behavior:auto;border:1px solid rgba(215,174,104,.3);border-radius:20px;background:radial-gradient(ellipse at 12% 0%,rgba(101,65,37,.24),transparent 45%),linear-gradient(155deg,#0b0d12,#100d13 72%,#17110d)!important;box-shadow:0 18px 50px rgba(0,0,0,.3)!important;scroll-margin-top:88px}
 body.wc-game-mode #warcraft>h2,body.wc-game-mode #warcraft>.sample-note,body.wc-game-mode #wcLobbyCard,body.wc-game-mode #wcTutorials,body.wc-game-mode #wcProfilePanel>.wc-profile-top,body.wc-game-mode #wcProfileStats,body.wc-game-mode #wcProfilePanel>.wc-profile-columns{display:none!important}
-body.wc-game-mode .wc-game-mode-bar{position:sticky;top:8px;z-index:20;display:flex;align-items:center;gap:12px;min-height:48px;margin:-2px 0 12px;padding:8px 12px;border:1px solid rgba(210,170,100,.24);border-radius:13px;background:rgba(8,9,13,.96);backdrop-filter:blur(12px)}
+body.wc-game-mode .wc-game-mode-bar{position:sticky;top:82px;z-index:80;display:flex;align-items:center;gap:12px;min-height:48px;margin:-2px 0 12px;padding:8px 12px;border:1px solid rgba(210,170,100,.24);border-radius:13px;background:rgba(8,9,13,.96);backdrop-filter:blur(12px)}
 body.wc-game-mode .wc-game-mode-bar strong{color:#f5d59d;font-size:.96rem}
 body.wc-game-mode .wc-game-mode-bar span{flex:1;color:#a99f90;font-size:.78rem}
 body.wc-game-mode .wc-game-mode-bar button{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:7px 11px;border:1px solid rgba(215,174,104,.38);border-radius:10px;background:rgba(255,255,255,.04);color:#f0dfc2;font:inherit;font-size:.78rem;font-weight:600;cursor:pointer}
@@ -32,19 +32,11 @@ body.wc-game-mode #wcProfilePanel,body.wc-game-mode #wcCharacterSetup{grid-colum
 body.wc-game-mode #wcProfilePanel #wcGameMount{margin:0}
 body.wc-game-mode #wcCreateCharacterForm,body.wc-game-mode #wcLoginForm,body.wc-game-mode #wcRegisterForm{min-width:0}
 body.wc-game-mode #wcLoginForm[style*="display: none"],body.wc-game-mode #wcRegisterForm[style*="display: none"]{display:none!important}
-body.wc-game-mode .wc-orientation-hint{display:none}
-body.wc-game-mode.wc-portrait-override #wcOrientationHint{display:none!important}
 @media (orientation:landscape) and (min-width:700px){body.wc-game-mode #warcraft>.premium-grid{grid-template-columns:repeat(2,minmax(0,1fr))}body.wc-game-mode #wcProfilePanel,body.wc-game-mode #wcCharacterSetup{grid-column:1/-1}body.wc-game-mode .wc-game-shell{min-height:min(68vh,780px)}body.wc-game-mode .wc-game-hero{grid-template-columns:auto minmax(120px,1fr) auto;gap:12px;padding:14px 18px}body.wc-game-mode .wc-game-tabs{gap:5px;padding:8px 10px}body.wc-game-mode .wc-game-tabs button{padding:8px 10px;font-size:.78rem}}
 @media (max-width:720px){body.wc-game-mode #warcraft>.premium-grid{grid-template-columns:minmax(0,1fr)}body.wc-game-mode .wc-game-mode-bar span{display:none}body.wc-game-mode .wc-game-mode-bar button{margin-left:auto}}
-@media (orientation:portrait) and (max-width:900px){body.wc-game-mode #wcOrientationHint{display:block;position:relative;z-index:1;margin:8px 0 12px;padding:10px 12px;border:1px solid rgba(215,174,104,.25);border-radius:12px;background:rgba(165,116,54,.1)}body.wc-game-mode #wcOrientationHint .wc-orientation-card{display:flex;align-items:center;gap:10px;width:auto;padding:0;border:0;border-radius:0;background:transparent;color:#eee5d7;text-align:left;box-shadow:none}body.wc-game-mode #wcOrientationHint .wc-orientation-card>i{color:#f0c36f;font-size:1rem}body.wc-game-mode #wcOrientationHint h2{margin:0;color:#ffe0a2;font-size:.9rem}body.wc-game-mode #wcOrientationHint p{flex:1;margin:0;color:#c8bead;font-size:.78rem;line-height:1.4}body.wc-game-mode #wcOrientationHint .wc-game-btn{width:auto;min-height:34px;white-space:nowrap;padding:6px 9px;font-size:.75rem}}
 @media(prefers-reduced-motion:reduce){body.wc-game-mode *{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 
-body.wc-game-mode .wc-game-mode-bar #wcRotateGame{margin-left:auto}
-body.wc-game-mode .wc-game-mode-bar #wcExitGameMode{margin-left:0}
-body.wc-game-mode #warcraft:fullscreen,body.wc-game-mode #warcraft:-webkit-full-screen{position:fixed!important;inset:0!important;z-index:12000!important;box-sizing:border-box;width:100vw!important;height:100vh!important;height:100dvh!important;min-height:0!important;max-width:none!important;max-height:none!important;margin:0!important;padding:clamp(8px,2vw,18px)!important;overflow:auto!important;overscroll-behavior:contain;border:0!important;border-radius:0!important;background:radial-gradient(ellipse at 12% 0%,rgba(101,65,37,.24),transparent 45%),linear-gradient(155deg,#0b0d12,#100d13 72%,#17110d)!important}
-body.wc-game-mode #warcraft:fullscreen>.premium-grid,body.wc-game-mode #warcraft:-webkit-full-screen>.premium-grid{grid-template-columns:minmax(0,1fr)!important}
-body.wc-game-mode #warcraft:fullscreen #wcOrientationHint,body.wc-game-mode #warcraft:-webkit-full-screen #wcOrientationHint{display:none!important}
-body.wc-game-mode #warcraft:fullscreen .wc-game-shell,body.wc-game-mode #warcraft:-webkit-full-screen .wc-game-shell{min-height:0;max-height:none}
+body.wc-game-mode .wc-game-mode-bar #wcExitGameMode{margin-left:auto}
 
 /* Character selection after login */
 .wc-character-picker{display:grid;gap:16px;padding:clamp(14px,2.3vw,26px);border:1px solid rgba(215,174,104,.24);border-radius:18px;background:linear-gradient(145deg,rgba(24,29,37,.98),rgba(12,16,22,.98));box-shadow:0 18px 50px rgba(0,0,0,.22)}
@@ -119,7 +111,7 @@ body.wc-game-mode #warcraft:fullscreen .wc-game-shell,body.wc-game-mode #warcraf
 /* La portada del bot no contiene el lobby ni controles Warcraft. La cuenta autenticada conserva su resumen; Jugar muestra el juego. */
 body:not(.wc-game-mode):not(.wc-account-authenticated) #warcraft{display:none!important}
 body.wc-account-authenticated:not(.wc-game-mode) #warcraft{display:block!important;max-width:1120px;margin:16px auto;padding:0;border:0;background:transparent!important;box-shadow:none!important}
-body:not(.wc-game-mode) #warcraft>h2,body:not(.wc-game-mode) #warcraft>.sample-note,body:not(.wc-game-mode) #wcLobbyCard,body:not(.wc-game-mode) #wcTutorials,body:not(.wc-game-mode) #wcCharacterSetup,body:not(.wc-game-mode) #wcLoginForm,body:not(.wc-game-mode) #wcRegisterForm,body:not(.wc-game-mode) #wcGameModeBar,body:not(.wc-game-mode) #wcOrientationHint,body:not(.wc-game-mode) #wcGameMount{display:none!important}
+body:not(.wc-game-mode) #warcraft>h2,body:not(.wc-game-mode) #warcraft>.sample-note,body:not(.wc-game-mode) #wcLobbyCard,body:not(.wc-game-mode) #wcTutorials,body:not(.wc-game-mode) #wcCharacterSetup,body:not(.wc-game-mode) #wcLoginForm,body:not(.wc-game-mode) #wcRegisterForm,body:not(.wc-game-mode) #wcGameModeBar,body:not(.wc-game-mode) #wcGameMount{display:none!important}
 body.wc-account-authenticated:not(.wc-game-mode) #wcProfilePanel{display:block!important;grid-column:1/-1!important;width:100%;margin:0;padding:clamp(14px,2vw,24px);border:1px solid rgba(211,170,101,.34);border-radius:18px;background:linear-gradient(145deg,rgba(17,20,28,.98),rgba(29,22,33,.97));box-shadow:0 18px 48px rgba(0,0,0,.24)}
 body.wc-account-authenticated:not(.wc-game-mode) #wcProfilePanel>.wc-profile-top{display:flex!important;align-items:center;gap:12px}
 body.wc-account-authenticated:not(.wc-game-mode) #wcProfileStats{display:grid!important}
@@ -189,3 +181,22 @@ body.wc-account-authenticated:not(.wc-game-mode) #wcGameMount{display:none!impor
 @keyframes wc-notice-arrive{from{opacity:.25;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 @keyframes wc-legendary-line{to{background-position:200% 0}}
 @media(prefers-reduced-motion:reduce){.wc-game-grid>.wc-game-card,.wc-game-hero,.wc-game-notice:not(:empty),.wc-adventure-banner:after{animation:none!important}.wc-game-item:hover,.wc-game-card:hover,.wc-game-portrait:hover{transform:none!important}}
+
+
+/* Hakudo-inspired realm: ink blue, jade highlights and warm brass; readable on small screens. */
+.wc-game-mount{font-family:"DM Sans",Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#e6edf5}
+.wc-game-title,.wc-adventure-banner h3{font-family:Cinzel,Georgia,"Times New Roman",serif;letter-spacing:.025em}
+.wc-game-shell{border-color:rgba(103,173,165,.3);background:radial-gradient(ellipse at 8% 0%,rgba(47,114,112,.22),transparent 43%),linear-gradient(155deg,#0b121b,#10141c 66%,#171711)}
+.wc-game-hero{background:linear-gradient(100deg,rgba(33,128,119,.17),rgba(207,170,93,.045) 58%,transparent);border-color:rgba(118,185,173,.2)}
+.wc-game-portrait{border-color:#73b9a6;box-shadow:0 0 22px rgba(88,199,172,.19)}
+.wc-game-chip{border-color:rgba(112,187,170,.25);color:#e0eee7}.wc-game-chip strong{color:#f2cf84}
+.wc-game-tabs{border-color:rgba(118,185,173,.17);scrollbar-color:#558b80 transparent}
+.wc-game-tabs button:hover{border-color:#5a9a91;color:#f2f8f5}.wc-game-tabs button.active{border-color:#6fb7a5;background:linear-gradient(135deg,rgba(43,124,112,.34),rgba(162,126,57,.19));color:#e5f4e9;box-shadow:inset 0 0 0 1px rgba(123,211,183,.08)}
+.wc-game-card{border-color:rgba(116,166,153,.18);background:linear-gradient(145deg,rgba(19,42,48,.42),rgba(255,255,255,.018));box-shadow:0 12px 28px rgba(0,0,0,.16)}.wc-game-card h4{color:#e9d7a6}.wc-game-card p{color:#c8d2d5}.wc-game-card .muted{color:#9dafb4}
+.wc-game-btn{border-color:rgba(107,178,161,.44);background:linear-gradient(135deg,rgba(35,102,92,.4),rgba(42,52,61,.58));color:#e4f2eb}.wc-game-btn:hover{border-color:#82cfb5}.wc-game-btn.gold{border-color:#b89555;background:linear-gradient(135deg,#73572b,#3b3422);color:#ffebbd}.wc-game-btn.secondary{border-color:rgba(165,190,193,.25);background:rgba(164,196,199,.055);color:#d9e5e6}
+.wc-game-notice{border-color:rgba(116,189,164,.36);background:rgba(35,117,91,.12);color:#c4f1dc}.wc-game-input:focus,.wc-game-select:focus{border-color:#78c3ad;box-shadow:0 0 0 3px rgba(95,187,153,.15)}
+.wc-adventure-banner{border-color:rgba(115,187,165,.45);background:radial-gradient(ellipse at 90% 10%,rgba(61,141,126,.2),transparent 44%),linear-gradient(120deg,rgba(18,42,49,.98),rgba(13,24,34,.98))}.wc-adventure-banner::after{background:linear-gradient(90deg,transparent,#6fb7a5,#dec17b,transparent)}.wc-adventure-kicker{color:#98d7bd}.wc-adventure-banner h3{color:#f4e6bd}.wc-adventure-meta span,.wc-quest-kind{border-color:rgba(118,190,164,.34);color:#c7e7d1}
+.wc-game-mode-bar{border-color:rgba(112,187,170,.26);background:rgba(7,14,20,.97)}body.wc-game-mode .wc-game-mode-bar strong{color:#e8d49a}body.wc-game-mode .wc-game-mode-bar button{border-color:rgba(112,187,170,.4);color:#d9efe6}
+.wc-dungeon-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.wc-dungeon-heading h4{font-family:Cinzel,Georgia,serif;font-size:1.15rem}.wc-dungeon-enemy{display:grid;gap:5px;margin:12px 0;padding:14px;border:1px solid rgba(213,158,102,.25);border-radius:13px;background:linear-gradient(120deg,rgba(97,49,45,.2),rgba(12,23,31,.62))}.wc-dungeon-enemy>strong{color:#f1d4a1}.wc-dungeon-enemy>span,.wc-dungeon-enemy small{color:#adbdc2;font-size:.82rem}.wc-dungeon-members{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:8px;margin:12px 0}.wc-dungeon-member{display:grid;gap:5px;padding:10px 12px;border:1px solid rgba(111,157,154,.19);border-radius:11px;background:rgba(4,12,17,.36)}.wc-dungeon-member.active{border-color:rgba(117,197,164,.52);background:rgba(40,103,81,.12)}.wc-dungeon-member strong{color:#e8eadc}.wc-dungeon-member span,.wc-dungeon-tip{color:#aebdc1;font-size:.8rem}.wc-dungeon-tip{margin:9px 0 0!important}
+.wc-game-btn:focus-visible,.wc-game-tabs button:focus-visible,.wc-game-input:focus-visible,.wc-game-select:focus-visible{outline:2px solid #a0e4c7;outline-offset:2px}
+@media(max-width:720px){body.wc-game-mode .wc-game-mode-bar{top:78px;gap:8px;padding:7px 9px}body.wc-game-mode .wc-game-mode-bar button{min-height:38px;font-size:.74rem}.wc-dungeon-heading{align-items:flex-start}.wc-dungeon-heading .wc-quest-kind{max-width:100%;white-space:normal}}
