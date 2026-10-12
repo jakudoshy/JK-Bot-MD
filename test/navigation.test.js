@@ -30,6 +30,7 @@ test('la página incluye acceso WoW y tutoriales de cada sección', () => {
   assert.equal(document.querySelector('.banner-nav a[href="#connect"]')?.textContent.replace('🔗','').trim(), 'Conectar WhatsApp');
   assert.match(html, /jk-friendly-navigation/);
   assert.match(html, /font-family:Cinzel/);
+  assert.match(html, /#menuDrawer #menuProfileLink\{white-space:nowrap;flex-wrap:nowrap;word-break:keep-all\}/);
   assert.ok(document.getElementById('wcExitGameMode'));
   assert.equal(document.getElementById('wcOrientationHint'), null);
   assert.equal(document.getElementById('wcRotateGame'), null);
