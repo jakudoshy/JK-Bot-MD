@@ -207,3 +207,6 @@ body.wc-game-mode #warcraft:fullscreen .wc-game-mode-bar,body.wc-game-mode #warc
 body.wc-game-mode.wc-game-fullscreen-fallback{overflow:hidden!important}
 body.wc-game-mode.wc-game-fullscreen-fallback #warcraft{position:fixed!important;inset:0!important;z-index:10020!important;width:100vw!important;max-width:none!important;height:100vh!important;height:100dvh!important;min-height:100vh!important;margin:0!important;padding:12px!important;overflow:auto!important;overscroll-behavior:contain;border-radius:0!important;background:#0b0d12!important}
 body.wc-game-mode.wc-game-fullscreen-fallback .wc-game-mode-bar{top:8px}
+
+/* Mantener estable la partida: las animaciones de entrada no deben reiniciarse en cada sincronización. */
+body.wc-game-mode .wc-game-hero,body.wc-game-mode .wc-game-grid>.wc-game-card,body.wc-game-mode .wc-game-notice:not(:empty),body.wc-game-mode .wc-adventure-banner::after{animation:none!important}

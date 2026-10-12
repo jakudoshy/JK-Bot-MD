@@ -41,6 +41,7 @@ test('la página incluye acceso WoW y tutoriales de cada sección', () => {
   assert.match(gameCss, /Cinzel/);
   assert.match(gameCss, /DM Sans/);
   assert.match(gameCss, /top:82px/);
+  assert.match(gameCss, /body\.wc-game-mode \.wc-game-hero.*animation:none!important/);
   assert.doesNotMatch(gameCss, /body\.wc-game-mode> :not\(#warcraft\)/);
   assert.match(gameCss, /orientation:landscape/);
   assert.doesNotMatch(gameCss, /rotate\(90deg\)/);
@@ -49,6 +50,8 @@ test('la página incluye acceso WoW y tutoriales de cada sección', () => {
   const gameScript = fs.readFileSync(path.join(__dirname, '..', 'public/warcraft/game-ui.js'), 'utf8');
   assert.match(gameScript, /requestFullscreen/);
   assert.match(gameScript, /scrollGameIntoView/);
+  const globalRefresh = html.match(/async function refreshWcLive\(\)\{([\s\S]*?)function scheduleWcRefresh/)?.[1] || '';
+  assert.match(globalRefresh, /wc-game-mode[\s\S]*wcGameRefresh/, 'el sondeo global no duplica la sincronización mientras WoW está abierto');
   assert.doesNotMatch(gameScript, /orientation\.lock|wcRotateGame|wcContinuePortrait/);
   assert.match(html, /jugar con botones en la web o comandos en WhatsApp/i);
   dom.window.close();
@@ -303,7 +306,7 @@ test('en /jkbot el juego abre fullscreen, sincroniza y conserva formularios y po
       window.HTMLCanvasElement.prototype.getContext = () => null;
       const realSetInterval = window.setInterval.bind(window);
       window.setInterval = (callback, delay, ...args) => {
-        if (delay === 5000) { softRefreshTick = callback; refreshDelay = delay; return realSetInterval(() => {}, delay, ...args); }
+        if (delay === 15000) { softRefreshTick = callback; refreshDelay = delay; return realSetInterval(() => {}, delay, ...args); }
         return realSetInterval(callback, delay, ...args);
       };
     }
@@ -326,7 +329,7 @@ test('en /jkbot el juego abre fullscreen, sincroniza y conserva formularios y po
     assert.equal(window.document.body.classList.contains('wc-css-landscape'), false, 'el juego no rota fuera del viewport');
     assert.ok(window.document.querySelector('.wc-game-shell'), 'la partida se integra dentro de la página');
     assert.equal(window.document.getElementById('wcRotateGame'), null, 'no existe el botón de giro/fullscreen');
-    assert.equal(refreshDelay, 5000, 'el refresco automático se programa cada cinco segundos');
+    assert.equal(refreshDelay, 15000, 'el sondeo de respaldo se programa cada quince segundos');
     assert.equal(typeof softRefreshTick, 'function');
     window.document.querySelector('[data-tab="mas"]').click();
     const mailTarget = window.document.querySelector('form[data-wc-form="mail_send"] input[name="target"]');
@@ -338,11 +341,13 @@ test('en /jkbot el juego abre fullscreen, sincroniza y conserva formularios y po
     tabRail.scrollLeft = 183;
     pageScrollY = 241;
     const pageRoot = window.document.documentElement;
+    const stableGameShell = window.document.querySelector('.wc-game-shell');
     const requestsBeforeSoftRefresh = profileRequests;
     softRefreshTick();
     await new Promise(resolve => setTimeout(resolve, 80));
     assert.ok(profileRequests > requestsBeforeSoftRefresh, 'el refresco automático vuelve a consultar el estado del perfil');
     assert.equal(window.document.documentElement, pageRoot, 'actualiza datos sin recargar el documento');
+    assert.equal(window.document.querySelector('.wc-game-shell'), stableGameShell, 'conserva el DOM del juego si el estado no cambió');
     const restoredTarget = window.document.querySelector('form[data-wc-form="mail_send"] input[name="target"]');
     assert.equal(restoredTarget.value, '535000123456', 'el refresco en vivo conserva el número escrito');
     assert.equal(window.document.activeElement, restoredTarget, 'el refresco conserva el foco en el campo');

@@ -5,7 +5,7 @@
   const setup = document.getElementById('wcCharacterSetup');
   if (!mount || !setup) return;
 
-  const state = { catalog: null, me: null, shop: [], tab: 'resumen', shopFilter: 'all', classKey: '', notice: '', noticeError: false, pendingPurchase: null, players: [], playersLoadedAt: 0, awaitingCharacterSelection: false, creatingCharacter: false, formDrafts: new Map(), refreshing: false, lastRefreshAt: 0 };
+  const state = { catalog: null, me: null, shop: [], tab: 'resumen', shopFilter: 'all', classKey: '', notice: '', noticeError: false, pendingPurchase: null, players: [], playersLoadedAt: 0, awaitingCharacterSelection: false, creatingCharacter: false, formDrafts: new Map(), refreshing: false, lastRefreshAt: 0, lastRenderedKey: '' };
   const token = () => localStorage.getItem(TOKEN_KEY);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const el = id => document.getElementById(id);
@@ -18,6 +18,7 @@
   const pct = (value, max) => Math.max(0, Math.min(100, max ? Math.round((Number(value || 0) / Number(max)) * 100) : 0));
   const labelForZone = id => state.catalog?.zones?.find(z => z.id === id)?.name || id || 'Aldea del Alba';
   const enemyLabel = id => state.catalog?.enemies?.[id]?.name || state.me?.player?.generatedMissionEnemies?.[id]?.name || id || 'criaturas';
+  const currentRenderKey = () => JSON.stringify({ me: state.me, tab: state.tab, notice: state.notice, noticeError: state.noticeError, shop: state.tab === 'tienda' ? state.shop : [], players: state.tab === 'jugadores' ? state.players : [], pendingPurchase: state.pendingPurchase, awaitingCharacterSelection: state.awaitingCharacterSelection, creatingCharacter: state.creatingCharacter });
   const statRows = item => {
     const hasDamageRange = Number.isFinite(Number(item?.damageMin)) && Number.isFinite(Number(item?.damageMax));
     const keys = [['attack', 'Ataque'], ['armor', 'Armadura'], ['defense', 'Defensa'], ['strength', 'Fuerza'], ['agility', 'Agilidad'], ['intellect', 'Intelecto'], ['stamina', 'Aguante'], ['heal', 'Curación']].filter(([key]) => !(hasDamageRange && key === 'attack'));
@@ -79,6 +80,7 @@
       window.jkbotGameState = data;
       window.dispatchEvent(new CustomEvent('jkbot:state', { detail: data }));
       if (!keepNotice) setNotice('');
+      if (document.body.classList.contains('wc-game-mode') && mount.querySelector('.wc-game-shell') && state.lastRenderedKey === currentRenderKey()) return;
       if (state.awaitingCharacterSelection) {
         const portraitAccountView = window.matchMedia?.('(max-width: 720px) and (orientation: portrait)').matches === true;
         if (document.body.classList.contains('wc-game-mode') || !portraitAccountView) renderCharacterPicker();
@@ -202,6 +204,7 @@
       vitals.appendChild(restButton);
     }
     renderMailInbox();
+    state.lastRenderedKey = currentRenderKey();
   }
   function renderTab() {
     switch (state.tab) {
@@ -512,12 +515,13 @@
     if (event.key === 'Escape' && document.body.classList.contains('wc-game-mode')) leaveGameMode();
   });
   window.addEventListener('wc-profile-refresh', () => refresh());
+  const GAME_REFRESH_INTERVAL = 15000;
   const refreshWhenGameIsOpen = () => {
     if (!document.hidden && document.body.classList.contains('wc-game-mode') && !state.refreshing) void refresh();
   };
-  const softRefreshTimer = window.setInterval(refreshWhenGameIsOpen, 5000);
+  const softRefreshTimer = window.setInterval(refreshWhenGameIsOpen, GAME_REFRESH_INTERVAL);
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && document.body.classList.contains('wc-game-mode') && Date.now() - state.lastRefreshAt >= 5000) refreshWhenGameIsOpen();
+    if (!document.hidden && document.body.classList.contains('wc-game-mode') && Date.now() - state.lastRefreshAt >= GAME_REFRESH_INTERVAL) refreshWhenGameIsOpen();
   });
   window.addEventListener('focus', refreshWhenGameIsOpen);
   window.addEventListener('online', refreshWhenGameIsOpen);

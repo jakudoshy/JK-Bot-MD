@@ -43,7 +43,7 @@ test('el respaldo muestra fecha y hora cubanas en formato de 12 horas y oculta e
     const visibleText = caption.slice(0, caption.indexOf('<tg-spoiler>'));
     assert.match(visibleText, /☁️ <b>RESPALDO SEGURO · JK BOT<\/b>/);
     assert.match(visibleText, /✅ <b>ᴇꜱᴛᴀᴅᴏ:<\/b> ꜱɪɴᴄʀᴏɴɪᴢᴀᴄɪ/);
-    assert.match(visibleText, /📅 <b>ꜰᴇᴄʜᴀ:<\/b> 11 ᴅᴇ ᴏᴄᴛᴜʙʀᴇ ᴅᴇ 2026/);
+    assert.match(visibleText, /📅 <b>ᴜ́ʟᴛɪᴍᴀ ᴀᴄᴛᴜᴀʟɪᴢᴀᴄɪᴏ́ɴ:<\/b> 11 ᴅᴇ ᴏᴄᴛᴜʙʀᴇ ᴅᴇ 2026/);
     assert.match(visibleText, /🕒 <b>ʜᴏʀᴀ ᴅᴇ ᴄᴜʙᴀ:<\/b> 7:29 ᴘ\.ᴍ\./);
     assert.match(visibleText, /🔐 <b>ᴘʀᴏᴛᴇᴄᴄɪ/);
     assert.match(visibleText, /🧾 <b>ᴄᴏᴘɪᴀ ᴀɴᴛᴇʀɪᴏʀ:<\/b> ᴅɪꜱᴘᴏɴɪʙʟᴇ/);
