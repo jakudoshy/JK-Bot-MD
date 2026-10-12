@@ -440,6 +440,35 @@
   });
   el('wcLoginForm')?.addEventListener('submit', () => { state.awaitingCharacterSelection = true; }, true);
   el('wcVerifyBtn')?.addEventListener('click', () => { state.awaitingCharacterSelection = true; }, true);
+  const scrollGameIntoView = () => {
+    const section = el('warcraft');
+    if (!section?.scrollIntoView) return;
+    const reveal = () => {
+      try { section.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      catch { section.scrollIntoView(); }
+    };
+    if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(reveal);
+    else window.setTimeout(reveal, 0);
+  };
+  const requestGameFullscreen = () => {
+    const section = el('warcraft');
+    if (!section || document.fullscreenElement || document.webkitFullscreenElement) return;
+    const request = section.requestFullscreen || section.webkitRequestFullscreen;
+    if (typeof request !== 'function' || document.fullscreenEnabled === false) {
+      document.body.classList.add('wc-game-fullscreen-fallback');
+      return;
+    }
+    try {
+      const result = request === section.requestFullscreen
+        ? request.call(section, { navigationUI: 'hide' })
+        : request.call(section);
+      Promise.resolve(result)
+        .then(() => document.body.classList.remove('wc-game-fullscreen-fallback'))
+        .catch(() => document.body.classList.add('wc-game-fullscreen-fallback'));
+    } catch {
+      document.body.classList.add('wc-game-fullscreen-fallback');
+    }
+  };
   const enterGameMode = async event => {
     event?.preventDefault?.();
     document.body.classList.add('wc-game-mode');
@@ -451,9 +480,12 @@
       if (status) status.textContent = state.notice;
       setup.style.display = 'none';
       renderLoginNeeded(state.notice);
+      scrollGameIntoView();
       return;
     }
+    requestGameFullscreen();
     mount.innerHTML = '<div class="wc-game-loading" role="status"><span class="wc-game-spinner"></span><h3>Entrando a Warcraft</h3><p>Cargando tu cuenta, personaje y mundo…</p></div>';
+    scrollGameIntoView();
     await refresh({ keepNotice: false });
     if (!state.me && token()) {
       if (profile) profile.style.display = 'block';
@@ -461,7 +493,13 @@
     }
   };
   const leaveGameMode = () => {
-    document.body.classList.remove('wc-game-mode');
+    document.body.classList.remove('wc-game-mode', 'wc-game-fullscreen-fallback');
+    const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+    const section = el('warcraft');
+    if (section && fullscreenElement === section) {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      try { Promise.resolve(exit?.call(document)).catch(() => {}); } catch {}
+    }
   };
   document.addEventListener('click', event => {
     const play = event.target?.closest?.('#menuPlayWow');
