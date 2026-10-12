@@ -45,9 +45,9 @@ test('el respaldo muestra fecha y hora cubanas en formato de 12 horas y oculta e
     assert.match(visibleText, /✅ <b>ᴇꜱᴛᴀᴅᴏ:<\/b> ꜱɪɴᴄʀᴏɴɪᴢᴀᴄɪ/);
     assert.match(visibleText, /📅 <b>ꜰᴇᴄʜᴀ:<\/b> 11 ᴅᴇ ᴏᴄᴛᴜʙʀᴇ ᴅᴇ 2026/);
     assert.match(visibleText, /🕒 <b>ʜᴏʀᴀ ᴅᴇ ᴄᴜʙᴀ:<\/b> 7:29 ᴘ\.ᴍ\./);
-    assert.match(visibleText, /🛡️ <b>ᴘʀᴏᴛᴇᴄᴄɪ/);
+    assert.match(visibleText, /🔐 <b>ᴘʀᴏᴛᴇᴄᴄɪ/);
     assert.match(visibleText, /🧾 <b>ᴄᴏᴘɪᴀ ᴀɴᴛᴇʀɪᴏʀ:<\/b> ᴅɪꜱᴘᴏɴɪʙʟᴇ/);
-    assert.doesNotMatch(visibleText, /🔐/, 'Protección usa un escudo, sin el icono de la llave dorada');
+    assert.doesNotMatch(visibleText, /<img\b|background(?:-image)?\s*=/i, 'la leyenda contiene texto, no imágenes ni fondos incrustados');
     assert.doesNotMatch(visibleText, /T23:29|23:29/);
     const visibleLines = visibleText.trimEnd().split('\n');
     const dividers = visibleLines.filter(line => line === '━━━━━━━━━━');
